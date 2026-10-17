@@ -1,0 +1,11 @@
+{
+  "description": "Encrypted, user-supplied HWC dependencies; not licensed under MIT",
+  "ndk": "29.0.14206865",
+  "platform": "android-33",
+  "build_tools": "35.0.0",
+  "files": {
+    "hwcomposer.stock.so": "d1ba01bf135151580c41dc7de13dd1c80876094c8022f58fe9ceecd0c9fb0988",
+    "hwcomposer.motion.so": "adbdf9aeb1868e1fb9bf01394a8f67942adb9b3c97a93d6ec2d168f83e60a675"
+  },
+  "encrypted_sha256": "dc6a9fe64b8a4dc67ba100dcf95a0385a8087b2eeb6dc58a45c16aaede7d9282"
+}

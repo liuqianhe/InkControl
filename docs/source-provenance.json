@@ -1,0 +1,1012 @@
+[
+  {
+    "source": "02_模块开发/过渡动画模块/src/com/einkmotion/Config.java",
+    "target": "src/com/inkcontrol/features/motion/Config.java",
+    "sha256": "b0eaf5494cd7f3cf698152264728c3e9756c25d90d1b75b30b305a33d8bce933"
+  },
+  {
+    "source": "02_模块开发/过渡动画模块/src/com/einkmotion/Geometry.java",
+    "target": "src/com/inkcontrol/features/motion/Geometry.java",
+    "sha256": "a6fc18b9ee8627fe384def14a21db822776e0126c8f1381d330840b9b347fc25"
+  },
+  {
+    "source": "02_模块开发/过渡动画模块/src/com/einkmotion/HoldAnimation.java",
+    "target": "src/com/inkcontrol/features/motion/HoldAnimation.java",
+    "sha256": "d73ab4b3f105821e0d4da82c967a4acd2fe3e34eac498aa1b7eb2014c18b7153"
+  },
+  {
+    "source": "02_模块开发/过渡动画模块/src/com/einkmotion/Hook.java",
+    "target": "src/com/inkcontrol/features/motion/Hook.java",
+    "sha256": "a3e5224b0484cd6ee93ee6c38d0c5c3c50fcc37e89a59bf0e7b639630ac1170c"
+  },
+  {
+    "source": "02_模块开发/过渡动画模块/src/com/einkmotion/HwcBridge.java",
+    "target": "src/com/inkcontrol/features/motion/HwcBridge.java",
+    "sha256": "82f35118a238e82bbc88341386268e054b0cc6cf4df247d7e698e4ef3d9e5856"
+  },
+  {
+    "source": "02_模块开发/过渡动画模块/src/com/einkmotion/LockTransitions.java",
+    "target": "src/com/inkcontrol/features/motion/LockTransitions.java",
+    "sha256": "4437c7c70f45cd4c57f935a912f27c6bc67e21b33fd1651e30be6b5670c3506b"
+  },
+  {
+    "source": "02_模块开发/过渡动画模块/src/com/einkmotion/StepClipAnimation.java",
+    "target": "src/com/inkcontrol/features/motion/StepClipAnimation.java",
+    "sha256": "11af8c9fd6751d1502f8c06c31bd1ae46c6723693334b4629148a8f9f658e440"
+  },
+  {
+    "source": "02_模块开发/锁屏歌词模块/src/cn/lyric/getter/api/data/LyricData.java",
+    "target": "src/cn/lyric/getter/api/data/LyricData.java",
+    "sha256": "e65e7a9b017f37e63c5e7df10fc69064505a5b7888292725f73a90d0a57dec8c"
+  },
+  {
+    "source": "02_模块开发/锁屏歌词模块/src/com/einklyric/BottomBarHook.java",
+    "target": "src/com/inkcontrol/features/lock/BottomBarHook.java",
+    "sha256": "006de9535d434b468b46e3988eba20f0f0dfd11bd677be62f4cdab88f12fcca8"
+  },
+  {
+    "source": "02_模块开发/锁屏歌词模块/src/com/einklyric/GlassTexture.java",
+    "target": "src/com/inkcontrol/features/lock/GlassTexture.java",
+    "sha256": "e78e124935d0148360cfe197cd31f2be20de1c2538b11c1d7a2782eec529dc4d"
+  },
+  {
+    "source": "02_模块开发/锁屏歌词模块/src/com/einklyric/GlassTextureData.java",
+    "target": "src/com/inkcontrol/features/lock/GlassTextureData.java",
+    "sha256": "59cd5d0c1d6cd52a44db73ed3c27b8508b0330d416957c7a1816bf2982d764ea"
+  },
+  {
+    "source": "02_模块开发/锁屏歌词模块/src/com/einklyric/Hook.java",
+    "target": "src/com/inkcontrol/features/lock/Hook.java",
+    "sha256": "695dff511814bf2d3e076b82fb3e5d0eefc4ac8dc0f86c28155cd0c48f4d16e6"
+  },
+  {
+    "source": "02_模块开发/锁屏歌词模块/src/com/einklyric/LockCanvas.java",
+    "target": "src/com/inkcontrol/features/lock/LockCanvas.java",
+    "sha256": "a99dc0ceaa66afd956cc88a93316f7d24081831862af84700195611222c3012f"
+  },
+  {
+    "source": "02_模块开发/锁屏歌词模块/src/com/einklyric/LockData.java",
+    "target": "src/com/inkcontrol/features/lock/LockData.java",
+    "sha256": "d36d53dda203ccc2d1f564b7cb4c387b46d6d66928e158d5d5024dc1964db90a"
+  },
+  {
+    "source": "02_模块开发/锁屏歌词模块/src/com/einklyric/LockStyle.java",
+    "target": "src/com/inkcontrol/features/lock/LockStyle.java",
+    "sha256": "38c97cec553b58a67f28fd246d9d665d81ed01367fd43b80d938bcb9ae2dc4d0"
+  },
+  {
+    "source": "02_模块开发/锁屏歌词模块/src/com/einklyric/MediaLyric.java",
+    "target": "src/com/inkcontrol/features/lock/MediaLyric.java",
+    "sha256": "26eeef94479474e6342056e1276a447579ad15983a96bba5b9a4a739846282e0"
+  },
+  {
+    "source": "02_模块开发/锁屏歌词模块/src/com/einklyric/Reflect.java",
+    "target": "src/com/inkcontrol/features/lock/Reflect.java",
+    "sha256": "5e8d35fcda28dd3c8813f8ae7e3d82412fa21ae1b577f45b5cc8b8803dfcc730"
+  },
+  {
+    "source": "02_模块开发/锁屏歌词模块/src/com/einklyric/StatusBarLyric.java",
+    "target": "src/com/inkcontrol/features/lock/StatusBarLyric.java",
+    "sha256": "17dd27e29d2eee4f9cb33cc9bfc0dcd74e0cb7cca75d5873e59a495576fd4a1f"
+  },
+  {
+    "source": "02_模块开发/锁屏歌词模块/src/com/einklyric/SystemLockStyles.java",
+    "target": "src/com/inkcontrol/features/lock/SystemLockStyles.java",
+    "sha256": "a89d063f90ac65f31c507f33ca5d441c140698430589fd8c383861554fcd9e87"
+  },
+  {
+    "source": "02_模块开发/锁屏歌词模块/src/com/einklyric/WeatherIcon.java",
+    "target": "src/com/inkcontrol/features/lock/WeatherIcon.java",
+    "sha256": "4d28a71ae9361bbdeb154bec71d3d2d10d432083d2bc9319e6b90936395db223"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/src/com/einkthemes/Assets.java",
+    "target": "src/com/inkcontrol/features/desktop/Assets.java",
+    "sha256": "7b12bf9dd5ce9801c1123b2df0a7bbfb8e519aac713cab6c78fa288d69e1fd42"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/src/com/einkthemes/Hook.java",
+    "target": "src/com/inkcontrol/features/desktop/Hook.java",
+    "sha256": "ad7ab149daacff12343f0954c50a17870098544dc0b8065e605199029fc69828"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/src/com/einkthemes/MediaBridge.java",
+    "target": "src/com/inkcontrol/features/desktop/MediaBridge.java",
+    "sha256": "11130622886525b015950f247d9e771ba9910d440da1497495ef5a537cca9141"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/src/com/einkthemes/ThemeWidgetView.java",
+    "target": "src/com/inkcontrol/features/desktop/ThemeWidgetView.java",
+    "sha256": "14a59c032d61366020de7a634a6d5ab354eddf25e8d2230231dcb7dd2cff807a"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/src/com/einkthemes/WeatherIcon.java",
+    "target": "src/com/inkcontrol/features/desktop/WeatherIcon.java",
+    "sha256": "9c3dfa2075d047c6865759476026b4674f60358ce04b29ece76c94d23cb8cdc2"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/src/com/einkthemes/WidgetRenderer.java",
+    "target": "src/com/inkcontrol/features/desktop/WidgetRenderer.java",
+    "sha256": "31fb9c0051decdf46ef04b5f04ace8ff14ba50aebcbae2956844024da9c0c35f"
+  },
+  {
+    "source": "02_模块开发/墨水屏修复模块/src/com/einkfix/DisplayPermissionPolicy.java",
+    "target": "src/com/inkcontrol/features/fix/DisplayPermissionPolicy.java",
+    "sha256": "daf217c03939f2cd3532f7070b8c757d0b7af139d0b73aeeca93c877ab662016"
+  },
+  {
+    "source": "02_模块开发/墨水屏修复模块/src/com/einkfix/Hook.java",
+    "target": "src/com/inkcontrol/features/fix/Hook.java",
+    "sha256": "10fef770087a09d36edb3a77682d057c15dbc99802d69e3e1d1f90cd12671140"
+  },
+  {
+    "source": "02_模块开发/墨水屏修复模块/src/com/einkfix/VideoSessionTracker.java",
+    "target": "src/com/inkcontrol/features/fix/VideoSessionTracker.java",
+    "sha256": "8417778b6143c103fa3a94c29a5ec321b0336bc3bb21cfa0e963825be36af23f"
+  },
+  {
+    "source": "02_模块开发/过渡动画模块/stubs/de/robv/android/xposed/IXposedHookLoadPackage.java",
+    "target": "stubs/de/robv/android/xposed/IXposedHookLoadPackage.java",
+    "sha256": "74de059a58c331477e78d2c0f8e116451010cbed61e8a0f975368f463c48932b"
+  },
+  {
+    "source": "02_模块开发/过渡动画模块/stubs/de/robv/android/xposed/XC_MethodHook.java",
+    "target": "stubs/de/robv/android/xposed/XC_MethodHook.java",
+    "sha256": "bd8a9ce65b9f9888441320f3f03001dc3036d1a9bad88e0267a49f510c6df7a5"
+  },
+  {
+    "source": "02_模块开发/过渡动画模块/stubs/de/robv/android/xposed/XposedBridge.java",
+    "target": "stubs/de/robv/android/xposed/XposedBridge.java",
+    "sha256": "86bdebe2892595d414d4534a651216ccc7f6cbc9c7fb1fd033ca673410de7949"
+  },
+  {
+    "source": "02_模块开发/过渡动画模块/stubs/de/robv/android/xposed/XposedHelpers.java",
+    "target": "stubs/de/robv/android/xposed/XposedHelpers.java",
+    "sha256": "b71aba2b5bb9c7e1b57642703f2f695bb3cdb54335fefa60acddaa72179105a5"
+  },
+  {
+    "source": "02_模块开发/过渡动画模块/stubs/de/robv/android/xposed/callbacks/XC_LoadPackage.java",
+    "target": "stubs/de/robv/android/xposed/callbacks/XC_LoadPackage.java",
+    "sha256": "4587c93e497356b1eb6b1c6db4969ba9b786e0367457a1af07a489e94a66ca2c"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons.json",
+    "target": "assets/icons.json",
+    "sha256": "0411da23a72d00d1c49275d02b341051e1b1a8ca1f0dae9f4807f5925e786dbf"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/wallpaper-glass.png",
+    "target": "assets/wallpaper-glass.png",
+    "sha256": "1a68a82f3197ee3c4260a076882cab25dbbfa1f7741a99d8f2063f64f42221ae"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/wallpaper-ink.png",
+    "target": "assets/wallpaper-ink.png",
+    "sha256": "b79d9c9cadba7bb40ff84a587bd09bd21ee996c587642335a258583df1604f05"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/wallpaper-paper.png",
+    "target": "assets/wallpaper-paper.png",
+    "sha256": "1736356a44cb959f545ad75d1185b500d2991031e236cfa2106ead632fef9d3c"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/widget-glass.png",
+    "target": "assets/widget-glass.png",
+    "sha256": "60544d41433e49e1a06835f9734cd3a97c6c93c30c6958fabeb532c7abac044a"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/widget-ink.png",
+    "target": "assets/widget-ink.png",
+    "sha256": "1cc446792d7d085e7e1e171147b18cebbc5b3436827572c6b0e15c0f238b8748"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/widget-paper.png",
+    "target": "assets/widget-paper.png",
+    "sha256": "75de3dbdd4e5b54080fde271e4f40faecebc05fa187a0c52d4c1382bbb4cf2a5"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/0091a6122f4f.png",
+    "target": "assets/icons/glass/0091a6122f4f.png",
+    "sha256": "fd4c31ef8158b2f48d1802d0d4daf7b03d9f70fd0ab3919af084d25be2c93574"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/07975bdfda8f.png",
+    "target": "assets/icons/glass/07975bdfda8f.png",
+    "sha256": "82bc15393ce63fe7bd4a2c620a4427cb289f48ba74d50fd31487e2710bb039f7"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/0f58fd2a2e0f.png",
+    "target": "assets/icons/glass/0f58fd2a2e0f.png",
+    "sha256": "e91c0cba72870f162363266bd6a605380095603825e145a999c210ec2f2c3eb9"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/1283ddbf6956.png",
+    "target": "assets/icons/glass/1283ddbf6956.png",
+    "sha256": "0b1161fdf2ef0f0b0bfe32277f99d16b116c86c3a03b0f38e9568210428e7245"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/1b2714b812d4.png",
+    "target": "assets/icons/glass/1b2714b812d4.png",
+    "sha256": "ea2d3c86d497230977dd2342afa8d2077799f7009de9b094ade9393207179159"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/1f884099b0e9.png",
+    "target": "assets/icons/glass/1f884099b0e9.png",
+    "sha256": "c18a9aa76afe38a2474c219b79a6a758c1b435306546ea292114f680acc35f7c"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/2800dabbc1c5.png",
+    "target": "assets/icons/glass/2800dabbc1c5.png",
+    "sha256": "d0eef7b68204fbb1924626381f8214c0a131bf5fecd0e68abd2fdb7ef792358d"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/3303b56982a0.png",
+    "target": "assets/icons/glass/3303b56982a0.png",
+    "sha256": "7019a5a17dbfcbe63108b823ca271f0405b90a0b99a201c62577e501bb6a2265"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/4673a2306165.png",
+    "target": "assets/icons/glass/4673a2306165.png",
+    "sha256": "b38044ee0efe8acf8b6c4b7708c6579a7b5c4262db170da5201be338206aa1a0"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/4a366fb92e53.png",
+    "target": "assets/icons/glass/4a366fb92e53.png",
+    "sha256": "62b881a19848023e30bf340dbe5f9ddbe934692e3342774928478de2c890137a"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/4b68ab3847fe.png",
+    "target": "assets/icons/glass/4b68ab3847fe.png",
+    "sha256": "b8061c5d89ce3651371c3f31c249f8ceff5de6e4685cc7527fbdc88fd5f358e1"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/4d947325473f.png",
+    "target": "assets/icons/glass/4d947325473f.png",
+    "sha256": "b61be48fd32e983168593f9ea56d4c5a39160a7cd6cd3607a0b0bf8fa19841c0"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/5acb7efa8ac5.png",
+    "target": "assets/icons/glass/5acb7efa8ac5.png",
+    "sha256": "896402b39bbdeff128d1d02c38c49692316e2508e89d0684d32d6d6c59f98386"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/5c20d967c124.png",
+    "target": "assets/icons/glass/5c20d967c124.png",
+    "sha256": "e769e37964813dc55aaf79310672e16638f46d3686c46331e082336fb64b5611"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/72ed4b31e027.png",
+    "target": "assets/icons/glass/72ed4b31e027.png",
+    "sha256": "a858ca44a7376784dae912c860102df28b8020a291962cdef12a1be5ae62ba68"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/74a883a037bc.png",
+    "target": "assets/icons/glass/74a883a037bc.png",
+    "sha256": "eeb897b8c57b66f85a379cee6dc5a3622a488d5fcfc26333e79584fb880bffc7"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/91d77d3c19a3.png",
+    "target": "assets/icons/glass/91d77d3c19a3.png",
+    "sha256": "f185b396335e58b9014286515c79bfefde5ecfeb8892f77e42af2d9bcf1b2ecf"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/987dccf2ea2b.png",
+    "target": "assets/icons/glass/987dccf2ea2b.png",
+    "sha256": "41130b3dd9c9a3f53d4c92918199bfd4b3899df387210554e43fb088a330a495"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/a00f295cfbb0.png",
+    "target": "assets/icons/glass/a00f295cfbb0.png",
+    "sha256": "a106a49ceb8f78b49edf9e2ec1241f2f1344b1efb23668686788ba9a3ba7342e"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/a2d3c51cfd2b.png",
+    "target": "assets/icons/glass/a2d3c51cfd2b.png",
+    "sha256": "f916184d1f6c05abb25207acac788d9beaaa978851ed43116bbb4b20c8b49326"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/b3bd5ac7cc4d.png",
+    "target": "assets/icons/glass/b3bd5ac7cc4d.png",
+    "sha256": "fae1630302d54672799df5fd29915bd14bf271e37396c1b58207b7fe42d1cb29"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/bdba42901714.png",
+    "target": "assets/icons/glass/bdba42901714.png",
+    "sha256": "6a1009546da39e156d3b2938b43c262b0b23ade1779773ce69601d313ae7f62b"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/bf8b5d378f01.png",
+    "target": "assets/icons/glass/bf8b5d378f01.png",
+    "sha256": "cb6ecbfb5c06e8b5bd5de3776d9339afe82e3442f498c6ad7c7e37c9ed877a07"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/c20f7618d330.png",
+    "target": "assets/icons/glass/c20f7618d330.png",
+    "sha256": "60e5b1de76f2825b1de180f23cbb79214b1bd91d5450800a6461da8945c8e259"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/c759a41b27a1.png",
+    "target": "assets/icons/glass/c759a41b27a1.png",
+    "sha256": "08e40d1a2bd1a61b0b59d133f3b2af0d17648e70124bc12ea5483b791e78e374"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/cce531e8aeb4.png",
+    "target": "assets/icons/glass/cce531e8aeb4.png",
+    "sha256": "6bf88b1ad03eff92c29d1337f81833d5e0ab6348d7f28eaeef1d8bc63fdcacd9"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/d08053dff0ca.png",
+    "target": "assets/icons/glass/d08053dff0ca.png",
+    "sha256": "87992b9d823cdf17a938eb95b18cd18c25f248668a86f486509e15a907ac390c"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/d26c6a08a591.png",
+    "target": "assets/icons/glass/d26c6a08a591.png",
+    "sha256": "bad67d5a898f59be8faa3f92bd29328f5566bded81c8fe0fd48f7834b46e4cb0"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/dacf07026026.png",
+    "target": "assets/icons/glass/dacf07026026.png",
+    "sha256": "cf7e3c5f9d62a30b97f3e0883ef3310143f3f6755c47eec8d116a42b2fcb5998"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/db9514212493.png",
+    "target": "assets/icons/glass/db9514212493.png",
+    "sha256": "d16521fbaea7904705b94fda61d7909c1e282f019229e4389416acbe90085c43"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/dca61d32363b.png",
+    "target": "assets/icons/glass/dca61d32363b.png",
+    "sha256": "0b9fd55f4836afa11def7970bf60abc28fc3d1cafdb71f99d9a304dc549b49b0"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/de0b0eae6653.png",
+    "target": "assets/icons/glass/de0b0eae6653.png",
+    "sha256": "1b8486a50fd5e03071a36f844691d02c8409f7967cb6b61bb84ae98aa4f583bc"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/df3d58c7d84b.png",
+    "target": "assets/icons/glass/df3d58c7d84b.png",
+    "sha256": "eeb897b8c57b66f85a379cee6dc5a3622a488d5fcfc26333e79584fb880bffc7"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/e3c5f4c93feb.png",
+    "target": "assets/icons/glass/e3c5f4c93feb.png",
+    "sha256": "09598d8242fb1d473efa434f211ad173e8de3a29713d471aae8cea0af6b8f6fa"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/e7028601e7da.png",
+    "target": "assets/icons/glass/e7028601e7da.png",
+    "sha256": "aabb5e859d4723bfa1726bee61216d0518e4050381516893da11fc21af720ca6"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/ea93d6a262ec.png",
+    "target": "assets/icons/glass/ea93d6a262ec.png",
+    "sha256": "5f450b75dde6655efba5b3735db4855248a0f0347774d420311ebdff9ba1d201"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/eb0050f72303.png",
+    "target": "assets/icons/glass/eb0050f72303.png",
+    "sha256": "5888d4405a3a68ea2309e990fc5631e83874b959fa7b333cedaa6f2ada32d98b"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/eb7ab5f1e002.png",
+    "target": "assets/icons/glass/eb7ab5f1e002.png",
+    "sha256": "e14890b787b6c517442a0099a820b9d2d35058313929cd5a4ea2db2f40ba6401"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/glass/fb7accfff8c6.png",
+    "target": "assets/icons/glass/fb7accfff8c6.png",
+    "sha256": "acf06e688a91fe6c028cffd3c49b7e87ecf8e1f04d427dc0caeeb484385aacc0"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/0091a6122f4f.png",
+    "target": "assets/icons/ink/0091a6122f4f.png",
+    "sha256": "d703b9ae51fa3af22a1c7de53d1a6e3f43966faee6bb2ad0dd5bb29e36cf2ccc"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/07975bdfda8f.png",
+    "target": "assets/icons/ink/07975bdfda8f.png",
+    "sha256": "c81484edd5587b71dd1f5f10a26e26d235bea1c136d558af80b48fa6e89d694e"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/0f58fd2a2e0f.png",
+    "target": "assets/icons/ink/0f58fd2a2e0f.png",
+    "sha256": "8c6b599d7bb3ef0760a1e1ce96b09a1f3040ccdd63bd0f10f875e0f3774ae7ac"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/1283ddbf6956.png",
+    "target": "assets/icons/ink/1283ddbf6956.png",
+    "sha256": "4c657de6414ad07ce80d23da2453a4b9b2820e2010538e024a435e5d74eb0013"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/1b2714b812d4.png",
+    "target": "assets/icons/ink/1b2714b812d4.png",
+    "sha256": "0b258703e868afafc11da2fec7892de222e8a8a8f492afcb132eea5991d0020c"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/1f884099b0e9.png",
+    "target": "assets/icons/ink/1f884099b0e9.png",
+    "sha256": "96d55999f0742807851edc2b61c794a471b78a263250c3fac8880b2891d3f3c8"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/2800dabbc1c5.png",
+    "target": "assets/icons/ink/2800dabbc1c5.png",
+    "sha256": "0aa2237e01ee96da14e44a3a7f185e63ae708a6dbdddd09799fde6c6cb7bb5cc"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/3303b56982a0.png",
+    "target": "assets/icons/ink/3303b56982a0.png",
+    "sha256": "63c1a81ae7920047439d9a35d3571fad2428db6bb5f4983e8b2db6c686adc688"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/4673a2306165.png",
+    "target": "assets/icons/ink/4673a2306165.png",
+    "sha256": "210b6ef390cf6848735704ef8561956ad407730b565f68f4abb4b141327c0d55"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/4a366fb92e53.png",
+    "target": "assets/icons/ink/4a366fb92e53.png",
+    "sha256": "84e7d38e05d7b87cd4a8359a848ee6845863678a80e9b4bfc53fd18dc8d47157"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/4b68ab3847fe.png",
+    "target": "assets/icons/ink/4b68ab3847fe.png",
+    "sha256": "db6f96587424608d729e9e62130ccb6be33bf92a6a70e6100eeab6827bf8d78f"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/4d947325473f.png",
+    "target": "assets/icons/ink/4d947325473f.png",
+    "sha256": "c62aa6bb3b6f618a601e36a1c9a1be36bdc1028a04f3fe424e780edcc4091b20"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/5acb7efa8ac5.png",
+    "target": "assets/icons/ink/5acb7efa8ac5.png",
+    "sha256": "3648511ce50e79fc4e90fb0c7a35c69030f6ba0800746cd7fa052015b3a4e65f"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/5c20d967c124.png",
+    "target": "assets/icons/ink/5c20d967c124.png",
+    "sha256": "06bc69fad32cec2ad510c38bbacec03090d8c74f8cced234bdbb427e990e7fa6"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/72ed4b31e027.png",
+    "target": "assets/icons/ink/72ed4b31e027.png",
+    "sha256": "a5aa0676dafc3d538ae01a7f2fa69c55021bc30d44ead4a99df183c55bce5267"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/74a883a037bc.png",
+    "target": "assets/icons/ink/74a883a037bc.png",
+    "sha256": "44ae3e88b99445a7e133c11ba2bdbdce8a3fc7c7fd888f80131a8870e3c94acf"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/91d77d3c19a3.png",
+    "target": "assets/icons/ink/91d77d3c19a3.png",
+    "sha256": "943ff2172235273d8c29bde982023d7918a4358f57da6011b3edff9ba5709ead"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/987dccf2ea2b.png",
+    "target": "assets/icons/ink/987dccf2ea2b.png",
+    "sha256": "238ca1f3673cdf16698fff5de112d21dee258214401b6eb5bdb88de24d0b4d10"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/a00f295cfbb0.png",
+    "target": "assets/icons/ink/a00f295cfbb0.png",
+    "sha256": "cd76658d27aee4aa6bb5fa1adc412df724859d5428422037e027ca086ece670e"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/a2d3c51cfd2b.png",
+    "target": "assets/icons/ink/a2d3c51cfd2b.png",
+    "sha256": "28ee4d42528527f4ba1afee8831aa8c8e55fd9d436e7f7854bfe6eb6f46f854f"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/b3bd5ac7cc4d.png",
+    "target": "assets/icons/ink/b3bd5ac7cc4d.png",
+    "sha256": "cfbce42e23e922f288deaf6fd72dee3b9f9ac1675730ea23e37d39c4bb6dfab9"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/bdba42901714.png",
+    "target": "assets/icons/ink/bdba42901714.png",
+    "sha256": "e73ce6303bedbe34042e98947654ca5427427dc932fb7d6aad49f01410f5e56e"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/bf8b5d378f01.png",
+    "target": "assets/icons/ink/bf8b5d378f01.png",
+    "sha256": "45b8da63a24da54e5f6b29dbf982c8a00dffca651f8b608dd9d339287f2632af"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/c20f7618d330.png",
+    "target": "assets/icons/ink/c20f7618d330.png",
+    "sha256": "c5b34edc0e748856443dc1be55f2da70965789e976bd85564c3b3cd1573e406d"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/c759a41b27a1.png",
+    "target": "assets/icons/ink/c759a41b27a1.png",
+    "sha256": "de1c5c2f30e06cab4527dcc740134d6f8009ad8d4f13452a5191ecaa3f42b0c6"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/cce531e8aeb4.png",
+    "target": "assets/icons/ink/cce531e8aeb4.png",
+    "sha256": "b917d3e22369dbb75efb86ee2e1aecbb692e07fe0a1ffdf02f2e6c779e762f5e"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/d08053dff0ca.png",
+    "target": "assets/icons/ink/d08053dff0ca.png",
+    "sha256": "14298b49bed8d1fb1cc4538a7c8a8327acaeb36ad8108bb30135c93db6088093"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/d26c6a08a591.png",
+    "target": "assets/icons/ink/d26c6a08a591.png",
+    "sha256": "7ab11576bd6e91c822169f945bfc6d289f3f2ea07c09b28c6e58a93bae4ef736"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/dacf07026026.png",
+    "target": "assets/icons/ink/dacf07026026.png",
+    "sha256": "fa458d01dca40fa58ff2e71a2ac6afdb91f740f36b8639e708fddf9eb56dd68a"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/db9514212493.png",
+    "target": "assets/icons/ink/db9514212493.png",
+    "sha256": "3daf42f7b5eb29d4cc10a82e11b2aec39888b461c257dba80400c27b5a93619b"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/dca61d32363b.png",
+    "target": "assets/icons/ink/dca61d32363b.png",
+    "sha256": "78a5de66dbb0a4b88b29d9d9da10242dd1b7ed732b8ceac70318c7fce419a6e6"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/de0b0eae6653.png",
+    "target": "assets/icons/ink/de0b0eae6653.png",
+    "sha256": "fcb8bb7b7a5c097f57a28d585a8469271db6f21745f99a2536d748137cf17bc7"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/df3d58c7d84b.png",
+    "target": "assets/icons/ink/df3d58c7d84b.png",
+    "sha256": "44ae3e88b99445a7e133c11ba2bdbdce8a3fc7c7fd888f80131a8870e3c94acf"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/e3c5f4c93feb.png",
+    "target": "assets/icons/ink/e3c5f4c93feb.png",
+    "sha256": "d8c6cc3276cb026160320cf53af10cc4379ad750ef1e6614f61d55b27b9a04dc"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/e7028601e7da.png",
+    "target": "assets/icons/ink/e7028601e7da.png",
+    "sha256": "39852de0deea7e3a60fe98440fc306c91523c391d0d33cac23531eb04b9371fd"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/ea93d6a262ec.png",
+    "target": "assets/icons/ink/ea93d6a262ec.png",
+    "sha256": "b5f4cef69c751dce52c1ab5dce7e7d8798e9a558603ac1df3b95309c728941ff"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/eb0050f72303.png",
+    "target": "assets/icons/ink/eb0050f72303.png",
+    "sha256": "dd65bb28ac631de1c626184d2a90763be0140c6085658fada4fff34c322d315f"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/eb7ab5f1e002.png",
+    "target": "assets/icons/ink/eb7ab5f1e002.png",
+    "sha256": "be8841da77abf1832d35c6179907feb53e41d54b76c0fccd36e82bcb7b3780fe"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/ink/fb7accfff8c6.png",
+    "target": "assets/icons/ink/fb7accfff8c6.png",
+    "sha256": "c510c3bc50298414283dfb0ac60fd859808a1fb72b608ed9409b91a9a48e1418"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/0091a6122f4f.png",
+    "target": "assets/icons/paper/0091a6122f4f.png",
+    "sha256": "5aa52608af480bbcac108424d8404c7b7e7c78100046438c072a2f309633b043"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/07975bdfda8f.png",
+    "target": "assets/icons/paper/07975bdfda8f.png",
+    "sha256": "ce0d654fe068e7962cdb5b21bad541c74c9134c291ea6d4847099c09ca04bd25"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/0f58fd2a2e0f.png",
+    "target": "assets/icons/paper/0f58fd2a2e0f.png",
+    "sha256": "95a252ff44e3834694b68c729cbf3283d3ebc6dd9c4af9c9dee287a47a3b4815"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/1283ddbf6956.png",
+    "target": "assets/icons/paper/1283ddbf6956.png",
+    "sha256": "d5bb6029a4aaa43423217cb40506bc3fd754a57f6ea948ba66b808a80c5cdc7e"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/1b2714b812d4.png",
+    "target": "assets/icons/paper/1b2714b812d4.png",
+    "sha256": "cee4eb341291591b0371a41f45def4afeaecedb7f08c84ed5cdc958253b6843b"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/1f884099b0e9.png",
+    "target": "assets/icons/paper/1f884099b0e9.png",
+    "sha256": "ee55a1c97c007ced08c5ec9bd632ff70ad6f81770f208de5d61ae483d7bc7741"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/2800dabbc1c5.png",
+    "target": "assets/icons/paper/2800dabbc1c5.png",
+    "sha256": "dcde9bf8eeaeb41d07f3138c529bb51680c7691a02a3875449d39cda3c77cdca"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/3303b56982a0.png",
+    "target": "assets/icons/paper/3303b56982a0.png",
+    "sha256": "a210aaf0849d1ec4a74f1319a1c6410d4fc7685c6eed92f0481dcebe22130baf"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/4673a2306165.png",
+    "target": "assets/icons/paper/4673a2306165.png",
+    "sha256": "91bbc3bb212735c56643bdaa86dfc673b6ce15abfebe5ad878c471af64672106"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/4a366fb92e53.png",
+    "target": "assets/icons/paper/4a366fb92e53.png",
+    "sha256": "96a99f66ef4db194e1c3071acdef4cf2b28bed7f192e1b817ebd057ca3242b22"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/4b68ab3847fe.png",
+    "target": "assets/icons/paper/4b68ab3847fe.png",
+    "sha256": "a62928b147a5f29b21d71fb5b57d115ceb9fedada69d5ab7c173e7f1e5de48cb"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/4d947325473f.png",
+    "target": "assets/icons/paper/4d947325473f.png",
+    "sha256": "c5ba797ae74d67610d77a0fe3df328e2c9a7360cb4918afcc5e5ac8391e4a5bd"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/5acb7efa8ac5.png",
+    "target": "assets/icons/paper/5acb7efa8ac5.png",
+    "sha256": "28c303e46b08ec5fb95b291eab1dc87838198e386a3b07d1efadac32c8722fa6"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/5c20d967c124.png",
+    "target": "assets/icons/paper/5c20d967c124.png",
+    "sha256": "69765b13e57d0cab88e073b8889f38618dd7f79e535adf4e61d4eacd7392e6d9"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/72ed4b31e027.png",
+    "target": "assets/icons/paper/72ed4b31e027.png",
+    "sha256": "24006e3c8c2c9e139ea00a17c81ada3f06154142c0ba4a6426dfb54a069a2bbc"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/74a883a037bc.png",
+    "target": "assets/icons/paper/74a883a037bc.png",
+    "sha256": "36e0ba09d605bd33bdcb2ff9ad335fd5d8422444b3fd5a2ed04e53078f8a1940"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/91d77d3c19a3.png",
+    "target": "assets/icons/paper/91d77d3c19a3.png",
+    "sha256": "ad644413348ead3f83d822a3d1f13cab035074d308d933819b6af272f52eecb4"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/987dccf2ea2b.png",
+    "target": "assets/icons/paper/987dccf2ea2b.png",
+    "sha256": "696079565bf453d33587ab28d129c9ab0dd55b01a21c255ce6604773a993e19a"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/a00f295cfbb0.png",
+    "target": "assets/icons/paper/a00f295cfbb0.png",
+    "sha256": "9f3c6bff65131eca816f69598c0f246c5514195402c8f47138d430a0228583d9"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/a2d3c51cfd2b.png",
+    "target": "assets/icons/paper/a2d3c51cfd2b.png",
+    "sha256": "5229558d344cbc7f179a84a54b8e890b749b35cc9e4d1d7c4f6cc66d09cf5e83"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/b3bd5ac7cc4d.png",
+    "target": "assets/icons/paper/b3bd5ac7cc4d.png",
+    "sha256": "bc1b141e3a7a2008c6c3a5e85a0f0e83946aa5ff05a60352267724eeb827d235"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/bdba42901714.png",
+    "target": "assets/icons/paper/bdba42901714.png",
+    "sha256": "8b43099e33602b70aa3cb0f725d93e96b10964f4e5b7d5183c2b3ff7a75af358"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/bf8b5d378f01.png",
+    "target": "assets/icons/paper/bf8b5d378f01.png",
+    "sha256": "58b4a4af2b3e96565638ba43b1667b7cb12dffbc335866ff7cc72d65b004faab"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/c20f7618d330.png",
+    "target": "assets/icons/paper/c20f7618d330.png",
+    "sha256": "2659c63f7c14d3f64e4d7c6ffa2ad734bc4ad3c5205330f2c593b738197601f3"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/c759a41b27a1.png",
+    "target": "assets/icons/paper/c759a41b27a1.png",
+    "sha256": "f96f9472c44dc2f68fa622ee175eb5f07036e04cbe6acc6c896e25a17e0bb6b3"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/cce531e8aeb4.png",
+    "target": "assets/icons/paper/cce531e8aeb4.png",
+    "sha256": "3b413db31a303d2c0d9b3ab99df4c6376961246dcf2205cb97f41d9c4ddc0dca"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/d08053dff0ca.png",
+    "target": "assets/icons/paper/d08053dff0ca.png",
+    "sha256": "5032b0f8383e9bd3e98703b6bfcd87eb561ec09a90a349fe300ff5b6b7cfb18c"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/d26c6a08a591.png",
+    "target": "assets/icons/paper/d26c6a08a591.png",
+    "sha256": "512ee730a3518bb44dcde9619ca4790ec95a9741e281c6b85bff961c95068d4e"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/dacf07026026.png",
+    "target": "assets/icons/paper/dacf07026026.png",
+    "sha256": "1b5cac1852deafb7df5d92b8f57d3ab7df67205032874b7a3c7a57c456f28f72"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/db9514212493.png",
+    "target": "assets/icons/paper/db9514212493.png",
+    "sha256": "f56346ea625cde73b51d43d5f803650f81174a6c925b243f7a7514f0e95db696"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/dca61d32363b.png",
+    "target": "assets/icons/paper/dca61d32363b.png",
+    "sha256": "d5c98b18366207771eca416997aa600f52730b9a22d1f2a19dfa3f176728d85f"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/de0b0eae6653.png",
+    "target": "assets/icons/paper/de0b0eae6653.png",
+    "sha256": "8056dfb4e53cdad1624f603bc03c4ef5d8b276c850411d15f05c8765fda083d2"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/df3d58c7d84b.png",
+    "target": "assets/icons/paper/df3d58c7d84b.png",
+    "sha256": "36e0ba09d605bd33bdcb2ff9ad335fd5d8422444b3fd5a2ed04e53078f8a1940"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/e3c5f4c93feb.png",
+    "target": "assets/icons/paper/e3c5f4c93feb.png",
+    "sha256": "cf5a03ee36a6b5cf52c3b93594fd699a919e2dfbfcabe2aac461cadf02287b46"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/e7028601e7da.png",
+    "target": "assets/icons/paper/e7028601e7da.png",
+    "sha256": "20c13ae6a710fda9a4917d451598f8a0888a57ead50e141517f77ae29648148a"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/ea93d6a262ec.png",
+    "target": "assets/icons/paper/ea93d6a262ec.png",
+    "sha256": "1049bdf8c58927ab4d83aea8bdf8ed53c5b412b3a952fec3d7e9af4a567e6d1d"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/eb0050f72303.png",
+    "target": "assets/icons/paper/eb0050f72303.png",
+    "sha256": "0267b798affca3cc8603c050a89c8ca975cf371716b2fadba3f4a025565bac8b"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/eb7ab5f1e002.png",
+    "target": "assets/icons/paper/eb7ab5f1e002.png",
+    "sha256": "14a7534255281642e17a418d7d9c14f55733d54dbbddac6d07df768acfae594e"
+  },
+  {
+    "source": "02_模块开发/原厂桌面主题模块/assets/icons/paper/fb7accfff8c6.png",
+    "target": "assets/icons/paper/fb7accfff8c6.png",
+    "sha256": "2aa47185237b30ef650e8c8b5646b8ab77a0887c38424a41f6774b3575531ac8"
+  },
+  {
+    "source": "03_研究实验/调度与功耗分析/out/lock-motion-v6/source_snapshot/service_bluenoise.hpp",
+    "target": "native/service_bluenoise.hpp",
+    "sha256": "f2a210a331f3508e6406138039c33bc3a0017a8b30b33298bffce1e79934dafb"
+  },
+  {
+    "source": "03_研究实验/调度与功耗分析/out/lock-motion-v6/source_snapshot/service_color_ops.hpp",
+    "target": "native/service_color_ops.hpp",
+    "sha256": "16f24770e776215b639c501a75a85a11a24204827854b9774435040c52235a1f"
+  },
+  {
+    "source": "03_研究实验/调度与功耗分析/out/lock-motion-v6/source_snapshot/service_gpu.cpp",
+    "target": "native/service_gpu.cpp",
+    "sha256": "869fc5da50ce4aa3a74d985bf96860c9b8a89c79b305a85e80c33b3fb82f204d"
+  },
+  {
+    "source": "03_研究实验/调度与功耗分析/out/lock-motion-v6/source_snapshot/service_image_ops.hpp",
+    "target": "native/service_image_ops.hpp",
+    "sha256": "ddf02f58a9a8c9486175c1b3b02c8a2864b1eeb061f2c91c9a5956c8395144e0"
+  },
+  {
+    "source": "03_研究实验/调度与功耗分析/out/lock-motion-v6/source_snapshot/service_import.hpp",
+    "target": "native/service_import.hpp",
+    "sha256": "4494a3b3a88a48b1b73c7febe6e831dd7b4392739e576a2fc4c6c6ed4b8b6f36"
+  },
+  {
+    "source": "03_研究实验/调度与功耗分析/out/lock-motion-v6/source_snapshot/service_input.hpp",
+    "target": "native/service_input.hpp",
+    "sha256": "a22ea7eb764180d650de9e585c26b4feeb4ad674231c1c84c8c78302cb3c9762"
+  },
+  {
+    "source": "03_研究实验/调度与功耗分析/out/lock-motion-v6/source_snapshot/service_lut.hpp",
+    "target": "native/service_lut.hpp",
+    "sha256": "daeb96b038283d75b60de972815717750f8c880b79807371611dc8cb60d6a256"
+  },
+  {
+    "source": "03_研究实验/调度与功耗分析/out/lock-motion-v6/source_snapshot/service_lut_runtime.hpp",
+    "target": "native/service_lut_runtime.hpp",
+    "sha256": "a1e2985cc712f6e6e45836d512936577569e6cb36f9aa8b38ad425d859ce6345"
+  },
+  {
+    "source": "03_研究实验/调度与功耗分析/out/lock-motion-v6/source_snapshot/service_motion.hpp",
+    "target": "native/service_motion.hpp",
+    "sha256": "2c39d8b69bd06cb17f86e35d3e8f4bf583cce568bd90c561917c3fadd541543c"
+  },
+  {
+    "source": "03_研究实验/调度与功耗分析/out/lock-motion-v6/source_snapshot/service_observer.cpp",
+    "target": "native/service_observer.cpp",
+    "sha256": "84ed0ef66961e933f4e1078c455e808474f0678cc63313d27a7aeb3b9947444e"
+  },
+  {
+    "source": "03_研究实验/调度与功耗分析/out/lock-motion-v6/source_snapshot/service_preprocess.hpp",
+    "target": "native/service_preprocess.hpp",
+    "sha256": "3f99fe5483450d9b081cc9d33b7e701bdca1c1b8401d8498a4199011bdae817c"
+  },
+  {
+    "source": "03_研究实验/调度与功耗分析/out/lock-motion-v6/source_snapshot/service_reading_capture.hpp",
+    "target": "native/service_reading_capture.hpp",
+    "sha256": "49f88db79715837f3edef3fce1d92d8572f8092649617e24a3c94e765a5db74e"
+  },
+  {
+    "source": "03_研究实验/调度与功耗分析/out/lock-motion-v6/source_snapshot/service_renderer.hpp",
+    "target": "native/service_renderer.hpp",
+    "sha256": "94d5f6347c0e224d3e7ebb09dc56c5f600b57dc60b0b23a2e3202a1afd089731"
+  },
+  {
+    "source": "03_研究实验/调度与功耗分析/out/lock-motion-v6/source_snapshot/service_shared.hpp",
+    "target": "native/service_shared.hpp",
+    "sha256": "056f99e529b5a01006f1cfc9ee23ff87b7152457dd4470fb58e99f9cc06a0abb"
+  },
+  {
+    "source": "03_研究实验/调度与功耗分析/out/lock-motion-v6/source_snapshot/service_stock_color.hpp",
+    "target": "native/service_stock_color.hpp",
+    "sha256": "853a184954d80554ba4e9c781062f8e2beb040a483d36b5ce1bbacd72b55674a"
+  },
+  {
+    "source": "03_研究实验/调度与功耗分析/out/lock-motion-v6/source_snapshot/service_transitions.hpp",
+    "target": "native/service_transitions.hpp",
+    "sha256": "014172e27aae8410d86e7afb63132adca478ded927a12b1fee73322edc4def43"
+  },
+  {
+    "source": "03_研究实验/调度与功耗分析/out/lock-motion-v6/source_snapshot/service_waveform.hpp",
+    "target": "native/service_waveform.hpp",
+    "sha256": "15d1d57d678cba4f85ee9ddbb75500924dbe70b9108ca564b33f9e52e6ccc6f3"
+  },
+  {
+    "source": "02_模块开发/墨水屏显示套件/module/guard.sh",
+    "target": "backend/lib/guard.sh",
+    "sha256": "95bf76cf86a38dcfeb93ed1cff4d87afc721a2a070a4219cf6778abfc28c7c72"
+  },
+  {
+    "source": "02_模块开发/墨水屏显示套件/module/config_state.sh",
+    "target": "backend/lib/config_state.sh",
+    "sha256": "9a0d5af62ef37a65ac2a5112cb37ef6e4938ba0777ec39cbe0572277a6ad6f76"
+  },
+  {
+    "source": "02_模块开发/谷歌图标修复/module/system/product/overlay/GmsSettingsIconFix.apk",
+    "target": "inputs/GmsSettingsIconFix.apk",
+    "sha256": "7bb6f3a80d1e935532a160d086d3e2be21b8dc8ca6db0f84e4a2fe2fc822792d"
+  },
+  {
+    "source": "02_模块开发/过渡动画模块/out/backend-v0.2-rc3/module/system/vendor/lib64/hw/hwcomposer.ums512.so",
+    "target": "inputs/hwcomposer.motion.so",
+    "sha256": "adbdf9aeb1868e1fb9bf01394a8f67942adb9b3c97a93d6ec2d168f83e60a675"
+  },
+  {
+    "source": "03_研究实验/墨水屏刷新分析/原版库/hwcomposer.ums512.so.lib64",
+    "target": "inputs/hwcomposer.stock.so",
+    "sha256": "d1ba01bf135151580c41dc7de13dd1c80876094c8022f58fe9ceecd0c9fb0988"
+  },
+  {
+    "source": "02_模块开发/过渡动画模块/test/GeometryTest.java",
+    "target": "test/GeometryTest.java",
+    "sha256": "c056e8bb9afa7f344a0f84efc1e6d6f16f384c3082e2983f2668c00ecf5c5d6d"
+  },
+  {
+    "source": "02_模块开发/过渡动画模块/test/native/lock_motion_probe.cpp",
+    "target": "test/native/lock_motion_probe.cpp",
+    "sha256": "ef79dd962c920ff472196142970727f1f427743ba244d035e4079e867243ffa4"
+  },
+  {
+    "source": "02_模块开发/过渡动画模块/test/native/motion_ops_probe.cpp",
+    "target": "test/native/motion_ops_probe.cpp",
+    "sha256": "a8115d858aa62ab2d03d0f8b18dd6dcba000d59e9c9eab104d666c8e5e3302f8"
+  },
+  {
+    "source": "02_模块开发/过渡动画模块/test/native/waveform_ops_probe.cpp",
+    "target": "test/native/waveform_ops_probe.cpp",
+    "sha256": "a662533fac343811cce92639e1bc553da8a3c1a2964404d3091aca6447c3db9c"
+  },
+  {
+    "source": "02_模块开发/谷歌图标修复/src/AndroidManifest.xml",
+    "target": "overlay/AndroidManifest.xml",
+    "sha256": "0e171703360770db9e1c724e62a52e4d04b26e85e1192184ef053244c746586e"
+  },
+  {
+    "source": "02_模块开发/谷歌图标修复/src/res/drawable/googleg_light_color_24.xml",
+    "target": "overlay/res/drawable/googleg_light_color_24.xml",
+    "sha256": "377e774c725da81e3c9a131b02f0d8f0451600691987ad7f569deb810a136998"
+  },
+  {
+    "source": "02_模块开发/墨水屏显示套件/module/META-INF/com/google/android/update-binary",
+    "target": "backend/META-INF/com/google/android/update-binary",
+    "sha256": "b3ee259919378635e561b9684df19c1517f760f29f4e37446f2e192be8a445f5"
+  },
+  {
+    "source": "02_模块开发/墨水屏显示套件/module/META-INF/com/google/android/updater-script",
+    "target": "backend/META-INF/com/google/android/updater-script",
+    "sha256": "d2b8203193a083e43ad076fde01b9c7821e0aa521e1f8077b8628fb1cdb70c60"
+  },
+  {
+    "source": "02_模块开发/墨水屏修复模块/test/com/einkfix/HookIntegrationTest.java",
+    "target": "test/com/inkcontrol/features/fix/HookIntegrationTest.java",
+    "sha256": "3ff6cefb42f999d0b62b0bc1d18d9d6687dfda2b82b1e1d89cb8b1e4ca1b04f2"
+  },
+  {
+    "source": "02_模块开发/墨水屏修复模块/test/com/einkfix/PolicyTrackerTest.java",
+    "target": "test/com/inkcontrol/features/fix/PolicyTrackerTest.java",
+    "sha256": "b1975bff71e0786149a2e218f02ae9a639ebc8c122d8b78f6922990a7192a1c5"
+  },
+  {
+    "source": "02_模块开发/墨水屏修复模块/test/runtime/android/content/Context.java",
+    "target": "test/runtime/android/content/Context.java",
+    "sha256": "7c0b99a007775af0a4b868d766affc7eea1ddfacac64a43ca1a582e41ab1f9f9"
+  },
+  {
+    "source": "02_模块开发/墨水屏修复模块/test/runtime/android/os/Binder.java",
+    "target": "test/runtime/android/os/Binder.java",
+    "sha256": "5f35220d91c8b6a99f3908ccbdb1ffe9f3841156452e7682d13cc4e126f4df21"
+  },
+  {
+    "source": "02_模块开发/墨水屏修复模块/test/runtime/android/os/Handler.java",
+    "target": "test/runtime/android/os/Handler.java",
+    "sha256": "21394fd86d5c557e0339e9a2e45a305fa8e08842d9c067443b68db0a3844a1ed"
+  },
+  {
+    "source": "02_模块开发/墨水屏修复模块/test/runtime/android/util/Log.java",
+    "target": "test/runtime/android/util/Log.java",
+    "sha256": "253dc61c08c8546df5ee1a5abbfafcc10d2b2ef8ea14828a269af0a835bff362"
+  },
+  {
+    "source": "02_模块开发/墨水屏修复模块/test/runtime/android/content/pm/ActivityInfo.java",
+    "target": "test/runtime/android/content/pm/ActivityInfo.java",
+    "sha256": "b337531a02fd85bb570f0761e9fa70946146af8847206eaeec8fc04e647cc866"
+  },
+  {
+    "source": "02_模块开发/墨水屏修复模块/test/runtime/android/content/pm/ApplicationInfo.java",
+    "target": "test/runtime/android/content/pm/ApplicationInfo.java",
+    "sha256": "e17bd75e1ed694cc2018f2dc0a7cf35da35e019a1b2063d838e504dd982cd770"
+  },
+  {
+    "source": "02_模块开发/墨水屏修复模块/test/runtime/android/content/pm/PackageManager.java",
+    "target": "test/runtime/android/content/pm/PackageManager.java",
+    "sha256": "2149d7cf521601bd40e26073a58aaf7bb9caa5f19ddbf5f9e13aba961962e642"
+  },
+  {
+    "source": "02_模块开发/墨水屏修复模块/test/runtime/com/android/server/EpdManagerService.java",
+    "target": "test/runtime/com/android/server/EpdManagerService.java",
+    "sha256": "80f14489495dd16f12e3a44a058b14b73ce8c591fb34a7926c9821e67b72fe7d"
+  },
+  {
+    "source": "02_模块开发/墨水屏修复模块/test/runtime/com/android/server/wm/ActivityRecord.java",
+    "target": "test/runtime/com/android/server/wm/ActivityRecord.java",
+    "sha256": "02b2b3e27c3fb5f2d58705d4e40fc48aa73fde74b6467495e0d4af368f37a992"
+  },
+  {
+    "source": "02_模块开发/墨水屏修复模块/test/runtime/de/robv/android/xposed/XC_MethodHook.java",
+    "target": "test/runtime/de/robv/android/xposed/XC_MethodHook.java",
+    "sha256": "032a86dc457e0dc4f8ba35134e883548c028ac8a0df8bfe5d968852710883f17"
+  },
+  {
+    "source": "02_模块开发/墨水屏修复模块/test/runtime/de/robv/android/xposed/XposedBridge.java",
+    "target": "test/runtime/de/robv/android/xposed/XposedBridge.java",
+    "sha256": "eefe88ef1b648266b67f7791a6bb0e0bdc25650ed2d281818934e6078f9aecda"
+  },
+  {
+    "source": "02_模块开发/墨水屏修复模块/test/runtime/de/robv/android/xposed/XposedHelpers.java",
+    "target": "test/runtime/de/robv/android/xposed/XposedHelpers.java",
+    "sha256": "ca7840739f965209d3efe7fdeef3fb942d136659fbd9398d50ee617915e860a6"
+  }
+]

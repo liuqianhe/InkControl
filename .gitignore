@@ -1,0 +1,32 @@
+/out/
+/results/
+/inputs/
+/signing/
+/private-inputs/
+/.ci-secrets/
+*.apk
+*.so
+*.zip
+*.der
+*.p12
+*.pfx
+*.log
+*.logcat
+*.hprof
+*.env
+.env.*
+!ci/trusted-certificate.der
+*.keystore
+*.jks
+*.pem
+*.key
+__pycache__/
+*.pyc
+local.properties
+.env
+# 一次路径输入错误产生的空目录；没有源码，不进入归档。
+/02_模块开发/
+# Local historical acceptance reports retain original device evidence and workspace links.
+/docs/20*.md
+/docs/evidence/
+/docs/local-history/

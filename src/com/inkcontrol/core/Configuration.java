@@ -1,0 +1,69 @@
+package com.inkcontrol.core;
+
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+/** 不依赖 Android 的不可变配置；文本格式只允许注册的选项，不执行文本。 */
+public final class Configuration {
+    public final long revision;
+    private final Map<String, Boolean> switches;
+    private final Map<String, String> options;
+
+    public Configuration() { this(0, new LinkedHashMap<>(), new LinkedHashMap<>()); }
+    private Configuration(long revision, Map<String, Boolean> switches, Map<String, String> options) {
+        this.revision = revision;
+        this.switches = Collections.unmodifiableMap(switches);
+        this.options = Collections.unmodifiableMap(options);
+    }
+    public boolean requested(String id) { FeatureCatalog.get(id); return Boolean.TRUE.equals(switches.get(id)); }
+    public String value(String id) { return options.containsKey(id) ? options.get(id) : FeatureCatalog.get(id).defaultValue(); }
+    public boolean enabled(String id) {
+        FeatureDefinition definition = FeatureCatalog.get(id);
+        return requested(id) && (definition.dependency.isEmpty() || enabled(definition.dependency));
+    }
+    public Configuration change(String id, boolean enabled, String value) {
+        FeatureCatalog.get(id).validate(value);
+        Map<String, Boolean> flags = new LinkedHashMap<>(switches);
+        Map<String, String> values = new LinkedHashMap<>(options);
+        flags.put(id, enabled);
+        values.put(id, value);
+        return new Configuration(revision + 1, flags, values);
+    }
+    public Configuration disableAll() {
+        return new Configuration(revision + 1, new LinkedHashMap<>(), new LinkedHashMap<>(options));
+    }
+    public String text() {
+        StringBuilder out = new StringBuilder("version=1\nrevision=" + revision + "\n");
+        for (FeatureDefinition feature : FeatureCatalog.all()) {
+            out.append(feature.id).append('=').append(requested(feature.id) ? '1' : '0').append('\n');
+            out.append(feature.id).append(".value=").append(value(feature.id)).append('\n');
+        }
+        return out.toString();
+    }
+    public static Configuration parse(String text) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        for (String line : text.split("\n")) {
+            if (line.isEmpty()) continue;
+            int split = line.indexOf('=');
+            if (split <= 0 || line.indexOf('\r') >= 0) throw new IllegalArgumentException("配置格式错误");
+            if (fields.put(line.substring(0, split), line.substring(split + 1)) != null) throw new IllegalArgumentException("配置字段重复");
+        }
+        if (!"1".equals(fields.remove("version"))) throw new IllegalArgumentException("配置版本不支持");
+        String rev = fields.remove("revision");
+        if (rev == null || !rev.matches("[0-9]{1,15}")) throw new IllegalArgumentException("配置修订号无效");
+        Map<String, Boolean> flags = new LinkedHashMap<>();
+        Map<String, String> values = new LinkedHashMap<>();
+        for (FeatureDefinition feature : FeatureCatalog.all()) {
+            String flag = fields.remove(feature.id), value = fields.remove(feature.id + ".value");
+            if (flag == null) flag = "0";
+            if (!"0".equals(flag) && !"1".equals(flag)) throw new IllegalArgumentException("功能开关无效");
+            if (value == null) value = feature.defaultValue();
+            feature.validate(value);
+            flags.put(feature.id, "1".equals(flag));
+            values.put(feature.id, value);
+        }
+        if (!fields.isEmpty()) throw new IllegalArgumentException("存在未知配置字段");
+        return new Configuration(Long.parseLong(rev), flags, values);
+    }
+}

@@ -1,0 +1,197 @@
+{
+  "Chrome Beta": {
+    "glass": "icons/glass/91d77d3c19a3.png",
+    "paper": "icons/paper/91d77d3c19a3.png",
+    "ink": "icons/ink/91d77d3c19a3.png"
+  },
+  "Eink浏览器": {
+    "glass": "icons/glass/d08053dff0ca.png",
+    "paper": "icons/paper/d08053dff0ca.png",
+    "ink": "icons/ink/d08053dff0ca.png"
+  },
+  "Grok": {
+    "glass": "icons/glass/dca61d32363b.png",
+    "paper": "icons/paper/dca61d32363b.png",
+    "ink": "icons/ink/dca61d32363b.png"
+  },
+  "Integrity Checker": {
+    "glass": "icons/glass/eb7ab5f1e002.png",
+    "paper": "icons/paper/eb7ab5f1e002.png",
+    "ink": "icons/ink/eb7ab5f1e002.png"
+  },
+  "Magisk": {
+    "glass": "icons/glass/de0b0eae6653.png",
+    "paper": "icons/paper/de0b0eae6653.png",
+    "ink": "icons/ink/de0b0eae6653.png"
+  },
+  "Play 商店": {
+    "glass": "icons/glass/cce531e8aeb4.png",
+    "paper": "icons/paper/cce531e8aeb4.png",
+    "ink": "icons/ink/cce531e8aeb4.png"
+  },
+  "Reddit": {
+    "glass": "icons/glass/eb0050f72303.png",
+    "paper": "icons/paper/eb0050f72303.png",
+    "ink": "icons/ink/eb0050f72303.png"
+  },
+  "Settings": {
+    "glass": "icons/glass/74a883a037bc.png",
+    "paper": "icons/paper/74a883a037bc.png",
+    "ink": "icons/ink/74a883a037bc.png"
+  },
+  "TenPayGo": {
+    "glass": "icons/glass/5c20d967c124.png",
+    "paper": "icons/paper/5c20d967c124.png",
+    "ink": "icons/ink/5c20d967c124.png"
+  },
+  "Tools": {
+    "glass": "icons/glass/ea93d6a262ec.png",
+    "paper": "icons/paper/ea93d6a262ec.png",
+    "ink": "icons/ink/ea93d6a262ec.png"
+  },
+  "X": {
+    "glass": "icons/glass/4b68ab3847fe.png",
+    "paper": "icons/paper/4b68ab3847fe.png",
+    "ink": "icons/ink/4b68ab3847fe.png"
+  },
+  "YouTube": {
+    "glass": "icons/glass/fb7accfff8c6.png",
+    "paper": "icons/paper/fb7accfff8c6.png",
+    "ink": "icons/ink/fb7accfff8c6.png"
+  },
+  "bilibili": {
+    "glass": "icons/glass/5acb7efa8ac5.png",
+    "paper": "icons/paper/5acb7efa8ac5.png",
+    "ink": "icons/ink/5acb7efa8ac5.png"
+  },
+  "下载": {
+    "glass": "icons/glass/4673a2306165.png",
+    "paper": "icons/paper/4673a2306165.png",
+    "ink": "icons/ink/4673a2306165.png"
+  },
+  "便签": {
+    "glass": "icons/glass/e3c5f4c93feb.png",
+    "paper": "icons/paper/e3c5f4c93feb.png",
+    "ink": "icons/ink/e3c5f4c93feb.png"
+  },
+  "信息": {
+    "glass": "icons/glass/e7028601e7da.png",
+    "paper": "icons/paper/e7028601e7da.png",
+    "ink": "icons/ink/e7028601e7da.png"
+  },
+  "图库": {
+    "glass": "icons/glass/0091a6122f4f.png",
+    "paper": "icons/paper/0091a6122f4f.png",
+    "ink": "icons/ink/0091a6122f4f.png"
+  },
+  "墨水屏过渡动画": {
+    "glass": "icons/glass/2800dabbc1c5.png",
+    "paper": "icons/paper/2800dabbc1c5.png",
+    "ink": "icons/ink/2800dabbc1c5.png"
+  },
+  "天气": {
+    "glass": "icons/glass/4d947325473f.png",
+    "paper": "icons/paper/4d947325473f.png",
+    "ink": "icons/ink/4d947325473f.png"
+  },
+  "小红书": {
+    "glass": "icons/glass/d26c6a08a591.png",
+    "paper": "icons/paper/d26c6a08a591.png",
+    "ink": "icons/ink/d26c6a08a591.png"
+  },
+  "录音机": {
+    "glass": "icons/glass/bdba42901714.png",
+    "paper": "icons/paper/bdba42901714.png",
+    "ink": "icons/ink/bdba42901714.png"
+  },
+  "微信读书": {
+    "glass": "icons/glass/987dccf2ea2b.png",
+    "paper": "icons/paper/987dccf2ea2b.png",
+    "ink": "icons/ink/987dccf2ea2b.png"
+  },
+  "微信输入法": {
+    "glass": "icons/glass/07975bdfda8f.png",
+    "paper": "icons/paper/07975bdfda8f.png",
+    "ink": "icons/ink/07975bdfda8f.png"
+  },
+  "手机服务": {
+    "glass": "icons/glass/72ed4b31e027.png",
+    "paper": "icons/paper/72ed4b31e027.png",
+    "ink": "icons/ink/72ed4b31e027.png"
+  },
+  "文件管理": {
+    "glass": "icons/glass/b3bd5ac7cc4d.png",
+    "paper": "icons/paper/b3bd5ac7cc4d.png",
+    "ink": "icons/ink/b3bd5ac7cc4d.png"
+  },
+  "日历": {
+    "glass": "icons/glass/a00f295cfbb0.png",
+    "paper": "icons/paper/a00f295cfbb0.png",
+    "ink": "icons/ink/a00f295cfbb0.png"
+  },
+  "时钟": {
+    "glass": "icons/glass/0f58fd2a2e0f.png",
+    "paper": "icons/paper/0f58fd2a2e0f.png",
+    "ink": "icons/ink/0f58fd2a2e0f.png"
+  },
+  "电子邮件": {
+    "glass": "icons/glass/1b2714b812d4.png",
+    "paper": "icons/paper/1b2714b812d4.png",
+    "ink": "icons/ink/1b2714b812d4.png"
+  },
+  "电话": {
+    "glass": "icons/glass/bf8b5d378f01.png",
+    "paper": "icons/paper/bf8b5d378f01.png",
+    "ink": "icons/ink/bf8b5d378f01.png"
+  },
+  "相机": {
+    "glass": "icons/glass/dacf07026026.png",
+    "paper": "icons/paper/dacf07026026.png",
+    "ink": "icons/ink/dacf07026026.png"
+  },
+  "网易云音乐": {
+    "glass": "icons/glass/4a366fb92e53.png",
+    "paper": "icons/paper/4a366fb92e53.png",
+    "ink": "icons/ink/4a366fb92e53.png"
+  },
+  "联系人": {
+    "glass": "icons/glass/3303b56982a0.png",
+    "paper": "icons/paper/3303b56982a0.png",
+    "ink": "icons/ink/3303b56982a0.png"
+  },
+  "视频": {
+    "glass": "icons/glass/c20f7618d330.png",
+    "paper": "icons/paper/c20f7618d330.png",
+    "ink": "icons/ink/c20f7618d330.png"
+  },
+  "计算器": {
+    "glass": "icons/glass/1283ddbf6956.png",
+    "paper": "icons/paper/1283ddbf6956.png",
+    "ink": "icons/ink/1283ddbf6956.png"
+  },
+  "设置": {
+    "glass": "icons/glass/df3d58c7d84b.png",
+    "paper": "icons/paper/df3d58c7d84b.png",
+    "ink": "icons/ink/df3d58c7d84b.png"
+  },
+  "身份验证器": {
+    "glass": "icons/glass/c759a41b27a1.png",
+    "paper": "icons/paper/c759a41b27a1.png",
+    "ink": "icons/ink/c759a41b27a1.png"
+  },
+  "酒域-歌词获取": {
+    "glass": "icons/glass/a2d3c51cfd2b.png",
+    "paper": "icons/paper/a2d3c51cfd2b.png",
+    "ink": "icons/ink/a2d3c51cfd2b.png"
+  },
+  "酷安": {
+    "glass": "icons/glass/1f884099b0e9.png",
+    "paper": "icons/paper/1f884099b0e9.png",
+    "ink": "icons/ink/1f884099b0e9.png"
+  },
+  "音乐": {
+    "glass": "icons/glass/db9514212493.png",
+    "paper": "icons/paper/db9514212493.png",
+    "ink": "icons/ink/db9514212493.png"
+  }
+}

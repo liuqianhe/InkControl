@@ -1,0 +1,50 @@
+#!/system/bin/sh
+MODDIR=${0%/bin/inkctl}
+IC_LIB=$MODDIR/lib
+. "$IC_LIB/common.sh"
+[ "$(id -u)" = 0 ] || { echo '需要Root授权' >&2; exit 1; }
+mkdir -p "$IC_STATE" || exit 1
+chmod 700 "$IC_STATE"
+pid_identity() {
+    pid=$(pidof "$2" | awk '{print $1}')
+    echo "pid.$1=$pid"
+    [ -n "$pid" ] && { printf 'start.%s=' "$1"; sed 's/.*) //' "/proc/$pid/stat" | awk '{print $20}'; }
+}
+case "$1" in
+    status)
+        echo 'protocol=1'
+        echo "device=$(getprop ro.product.device)"
+        echo "sdk=$(getprop ro.build.version.sdk)"
+        echo "abi=$(getprop ro.product.cpu.abi)"
+        echo "firmware=$(getprop ro.build.display.id)"
+        echo "dynamic_current=$(settings get global dynamic_refresh_mode)"
+        echo "google_overlay_active=$(cmd overlay list --user 0 2>/dev/null | awk '$1=="[x]" && $2=="com.inkcontrol.overlay.google" {active=1} END {print active+0}')"
+        ic_ready && echo 'ready=1' || echo 'ready=0'
+        echo "hwc=$(sha256sum "$IC_VENDOR/hwcomposer.ums512.so" | cut -d' ' -f1)"
+        echo "boot_id=$(cat /proc/sys/kernel/random/boot_id)"
+        [ -f "$IC_MODULE/module.prop" ] && [ ! -f "$IC_MODULE/disable" ] && echo 'installed=1' || echo 'installed=0'
+        echo "backend_version=$(sed -n 's/^version=//p' "$IC_MODULE/module.prop" 2>/dev/null)"
+        echo "conflict=$(ic_module_conflict)"
+        pid_identity system system_server
+        pid_identity systemui com.android.systemui
+        pid_identity launcher com.hmct.vision
+        [ -f "$IC_STATE/boot_id" ] && echo "applied_boot=$(cat "$IC_STATE/boot_id")"
+        [ -f "$IC_STATE/error" ] && { printf 'error='; head -n 1 "$IC_STATE/error"; }
+        echo 'APPLIED_BEGIN'; cat "$IC_APPLIED" 2>/dev/null; echo 'APPLIED_END'
+        echo 'BOOT_BEGIN'; cat "$IC_BOOT" 2>/dev/null; echo 'BOOT_END'
+        hwc_pid=$(pidof android.hardware.graphics.composer@2.1-service | awk '{print $1}')
+        if [ -n "$hwc_pid" ] && [ -x "$IC_MODULE/bin/eink_status" ]; then
+            echo 'GPU_BEGIN'; "$IC_MODULE/bin/eink_status" status "$hwc_pid"; echo 'GPU_END'
+        fi
+        exit 0 ;;
+    apply)
+        ic_supported || { echo '设备不兼容' >&2; exit 1; }
+        [ -f "$IC_MODULE/module.prop" ] || { echo '请先安装配套Magisk模块' >&2; exit 1; }
+        cat > "$IC_STATE/configuration.pending" || exit 1
+        ic_validate "$IC_STATE/configuration.pending" || { rm -f "$IC_STATE/configuration.pending"; echo '配置校验失败' >&2; exit 1; }
+        if conflict=$(ic_module_conflict); then echo "冲突模块仍启用：$conflict；请在 Magisk 中停用后完整重启" >&2; exit 1; fi
+        mv "$IC_STATE/configuration.pending" "$IC_CONFIG" || exit 1
+        ic_apply_hot || { echo '配置已保存，部分应用失败；请检查诊断后重试' >&2; exit 1; }
+        echo '配置已应用，启动期选项等待完整重启' ;;
+    *) echo '仅支持 status/apply' >&2; exit 2 ;;
+esac

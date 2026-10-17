@@ -1,0 +1,734 @@
+# UTF-8 Chinese source phrase	English display text
+功能	Features
+安装	Install
+诊断	Diagnostics
+正在读取配置…	Reading configuration…
+配置读取失败	Could not read configuration
+原文件已保留，未做任何修改。\n	The original file has been preserved without changes.\n
+名词解释	Glossary
+界面里出现的专业词是什么意思。	Plain explanations of the technical terms used here.
+墨控	InkControl
+ · 墨水屏增强 · 全部默认关闭	 · E-ink enhancements · All off by default
+返回 	Back to 
+读取中	Loading
+未读取	Not loaded
+尚未检查环境	Environment has not been checked
+未检查	Not checked
+环境异常	Environment error
+● 就绪	● Ready
+未就绪	Not ready
+环境状态：	Environment: 
+处理中，请稍候…	Working, please wait…
+操作结果	Operation result
+关闭提示	Dismiss message
+未完成	Incomplete
+，当前页	, current page
+待重启	Restart required
+异常	Error
+已开启 / 	enabled / 
+环境未就绪：开启增强前请按「安装」页完成安装并完整重启。	Environment not ready. Complete the installation guide and fully restart before enabling enhancements.
+尚未检查环境。开启任何增强前，先到「安装」完成检查与安装。	Environment not checked. Open Install to check and set up before enabling enhancements.
+环境检查未完成：	Environment check incomplete: 
+。开启增强前请先到「安装」处理。	. Open Install before enabling enhancements.
+前往安装向导	Open installation guide
+ 项	 items
+ 已开启	 enabled
+ 项异常	 errors
+分类 	Category: 
+刷新方式、残影、关键帧、波形动画……这些词是什么意思。	Refresh modes, ghosting, keyframes, waveform animations… What do they mean?
+检查当前生效状态	Check active status
+检查生效状态	Check status
+关闭全部增强	Disable all enhancements
+保留各项选择，并恢复墨控接管的行为。启动期覆盖需完整重启后才完全恢复。	Keep individual selections and restore changes owned by InkControl. Startup overrides need a full restart to be completely restored.
+已提交关闭；请完整重启并检查。	Disable request submitted. Fully restart and check again.
+动画	Animations
+锁屏	Lock screen
+点进每一项可以看到动画演示或效果图。	Open a feature to see an animation or preview.
+，打开算法与迟滞设置	, open algorithm and hysteresis settings
+需先开启「	Enable first: 
+正在保存	Saving
+已生效	Active
+，打开详情	, open details
+温度自适应	Temperature adaptive
+实验	Experimental
+需重启	Restart needed
+开启	On
+关闭	Off
+已保存「	Saved: 
+已开启	Enabled
+未开启	Disabled
+↻ 更改后需要完整重启才生效。	↻ A full restart is required after changing this setting.
+这一项属于「	This feature depends on 
+」，要先开启它才会生效。	; enable it first.
+所选效果是波形动画，需要先开启「GPU 显示后端」并完整重启。	The selected waveform animation requires the GPU display backend and a full restart.
+它做什么	What it does
+需要知道	What to know
+算法选择 · 	Algorithm · 
+算法状态：	Algorithm status: 
+保持现状时：	When keeping defaults: 
+GPU 显示后端未开启，当前沿用系统显示路径；已保存的选择仍会保留。	The GPU display backend is disabled. The system display path is in use and your selections are retained.
+算法 	Algorithm: 
+，已选择	, selected
+本模式算法	Algorithm for this mode
+16级灰阶算法没有独立迟滞选项。保持现状会保留锁屏细线处理；明确选择算法会覆盖本模式的灰阶量化。	16-level grayscale algorithms have no separate hysteresis option. Keeping defaults preserves lock-screen line removal; an explicit algorithm overrides grayscale quantization for this mode.
+旧实验室的视频选择继续保存在配置中，本页选「保持现状」即可沿用。新算法选择优先；恢复默认不会清除旧选择。	The old experimental video selection is retained. Choose Keep current to use it. An explicit new algorithm takes priority; restoring defaults does not erase the old selection.
+沿用原有16级灰阶处理，由原分支决定是否需要抖动；需要抖动且符合锁屏细线条件时，仍沿用「消除锁屏细线」的点量化。该项当前	Keep the existing 16-level grayscale path, including its conditional dithering. When applicable, lock-screen line removal still uses nearest-level quantization. That feature is currently 
+已开启。	enabled.
+未开启。	disabled.
+（沿用旧视频选择）。	 (using the legacy video selection).
+独立迟滞	Independent hysteresis
+开启 GPU 显示后端后，可按当前算法设置。视频默认开启，快速和极速默认关闭。	Enable the GPU display backend to configure this algorithm. Default: on for video, off for Fast and Extreme.
+历史处理	History processing
+原厂误差扩散有内部历史处理，不能使用独立迟滞开关。已保存的独立迟滞选择会保留，切回 Bayer、蓝噪声或固定阈值时继续使用。	Stock error diffusion has its own history processing and does not support this switch. Your hysteresis selection is retained for Bayer, blue noise, or fixed threshold.
+减少静止区域闪点，可能增加拖尾。与算法选择独立保存。	Reduce flicker in static areas; may increase trailing. Saved independently of the algorithm.
+关闭迟滞	Hysteresis off
+开启迟滞	Hysteresis on
+跟随默认：	Follow default: 
+单独设置：	Custom setting: 
+迟滞状态：	Hysteresis status: 
+恢复默认（	Restore default (
+跟随默认迟滞	Follow default hysteresis
+保存「	Save: 
+前往「	Go to 
+开启前后	Before and after
+开启前	Before
+开启后	After
+效果演示	Effect demo
+效果演示（打开应用 · 	Effect demo (open app · 
+共 	Total: 
+ 张中间画面。	 intermediate frames.
+效果演示（方形展开）	Effect demo (square reveal)
+效果演示（应用内前进 · 关键帧擦除）	Effect demo (in-app forward · keyframe wipe)
+效果演示（墨迹晕开）	Effect demo (ink spread)
+实际全程约 	Actual total: about 
+ 秒。	 seconds.
+效果图 · 	Preview · 
+图中为样例数据，实际显示你的时间、天气和音乐。	Sample data shown. Your actual time, weather, and music appear on the device.
+图为主屏组件（	Home widget (
+），图标与字体同一风格。	), matching the icons and font.
+使用当前选择的主题「	Using the selected theme: 
+原来	Original
+所选	Selected
+三种刷新方式	Three refresh types
+条越长越慢；清晰全刷的实心部分表示先闪黑。	Longer bars mean slower refresh. The solid part of Clear indicates the initial black flash.
+点按画面播放一次。演示把时间放慢，方便看清过程。	Tap the image to play once. The demo is slowed down to make the sequence visible.
+预览素材不可用：	Preview assets unavailable: 
+按当前设置，实际约 	With current settings: about 
+ 秒（	 seconds (
+ 张中间画面，每张停留 	 intermediate frames, held for 
+ 毫秒）。	 ms each).
+与原厂全刷用时相同，约 0.9 秒。	Same as a stock full refresh, about 0.9 seconds.
+ 秒，仍在一次刷新内完成。	 seconds, still within one refresh.
+选择动画	Choose animation
+选择	Choose
+点按卡片先	Tap a card to 
+查看说明	read the explanation
+预览效果	preview the effect
+，满意后再点下方按钮使用。	, then use the button below to apply it.
+需要 GPU 显示后端	Requires GPU display backend
+✓ 正在使用	✓ In use
+已选（未开启）	Selected (disabled)
+预览中	Previewing
+选项 	Option: 
+，正在使用	, in use
+，预览中	, previewing
+使用「	Use: 
+开启并使用「	Enable and use: 
+统一 	Fixed: 
+ 毫秒	 ms
+自定义曲线	Custom curve
+怎么决定停留时长	How frame hold time is chosen
+统一时长	Fixed duration
+按电池温度自动取“刚好刷完 + 3 帧余量”。天冷时自动变长，避免画面糊在一起。	Use the time needed to finish refreshing plus a 3-scan margin at the current battery temperature. Cold conditions get longer holds to prevent overlapping frames.
+所有温度都使用同一个时长。天冷时如果低于虚线，动画可能糊。	Use one duration at all temperatures. Below the dashed line in cold conditions, frames may blur together.
+上下拖动每根柱子，单独设置每个温度段，10 毫秒一档。虚线是该温度刷完所需的时间。	Drag each bar up or down to set its temperature band in 10 ms steps. The dashed line marks the time needed to finish refreshing.
+当前电池温度 %.1f°C → 每张中间画面停留 %d 毫秒	Battery %.1f°C → hold each intermediate frame for %d ms
+实心柱：设置的时长　虚线：该温度刷完所需　空心柱：低于所需，可能糊	Solid: configured hold · Dashed: refresh time needed · Outline: too short, may blur
+从自动值开始	Start from automatic values
+整体加长 20%	Increase all by 20%
+保存	Save
+保存关键帧停留	Save keyframe hold time
+已保存「关键帧停留」：	Saved keyframe hold time: 
+开始使用	Get started
+适用于 HLTE203T · Android 10 · 固件 L1732.6.01.02，需要 Magisk 与 LSPosed 类框架（如 Vector）。	For HLTE203T · Android 10 · firmware L1732.6.01.02. Requires Magisk and an LSPosed-compatible framework such as Vector.
+没有 Root 也能浏览功能说明、观看演示和导出安装包。	Without Root, you can still read descriptions, watch demos, and export the installer.
+授予 Root 后读取设备型号、固件和后端状态。	Grant Root to read the device model, firmware, and backend status.
+\n当前设备 	\nCurrent device 
+ 不在适配范围内，增强不会生效。	 is unsupported; enhancements will not take effect.
+检查环境	Check environment
+导出安装包，在 Magisk →「模块」→「从本地安装」中选择它。	Export the installer, then choose it in Magisk → Modules → Install from storage.
+\n已安装的后端是 	\nInstalled backend: 
+，与本 App 不一致，请重新安装。	. It does not match this app; reinstall the backend.
+\n检测到同类模块 	\nConflicting module detected: 
+ 仍在启用，它会与墨控争用显示库，请在 Magisk 中停用。	 is still enabled and competes for the display library. Disable it in Magisk.
+安装 Magisk 后端	Install Magisk backend
+导出 Magisk 安装包	Export Magisk installer
+在框架管理器中启用「墨控」，作用域勾选：系统框架、系统界面、桌面（com.hmct.vision）。	Enable InkControl in your framework manager. Select System Framework, System UI, and the launcher (com.hmct.vision).
+\n目前只有 	\nOnly 
+ / 3 个作用域已加载，请检查勾选后重启。	 / 3 scopes are loaded. Check the selected scopes and restart.
+启用框架模块	Enable framework module
+重启并开启功能	Restart and enable features
+完成以上步骤后完整重启手机，回到这里重新检查环境，然后到「功能」按需开启。所有增强默认关闭，可随时一键全部关闭。	Fully restart after setup. Return here to check the environment, then enable the features you want. All enhancements are off by default and can be disabled together at any time.
+前往功能	Open Features
+第 	Step 
+ 步	 
+，已完成	, complete
+运行环境	Runtime environment
+尚未检查。点击下方按钮会申请 Root，并读取当前进程与后端状态。	Not checked yet. The button below requests Root and reads the current processes and backend state.
+检查未完成：	Check incomplete: 
+\n仍可浏览说明和导出 ZIP。	\nYou can still read descriptions and export the ZIP.
+设备	Device
+固件	Firmware
+后端模块	Backend module
+已安装 	Installed: 
+未安装或已停用	Not installed or disabled
+框架模块	Framework module
+ / 3 个作用域已加载	 / 3 scopes loaded
+冲突模块	Conflicting modules
+整体就绪	Ready overall
+是	Yes
+否	No
+后端错误	Backend error
+刷新环境与当前进程确认	Refresh environment and current-process status
+刷新环境	Refresh environment
+重试应用已保存配置	Retry saved configuration
+重试应用配置	Retry configuration
+最近一次完整输出	Latest complete output
+收起 ▾	Collapse ▾
+展开 ▸	Expand ▸
+选择已保存，但未能立即应用：	Selection saved, but immediate application failed: 
+\n完成安装后可在「诊断」重试应用。	\nAfter installation, retry from Diagnostics.
+请等待当前操作完成	Please wait for the current operation to finish
+未知	Unknown
+依赖	Dependency
+取消	Cancel
+继续	Continue
+知道了	OK
+环境检查未完成	Environment check incomplete
+未完成：	Incomplete: 
+：完成	: complete
+无法导出	Could not export
+系统没有可用的文件保存界面。	No document-saving interface is available on this system.
+导出 ZIP	Export ZIP
+无法写入目标文件	Could not write the target file
+ZIP 已校验并导出，请在 Magisk 中从本地安装。	ZIP verified and exported. Install it from storage in Magisk.
+刷新方式	Refresh modes
+原厂界面有四种模式：清晰（2）、阅读（3，兼容4/5）、快速（6）、极速（9）。快速和极速底层都用 A2，但可分别选择算法；视频是独立场景。选择算法不会改变刷新模式。	The stock UI has four modes: Clear (2), Reading (3, compatible with 4/5), Fast (6), and Extreme (9). Fast and Extreme both use A2, but keep separate algorithms. Video is a separate scenario. Choosing an algorithm does not change the refresh mode.
+快速模式	Fast mode
+原厂模式6，底层使用 A2 黑白刷新，默认 Bayer 网点、不开独立迟滞。与极速模式9分别保存算法选择。	Stock mode 6 uses A2 black-and-white refresh, with Bayer and no independent hysteresis by default. Its algorithm is saved separately from Extreme mode 9.
+极速模式	Extreme mode
+约 0.12 秒刷完。只能显示黑和白，灰色用网点模拟；最快、最跟手，但会留一点残影。（屏幕驱动中的名字是 A2）	About 0.12 seconds per refresh. Only black and white; dots simulate gray. Fastest response, with some ghosting. Called A2 in the screen driver.
+阅读模式	Reading mode
+约 0.45 秒刷完。有 16 级灰阶，不闪黑，文字和图片细腻。（GLD16）	About 0.45 seconds per refresh. 16 gray levels without a black flash, for smoother text and images. GLD16.
+清晰全刷	Clear full refresh
+约 0.9 秒刷完。画面会先闪一下黑再显示，能把残影彻底清掉。（GC16）	About 0.9 seconds per refresh. Flashes black before displaying the image to remove ghosting. GC16.
+残影	Ghosting
+上一张画面没有完全擦干净留下的淡淡痕迹，墨水屏刷新越快越容易出现。	Faint remnants of the previous image. Faster e-ink refreshes tend to leave more ghosting.
+显示后端	Display backend
+系统里负责把画面转换成墨水屏驱动信号并送上屏的那段程序（硬件合成器 HWC）。	The system component that converts images into e-ink drive signals and sends them to the screen: the hardware composer, or HWC.
+GPU 显示后端	GPU display backend
+墨控提供的显示后端：把原厂由 CPU 逐像素做的图像处理换到 GPU 上并行完成。波形动画、触摸响应加速、消除锁屏细线都依赖它。	InkControl moves pixel-by-pixel image processing from the CPU to parallel GPU computation. Waveform animations, faster touch response, and lock-screen line removal depend on it.
+关键帧	Keyframe
+动画中途停下来显示的一张静止画面。墨水屏不能像普通屏幕那样每秒播放几十帧，所以墨控用 1–3 张中间画面拼出动画，每张都要完整刷新一次。	A still image shown partway through an animation. E-ink cannot display dozens of frames per second, so InkControl uses 1–3 intermediate images, each requiring a complete refresh.
+关键帧动画	Keyframe animation
+方形展开、关键帧擦除：依次显示几张中间画面实现。不需要 GPU 显示后端，但每多一张就多一次刷新。	Square reveal and keyframe wipe show a sequence of intermediate images. They need no GPU backend, but each extra image adds a refresh.
+波形动画	Waveform animation
+墨迹晕开、网点长大、扫描线、百叶窗：在屏幕驱动层让不同位置的像素错开一点时间开始刷新，一次刷新之内完成，所以又快又顺。需要 GPU 显示后端。	Ink spread, growing dots, scanlines, and blinds stagger when different pixels begin refreshing. The effect completes within a single refresh and requires the GPU display backend.
+扫描帧	Scan frame
+墨水屏驱动一次给整屏送电压的周期，本机约 11.7 毫秒（每秒 85.8 次）。一次极速刷新约需 10 帧。	One cycle of screen-wide drive voltages: about 11.7 ms on this device, or 85.8 cycles per second. One Extreme refresh takes about 10 scan frames.
+墨水屏里的墨水颗粒天冷时移动变慢，同一种刷新要多花几倍时间：24°C 以上极速刷新约 10 帧，3°C 以下要 35 帧。墨控读取电池温度，自动按当前温度取刷完所需的时间。	E-ink particles move more slowly when cold. An Extreme refresh needs about 10 scans above 24°C and 35 below 3°C. InkControl uses battery temperature to choose the required hold time.
+抖动	Dithering
+把灰色转换成黑白小点的方法。点排得越均匀，远看越像平滑的灰；排得不好会出现条纹或雪花闪烁。	Converting gray into small black-and-white dots. An even pattern looks smoother from a distance; a poor pattern can create stripes or flicker.
+迟滞	Hysteresis
+利用上一帧的黑白结果，让亮度只有小变化的像素保持原状态，减少静止区域闪点。可能增加拖尾。独立开关仅适用于 Bayer、蓝噪声和固定阈值；原厂误差扩散自带历史处理，不由此开关控制。	Use the previous black-and-white result to keep pixels stable when brightness changes only slightly. It reduces static-area flicker but may increase trailing. The separate switch supports Bayer, blue noise, and fixed threshold; stock error diffusion has its own history processing.
+完整重启	Full restart
+关机再开机（不是只锁屏）。替换系统文件的功能要在开机过程中才能装载。	Power off and boot again, rather than just locking the screen. Features that replace system files are loaded during startup.
+作用域	Scopes
+框架（如 Vector/LSPosed）里给模块勾选的、允许它进入的系统进程。墨控需要：系统框架、系统界面、桌面。	System processes the framework, such as Vector or LSPosed, allows a module to enter. InkControl needs System Framework, System UI, and the launcher.
+显示	Display
+按清晰、阅读、快速、极速和视频分别选算法，调整触摸响应。	Choose algorithms separately for Clear, Reading, Fast, Extreme, and video, and adjust touch response.
+核心	Core
+原厂四模式 · 算法	Four stock modes · Algorithms
+独立视频场景	Separate video scenario
+触摸与响应	Touch and response
+系统刷新设置	System refresh settings
+打开应用、返回、弹窗和锁屏时的过渡效果，专为墨水屏设计。	Transitions for opening apps, going back, dialogs, and locking, designed for e-ink.
+总开关	Master switch
+各场景用什么动画	Animation by scenario
+动画节奏	Animation timing
+其他	Other
+锁屏样式、天气、歌词，以及锁屏时用哪种刷新方式。	Lock-screen styles, weather, lyrics, and refresh settings.
+样式	Style
+歌词	Lyrics
+锁屏刷新	Lock-screen refresh
+桌面	Desktop
+原厂桌面的主题、图标、字体与组件；不改动图标位置和布局。	Themes, icons, fonts, and widgets for the stock launcher; icon positions and layout stay in place.
+主题	Theme
+换肤项目	Theme components
+系统增强	System enhancements
+修复原厂墨水屏服务的几个问题：偶发重启、卡开机、多余刷新。	Fix stock e-ink service issues: unexpected restarts, boot failures, and unnecessary refreshes.
+稳定性	Stability
+刷新行为	Refresh behavior
+安全	Security
+外观	Appearance
+实验室	Laboratory
+仍在验证的优化，效果因场景而异。	Optimizations still being evaluated; results depend on the scenario.
+实验项目	Experiments
+沿用当前默认	Keep current defaults
+选「瞬间切换」以外的效果后，这个场景就不再是原厂的直接跳变。波形类效果（墨迹、网点、扫描线、百叶窗）需要先开启 GPU 显示后端。	Any effect except Instant switch replaces the stock direct transition. Waveform effects (ink, dots, scanlines, blinds) require the GPU display backend first.
+方形展开	Square reveal
+新画面从你点的位置以方块形状分几步扩开。关键帧动画，不需要 GPU 后端。	Reveal the new image in square steps from the touch point. A keyframe animation; no GPU backend required.
+关键帧擦除	Keyframe wipe
+新画面像翻页一样，从一侧分几步推过来。关键帧动画，不需要 GPU 后端。	Push in the new image from one side in steps, like turning a page. A keyframe animation; no GPU backend required.
+墨迹晕开	Ink spread
+新画面从点击处像墨水在纸上洇开，边缘自然不规则。波形动画。	Spread the new image from the touch point like ink on paper, with an irregular edge. A waveform animation.
+网点长大	Growing dots
+整屏同时冒出小网点，再逐渐长满成新画面，像印刷网点。波形动画。	Small dots appear across the screen and grow to reveal the new image, like halftone printing. A waveform animation.
+扫描线	Scanlines
+新画面像扫描仪一样逐行刷出，方向由“擦除方向”决定。波形动画。	Reveal the new image row by row. Wipe direction chooses the starting side. A waveform animation.
+百叶窗	Blinds
+屏幕分成若干横条，每条各自从上往下刷新。波形动画。	Split the screen into horizontal strips, each refreshing from top to bottom. A waveform animation.
+，单独保存算法选择	; algorithm saved separately
+只调整	Only changes image processing for 
+的画面处理，不改变刷新模式。	; does not change the refresh mode.
+仅提供16级灰阶算法。	Only 16-level grayscale algorithms are offered.
+仅提供黑白算法。快速、极速和视频分别保存选择。	Only black-and-white algorithms are offered. Fast, Extreme, and video retain separate selections.
+需要 GPU 显示后端。算法与迟滞均为热更新配置，实际生效以运行回执为准。新算法尚需实屏对照。	Requires the GPU display backend. Algorithm and hysteresis settings apply live; runtime acknowledgements determine actual status. New algorithms still need screen comparison.
+保持现状	Keep current
+保留原有灰阶路径，也保留「消除锁屏细线」的条件处理。	Keep the existing grayscale path, including conditional lock-screen line removal.
+沿用旧视频选择；没有旧覆盖时是蓝噪声。迟滞单独设置。	Use the legacy video selection, or blue noise if none exists. Hysteresis is configured separately.
+沿用 Bayer。迟滞单独设置，默认关闭。	Keep Bayer. Hysteresis is configured separately and defaults to off.
+原厂误差扩散	Stock error diffusion
+明确使用原厂16级灰阶误差扩散；会覆盖该模式的锁屏细线算法选择。	Explicitly use stock 16-level grayscale error diffusion, overriding lock-screen line removal for this mode.
+点量化	Nearest level
+就近取16级灰阶，不向相邻像素传播误差。	Round to the nearest of 16 gray levels without spreading error to neighboring pixels.
+16级 Bayer	16-level Bayer
+固定有序网点，保留16级灰阶；纹理需实屏观察。	A fixed ordered pattern retaining 16 gray levels. Evaluate the texture on the physical screen.
+固定排列的有序网点，可独立控制迟滞。	A fixed ordered dot pattern, with independent hysteresis control.
+蓝噪声	Blue noise
+分布较均匀的黑白网点，可独立控制迟滞。	An evenly distributed black-and-white dot pattern, with independent hysteresis control.
+固定阈值	Fixed threshold
+直接按亮度取黑或白，不保留灰色网点；可独立控制迟滞。	Choose black or white directly from brightness, without gray dots. Supports independent hysteresis.
+内部自带历史处理，不支持独立迟滞开关。当前 GPU 实现逐行依赖较多，视频可能较慢。	Has internal history processing and no independent hysteresis switch. The current GPU implementation has row dependencies and may be slow for video.
+内的独立历史稳定开关	: separate temporal stability switch
+仅对本场景的 Bayer、蓝噪声、固定阈值生效。与算法选择独立保存；切到不适用算法时保留选择并隐藏开关。	Applies only to Bayer, blue noise, and fixed threshold in this scenario. Saved separately from the algorithm; hidden but retained for unsupported algorithms.
+可能增加拖尾；原厂误差扩散自带历史处理，此开关不能启停它。	May increase trailing. Stock error diffusion has its own history processing, which this switch cannot enable or disable.
+跟随默认	Follow default
+视频默认开启。	On by default for video.
+快速和极速默认关闭。	Off by default for Fast and Extreme.
+利用前一帧减少闪点。	Use the previous frame to reduce flicker.
+逐帧量化，不使用独立迟滞。	Quantize each frame without independent hysteresis.
+图像处理交给 GPU，CPU 占用大幅下降	Move image processing to the GPU to reduce CPU use
+墨水屏每次刷新前，要把画面转换成灰度、做抖动、再与刷新波形混合。原厂把这些全放在 CPU 上逐像素计算；开启后改由手机 GPU 并行完成。	Before refreshing, images must be converted to grayscale, dithered, and mixed with the waveform. The stock backend computes this pixel by pixel on the CPU; this option uses the GPU in parallel.
+每次刷新约占用 45 毫秒 CPU 时间，滑动或播放视频时 CPU 负担重。	About 45 ms of CPU processing per refresh; scrolling and video put a heavy load on the CPU.
+每次刷新的 CPU 处理降到约 3 毫秒。它也是波形动画、触摸响应加速、消除锁屏细线的前提。	About 3 ms of CPU processing per refresh. Also required for waveform animations, touch response acceleration, and lock-screen line removal.
+会替换系统显示库，开关后需要完整重启。墨控持续监测 GPU 运行状态，一旦出错会自动停用，下次重启即回到原厂显示库。	Replaces the system display library and needs a full restart after toggling. InkControl monitors GPU operation; an error disables the backend for the next boot, restoring the stock library.
+每次刷新的 CPU 处理时间（实测）	CPU processing per refresh (measured)
+原厂	Stock
+启用 GPU 显示后端	GPU backend enabled
+触摸后画面更快开始变化，约快 50 毫秒	The image starts changing about 50 ms sooner after touch
+屏幕正在刷新时，显示服务会提前取走下一张画面排队。等真正轮到它上屏，内容已经过时将近 0.1 秒。开启后改为等队列快空时才取最新的画面。	While a refresh is running, the display service queues the next image early. By display time it is almost 0.1 seconds old. This option samples the newest image when the queue is nearly empty.
+从手指触摸到画面开始变化约 98 毫秒。	About 98 ms from touch until the image begins changing.
+缩短到约 45 毫秒，滑动和点按更跟手。	Reduced to about 45 ms for more responsive taps and scrolling.
+连续快速滑动时，每秒刷新次数会略少一点（约 5.9 → 5.6 次）。	Continuous fast scrolling has slightly fewer refreshes per second, about 5.9 → 5.6.
+触摸到画面开始变化的延迟（实测）	Touch-to-first-change latency (measured)
+队列剩两帧时取图	Sample with two scans left in the queue
+在“及时”与“流畅”之间的平衡点，实测最佳。	The best measured balance between freshness and smoothness.
+停顿几秒后再操作，第一下不再慢半拍	Avoid a slow first response after pausing for a few seconds
+画面不变时，原厂约 2–3 秒就关掉屏幕驱动电路的电源来省电（墨水屏断电不会掉画面）。可下一次刷新前要先重新上电，多等约 85 毫秒。开启后改成 10 秒没有变化才断电。	The stock driver powers down after about 2–3 seconds without changes. E-ink retains the image without power, but powering up adds about 85 ms to the next refresh. This option waits 10 seconds instead.
+看几秒内容再翻页，第一下反应明显慢一拍。	After reading for a few seconds, the first page turn feels delayed.
+10 秒内的连续操作都不会遇到这一拍等待。	No extra power-up delay during interactions less than 10 seconds apart.
+闲置时驱动电路多通电几秒，耗电略有增加。需要完整重启。	The driver remains powered for a few extra seconds, slightly increasing idle consumption. Requires a full restart.
+停顿 3 秒后第一次刷新的额外等待（实测）	Extra delay on first refresh after a 3-second pause (measured)
+空闲 10 秒后断电	Power down after 10 idle seconds
+滑动时不再反复查询刷新模式	Stop repeatedly querying refresh mode while scrolling
+原厂在你手指每移动一下，都会向墨水屏服务同步查询一次“当前用什么刷新方式”，滑一下就是几十次，主线程要停下来等结果。开启后关掉这个机制（系统设置 dynamic_refresh_mode 设为 0）。	The stock system synchronously queries the e-ink service on every finger movement, blocking the main thread dozens of times per scroll. This option disables that mechanism by setting dynamic_refresh_mode to 0.
+在设置里滑动 6 次，触发 75 次同步查询。	Six scroll gestures in Settings trigger 75 synchronous queries.
+同样操作 0 次查询，滑动时少一些卡顿。	The same gestures trigger zero queries, reducing interruptions.
+原厂“滑动时自动切换刷新方式”的行为不再发生。关闭本项时恢复你原来的设置值；如果你期间自己改过这个设置，墨控会保留你的修改。	Disables stock automatic mode switching while scrolling. Restores your previous setting when disabled, unless you changed it independently in the meantime.
+滑动 6 次触发的同步查询（实测）	Synchronous queries during six scroll gestures (measured)
+75 次	75 queries
+0 次	0 queries
+关闭原厂动态切换	Disable stock dynamic switching
+把“阅读模式”的应用统一改成极速刷新	Use Extreme refresh for apps assigned to Reading mode
+系统给一部分应用（多为阅读、文档类）预设了阅读模式：灰阶细腻但每次刷新约 0.45 秒。开启后把这些应用改成极速模式。	Some apps, mainly readers and document viewers, default to Reading mode: smoother gray but about 0.45 seconds per refresh. This option switches them to Extreme.
+这些应用每次画面变化约 0.45 秒，图片和灰色文字细腻。	About 0.45 seconds per image change, with smooth images and gray text.
+约 0.12 秒，翻页、滚动明显更跟手；图片变成黑白网点、略有颗粒感。	About 0.12 seconds for more responsive scrolling and page turns; images become grainier black-and-white dots.
+只改原本是阅读模式的应用；关闭时逐个恢复原值，你自己单独改过的应用不会被动。需要完整重启。	Only changes apps originally in Reading mode. Restores each previous value when disabled, preserving independent changes. Requires a full restart.
+阅读模式 → 极速模式	Reading → Extreme
+原厂没有过渡动画；开启后各场景可分别设置	Enable per-scenario transitions instead of stock instant switching
+原厂为了墨水屏把窗口动画全部关闭，打开应用、返回时画面直接跳变。开启后，可以在下面每个场景选一种专为墨水屏设计的过渡效果。	The stock firmware disables window animations for e-ink, so opening and leaving apps jumps directly between images. Enable this to choose a transition designed for e-ink for each scenario.
+所有切换都是瞬间跳变，很难看出画面从哪来、到哪去。	Instant jumps give little indication of where a view came from or is going.
+切换有方向感：从点的地方展开、从一侧推入等。	Directional transitions reveal from the touch point or slide in from one side.
+关键帧动画每多一张中间画面就多一次刷新；波形动画几乎不增加时间。关闭总开关后所有场景恢复原厂，各场景的选择会保留。	Each intermediate keyframe adds a refresh; waveform animations add almost no time. Disabling the master switch restores stock transitions while retaining selections.
+按场景应用	Apply by scenario
+从桌面点开一个应用时。	When opening an app from the launcher.
+从应用回到桌面时。	When returning from an app to the launcher.
+在应用里进入下一页，例如点开一条设置。	When moving forward inside an app, such as opening a setting.
+在应用里返回上一页。	When going back one page inside an app.
+对话框、弹出菜单出现和收起时。	When a dialog or popup menu appears or closes.
+按电源键锁屏时。	When pressing the power button to lock.
+唤醒屏幕时。	When waking the screen.
+的过渡效果	 transition
+关闭此场景即恢复原厂的瞬间切换。	Disable this scenario to restore the stock instant transition.
+去残影全刷不再整屏同时闪黑	Remove ghosting without flashing the entire screen black at once
+系统做“清晰全刷”去残影时，整屏会同时闪一下黑。开启后改成从一侧扫向另一侧，闪黑像一道光带扫过。需要 GPU 显示后端。	A stock Clear refresh flashes the whole screen black. This option sweeps that black phase across the screen, preserving ghost removal. Requires the GPU backend.
+整屏同时变黑再变回，比较刺眼。	The entire screen turns black and back at once, which can be distracting.
+黑色光带从左扫到右，过程柔和，去残影效果相同。	A black band sweeps across the screen for a gentler transition with the same ghost removal.
+全刷扫过	Full-refresh sweep
+黑色光带从一侧扫过屏幕。	A black band sweeps across the screen from one side.
+弹窗时背后不再变成满屏颗粒	Avoid a screen full of grain behind dialogs
+弹出对话框时，系统会把背后的画面调暗。墨水屏显示不了半透明灰，变暗层会被转成满屏颗粒点，弹出和关闭时都要整屏重刷。开启后背后保持原样。	Dialogs dim the background. E-ink converts translucent gray into a noisy dot pattern, causing a full-screen refresh on open and close. This option leaves the background unchanged.
+每次弹窗，整屏先变成颗粒灰，关闭时再整屏刷回来。	Opening a dialog makes the whole screen grainy, then closing refreshes it again.
+只刷新对话框区域，背后不动，更快也更干净。	Only the dialog area refreshes; the background remains still, cleaner, and faster.
+移除背景变暗	Remove background dimming
+关键帧动画用几张中间画面	Number of intermediate images in keyframe animations
+“方形展开”“关键帧擦除”是用几张静止的中间画面拼出来的动画。张数越多越像动画，但每张都要完整刷新一次，整体更慢。只影响这两种关键帧动画。	Square reveal and keyframe wipe use a series of still images. More frames look more animated, but each needs a full refresh and increases duration. Only affects these two keyframe effects.
+不开启时使用两步。	Two steps when this setting is disabled.
+两步（1 张中间画面）	Two steps (1 intermediate frame)
+最快，只在中途停一下。	Fastest: one pause partway through.
+三步（2 张中间画面）	Three steps (2 intermediate frames)
+过程更清楚，略慢。	Clearer progression, slightly slower.
+四步（3 张中间画面）	Four steps (3 intermediate frames)
+最像动画，最慢。	Most animated and slowest.
+每张中间画面停多久；可按温度自定义曲线	Hold time per intermediate frame, with a temperature curve option
+关键帧动画里，每张中间画面要停留一会儿再换下一张。停留不能短于墨水屏刷完这张画面所需的时间，否则上一张还没刷完就被覆盖，看到的是糊在一起的画面；停留越长，动画越慢。	Each keyframe must stay long enough for the screen to finish refreshing. Switching too early overlaps unfinished refreshes and blurs the image; longer holds slow the animation.
+不开启时为温度自适应。低于自动值（图中虚线）的温度段，动画可能出现残影或糊成一片。每段最短 30 毫秒、最长 2 秒。	Temperature adaptive when disabled. Values below the automatic dashed line may cause blur or ghosting. Each band supports 30 ms to 2 seconds.
+随当前温区选择停留时间。	Choose hold time for the current temperature band.
+60 毫秒	60 ms
+统一停留时间。	One hold time at all temperatures.
+100 毫秒	100 ms
+200 毫秒	200 ms
+300 毫秒	300 ms
+500 毫秒	500 ms
+1000 毫秒	1000 ms
+在温度曲线编辑器中逐温区调整。	Adjust each temperature band in the curve editor.
+波形动画的快慢：最早和最晚开始刷新的像素相差多久	Waveform timing: delay between the earliest and latest pixels
+波形动画让屏幕上不同位置的像素错开一点时间开始刷新。这一项决定错开的总幅度：数值越大，动画越慢、过程越明显；越小越接近瞬间切换。	Waveform animations stagger pixel start times. This setting controls the total delay: larger values make the effect slower and more visible; smaller values approach instant switching.
+不开启时为 12 帧。	12 scan frames when disabled.
+1 帧（约 0.01 秒）	1 scan frame (about 0.01 s)
+几乎看不出动画。	Almost invisible animation.
+6 帧（约 0.07 秒）	6 scan frames (about 0.07 s)
+轻快。	Quick and light.
+12 帧（约 0.14 秒）	12 scan frames (about 0.14 s)
+默认，过程清楚又不拖沓。	Default: visible without dragging.
+18 帧（约 0.21 秒）	18 scan frames (about 0.21 s)
+舒缓。	Gentle.
+24 帧（约 0.28 秒）	24 scan frames (about 0.28 s)
+最慢，动画感最强。	Slowest and most pronounced.
+展开类动画从哪里开始	Where reveal animations begin
+方形展开和墨迹晕开从屏幕的哪个位置开始扩散。	Starting position for square reveal and ink spread.
+不开启时从触摸位置开始。	Starts at the touch position when disabled.
+触摸位置	Touch position
+从你刚点的图标或按钮处展开，最直观。	Expand from the icon or button you just tapped.
+屏幕中心	Screen center
+总是从正中间展开，更整齐。	Always expand from the center for a consistent appearance.
+擦除、扫描线、百叶窗从哪一侧开始	Starting side for wipe, scanlines, and blinds
+关键帧擦除、扫描线和百叶窗从屏幕的哪一侧开始。	Choose the side from which keyframe wipe, scanlines, and blinds begin.
+不开启时为自动。	Automatic when disabled.
+自动	Automatic
+打开和前进从右往左推、关闭和后退从左往右；扫描线从上往下。符合“前进/后退”的直觉。	Open and forward move right to left; close and back move left to right. Scanlines run top to bottom, matching navigation direction.
+从左向右	Left to right
+从右向左	Right to left
+从上向下	Top to bottom
+从下向上	Bottom to top
+应用自己的小动画：水波纹、回弹、页面内切换	Small in-app animations: ripples, overscroll, and page transitions
+应用内部也有很多小动画，例如按钮水波纹、列表回弹、标签页切换。原厂固定为正常速度，在墨水屏上它们会变成一串拖影和多余刷新。	Apps have button ripples, list overscroll, and tab transitions. Stock timing is normal speed, producing trailing images and extra e-ink refreshes.
+点按钮会看到几次灰色水波纹刷新，列表滚到头会回弹几下。	Buttons trigger several gray ripple refreshes; lists bounce at their ends.
+可以完全关闭（直接显示结果），或缩短为一半时长。	Disable these animations entirely or halve their duration.
+关闭动画	Disable animations
+直接显示动画结束的样子，刷新最少。	Show the final state directly for the fewest refreshes.
+半速时长	Half duration
+保留动画，但时长减半。	Keep animations with half the duration.
+原时长	Original duration
+与原厂相同。	Same as stock.
+四套专为墨水屏设计的锁屏	Four lock-screen styles designed for e-ink
+替换原厂锁屏画面，显示时间、日期、天气和正在播放的音乐。	Replace the stock lock screen with time, date, weather, and currently playing music.
+关闭后恢复你在系统设置里选的原厂锁屏样式。	Disabling restores the stock style selected in system settings.
+液态玻璃	Liquid glass
+纸纹波浪背景上浮起玻璃质感卡片。	Glass-like cards over a textured paper wave background.
+编辑排版	Editorial
+杂志式衬线大字，像一页报纸。	Large serif type in a magazine-like layout.
+瑞士网格	Swiss grid
+严格网格与无衬线粗体，信息清晰。	A strict grid and bold sans-serif type for clear information.
+像素	Pixel
+1-bit 像素字体和像素图标，复古掌机风格。	1-bit pixel fonts and icons with a retro handheld feel.
+在自定义锁屏上显示天气	Show weather on the custom lock screen
+在锁屏卡片上显示当前天气、温度和图标。数据来自原厂桌面已经下载的天气，墨控不额外联网。	Show current weather, temperature, and an icon using weather already downloaded by the stock launcher. InkControl makes no additional network requests.
+天气与图标	Weather and icons
+锁屏和息屏画面显示当前一句歌词	Show the current lyric on the lock screen and ambient display
+播放音乐时，在锁屏画面和息屏显示区显示当前这一句歌词，随播放逐句更新。支持在媒体信息里带歌词的播放器，以及 Lyric Getter。	Show the current lyric line while music plays, updating with playback. Supports lyrics in media metadata and Lyric Getter.
+每换一句歌词都要刷新一次锁屏，刷新方式见“歌词的刷新方式”。	Each lyric change refreshes the lock screen. Configure this under Lyric refresh mode.
+显示歌词	Show lyrics
+状态栏左侧滚动显示歌词	Scroll lyrics on the left side of the status bar
+播放音乐时，在状态栏左侧显示当前歌词。停止播放或关闭本项后，通知图标恢复显示。	Show the current lyric on the status bar while playing music. Notification icons return when playback stops or this feature is disabled.
+三种刷新方式的速度、灰阶和闪黑情况见上图。	See the chart above for speed, grayscale, and black-flash behavior of the three refresh types.
+锁屏后第一次画锁屏用哪种刷新	Refresh mode for the first lock-screen image
+按电源键锁屏后，第一次画出锁屏画面时使用的刷新方式。	Choose the refresh used for the first lock-screen image after pressing power.
+不开启时沿用系统决定的方式。	Use the system-selected mode when disabled.
+阅读模式更快、不闪黑，但可能留下上一个应用的淡淡残影；清晰全刷会闪一下黑，残影最少。	Reading is faster without a black flash, but may leave traces of the previous app. Clear flashes black and removes the most ghosting.
+约 0.45 秒、不闪黑。实测能减少锁屏时的空白等待。	About 0.45 s with no black flash. Measured to reduce blank waiting at lock.
+约 0.9 秒、闪一下黑，把上一个画面的残影清干净。	About 0.9 s with a black flash to erase the previous image.
+锁屏时每分钟走时、来通知用哪种刷新	Refresh mode for clock ticks and notifications while locked
+锁屏期间时钟每分钟变化、来新通知时，局部刷新用的方式。	Choose the partial refresh used for minute changes and incoming notifications while locked.
+不闪黑，适合每分钟一次的小变化。	No black flash; suitable for small changes once a minute.
+每次都闪黑，最清楚，但一分钟闪一次比较打扰。	Flashes black each time for maximum clarity, but a flash every minute can be distracting.
+歌词每换一句用哪种刷新	Refresh mode for each lyric change
+锁屏歌词每换一句时的刷新方式。	Choose the refresh used when the lock-screen lyric changes.
+不闪黑，文字边缘平滑。	No black flash and smooth text edges.
+每句都闪黑，残影最少。	A black flash with each line for the least ghosting.
+最快、最省电，文字边缘略有颗粒和残影。	Fastest and most efficient, with slightly grainy edges and ghosting.
+按下电源键后多久画锁屏	Delay before drawing the lock screen after pressing power
+锁屏时屏幕电源要先切换状态。画得太早，屏幕还没准备好，会出现上下半屏不一致的撕裂。	The screen must change power state before drawing. Drawing too soon may produce tearing with mismatched upper and lower halves.
+300 毫秒是实测不撕裂的最低值。数值越小锁屏出现得越快。	300 ms is the lowest tested value without tearing. Lower values make the lock screen appear sooner.
+最快，实测不撕裂。	Fastest tested without tearing.
+400 毫秒	400 ms
+留一点余量。	A small safety margin.
+最稳妥。	Most conservative.
+消除锁屏上偶尔出现的横向细线	Remove occasional horizontal lines on the lock screen
+锁屏画面需要量化成16级灰阶。原厂误差扩散在某些灰度下会排出横向细线。开启后在符合条件的锁屏路径改为就近取16级灰阶。显示分类里的灰阶算法选「保持现状」时继续保留此处理；明确选择其他算法时，以模式算法为准。	Lock-screen images are quantized to 16 gray levels. Stock error diffusion can create horizontal lines. Use nearest-level quantization on eligible lock-screen paths. Keep current preserves this treatment; an explicit grayscale algorithm overrides it.
+锁屏背景、卡片阴影处偶尔出现水平细线。	Occasional horizontal lines in backgrounds or card shadows.
+细线消失，画面更干净。	The lines disappear for a cleaner image.
+灰色渐变的层次会少一些，字体边缘的灰阶需要你实际看一看是否满意。需要 GPU 显示后端。	Gray gradients become less smooth. Evaluate font-edge shading on the screen. Requires the GPU backend.
+三套配套的桌面外观	Three coordinated desktop themes
+给原厂桌面换一套完整的外观。下面的图标、字体、壁纸、组件可以分别开关；图标位置和桌面布局保持不变。	Change the stock launcher's appearance. Icons, fonts, wallpaper texture, and widgets can be toggled separately; icon positions and layout remain unchanged.
+流光玻璃	Luminous glass
+浅色玻璃质感卡片，细线图标。	Light glass-like cards and fine-line icons.
+纸间	Paper
+纸张质感与衬线字体，像一本笔记本。	Paper texture and serif fonts, like a notebook.
+墨构	Ink structure
+黑底反白、高对比，粗线条图标。	White on black, high contrast, and thick-line icons.
+应用图标换成主题配套的黑白图标	Replace app icons with matching monochrome theme icons
+把常用应用的图标换成与主题匹配的黑白图标（覆盖 39 个常用应用），在墨水屏上比彩色图标清晰得多。	Theme icons cover 39 common apps and look clearer on e-ink than colored icons.
+关闭后立即恢复原厂图标。	Stock icons return immediately when disabled.
+主题图标	Theme icons
+桌面图标文字换成主题字体	Use the theme font for desktop icon labels
+桌面上图标下方的名称改用主题配套的字体。	Use the selected theme's font for app names below icons.
+关闭后恢复原厂字体。	Disabling restores the stock font.
+主题字体	Theme font
+桌面显示主题底纹	Show the theme texture on the desktop
+在桌面背景显示主题配套的底纹材质。只改变显示，不替换你的壁纸文件。	Overlay the selected theme's background texture without replacing your wallpaper file.
+主题材质	Theme texture
+原厂时钟插件位置换成主题组件	Replace the stock clock plugin with a themed widget
+把原厂时钟插件所在位置换成主题风格的组件。	Use the stock clock plugin's position for a themed widget.
+时钟	Clock
+大字时间与日期。	Large time and date.
+天气	Weather
+当前天气与温度。	Current weather and temperature.
+音乐	Music
+正在播放的歌曲，可直接控制播放。	Currently playing music with playback controls.
+防止显示服务出错导致系统界面重启	Prevent display-service errors from restarting System UI
+原厂墨水屏服务在处理某些刷新请求出错时，会把错误直接抛给系统，严重时整个系统界面重启（看到开机动画）。开启后拦截这类错误并记录，不让它扩散。	Some stock e-ink refresh errors propagate to the system and can restart System UI. Catch and record these errors before they spread.
+偶尔毫无征兆地“软重启”。	Occasional unexpected soft restarts with a boot animation.
+同类错误只会让那一次刷新失败，系统照常运行。	The affected refresh fails while the system continues running.
+异常保护	Error protection
+防止刷新配置文件被同时写坏	Prevent concurrent writes from corrupting refresh configuration
+系统保存“每个应用用哪种刷新方式”的配置文件时没有加锁，两处同时写入可能把文件写坏；文件一旦损坏，下次开机会卡住。开启后让写入排队进行。	The stock per-app refresh configuration has no write lock. Concurrent writes can corrupt it and block the next boot. Queue writes to serialize them.
+修复写入锁	Fix write locking
+切换应用时少一次多余刷新	Avoid an unnecessary refresh when switching apps
+切换应用时，原厂会先把上一个应用的刷新方式再下发一遍，然后才下发新应用的，造成一次没有意义的刷新。开启后只在方式真正改变时才下发。	Stock app switching first reapplies the previous app's refresh mode, then the new app's. Only submit when the mode actually changes.
+切应用时偶尔多刷一下。	An occasional extra refresh when switching apps.
+每次切换只刷必要的次数。	Only necessary refreshes during each switch.
+模式去重	Deduplicate modes
+看完视频后不再一直停在防闪烁模式	Restore normal refresh after video playback
+播放视频或打开相机时，系统会把屏幕切到防闪烁模式；原厂退出时有时忘了切回，之后所有应用都停在这个模式。开启后按每个播放会话计数，全部结束才切回。	Video and camera sessions enable anti-flicker mode, but stock cleanup may leave it active. Track sessions and restore only when all have ended.
+生命周期清理	Lifecycle cleanup
+只允许应用调整自己的刷新方式	Allow apps to adjust only their own refresh mode
+原厂墨水屏服务对任何应用开放，任意应用都能改别的应用的刷新方式，甚至改写全局配置。开启后只允许系统和应用自身调整。	The stock e-ink service lets any app change other apps' refresh modes or global configuration. Restrict changes to the system and the calling app itself.
+个别依赖这个漏洞的第三方墨水屏工具可能失效。	Third-party e-ink tools that rely on this access may stop working.
+调用方校验	Validate callers
+刷新配置损坏时自动还原，避免卡开机	Restore corrupt refresh configuration to prevent boot failures
+每应用刷新配置文件一旦损坏，原厂会在开机时崩溃、无法进入系统。开启后每次开机前检查该文件，发现损坏就用最近一次正常的备份还原；运行中每 6 小时备份一次。	Check per-app refresh configuration before boot and restore the latest good backup if corrupt. Save a new backup every six hours while running.
+需要完整重启后开始保护。	Protection starts after a full restart.
+配置守护	Configuration guard
+Google 设置的彩色图标换成黑色	Make the Google Settings icon black
+Google 设置的彩色“G”图标在墨水屏上会变成一团灰，开启后替换成清晰的黑色图标。	Replace the colored Google Settings G, which looks muddy on e-ink, with a clear black icon.
+当前固件的 Google 服务把这个图标放在拆分安装包里，系统暂时无法套用替换，本项在本机尚未生效。	This firmware stores the icon in a split Google Services APK. The overlay currently does not take effect on this device.
+黑色图标	Black icon
+显示后端少做几次重复查询	Avoid repeated lookups in the display backend
+GPU 显示后端每帧都要查询 GPU 程序参数的位置，开启后把结果缓存起来。	Cache GPU program parameter locations instead of querying them for every frame.
+只是局部优化，日常几乎感觉不到差别。需要 GPU 显示后端。	A small local optimization with little perceptible daily difference. Requires the GPU backend.
+缓存参数位置	Cache parameter locations
+旧版视频选择，已归入显示分类	Legacy video selection, now under Display
+旧配置继续保留。「显示 → 视频场景算法」选保持现状时沿用这里的选择；新页面明确选择算法时优先使用新选择。	The old selection is retained. Display → Video algorithm → Keep current uses it; an explicit new algorithm takes priority.
+不开启时：默认使用蓝噪声与迟滞。	When disabled: blue noise with hysteresis by default.
+选“原厂误差扩散”时：使用与原厂对应的网点算法。当前 GPU 后端也有它的实现，逐行依赖较多，本机视频对照中明显更慢。	Stock error diffusion uses the corresponding stock dot algorithm. The GPU implementation has row dependencies and was much slower in video comparisons on this device.
+需要 GPU 显示后端。原厂算法只建议短时间对比画质。	Requires the GPU backend. Use the stock algorithm for brief image-quality comparisons.
+蓝噪声与迟滞	Blue noise with hysteresis
+推荐，也是不开启时的默认。均匀网点，静止区域不闪。	Recommended and the default when disabled. Even dots with stable static areas.
+用于画质对照，速度取决于实际场景。	For image-quality comparison; speed depends on the actual scene.
+温度停留曲线，上下拖动柱子调整	Temperature hold curve; drag bars up or down to adjust
+温度停留曲线	Temperature hold curve
+当前	Now
+毫秒	ms
+0.12 秒	0.12 s
+黑白	Black and white
+0.45 秒	0.45 s
+16 级灰	16 gray levels
+0.9 秒	0.9 s
+先闪黑	Black flash first
+刷新方式对比：极速约 0.12 秒仅黑白，阅读约 0.45 秒 16 级灰，清晰全刷约 0.9 秒先闪黑	Refresh comparison: Extreme about 0.12 s in black and white; Reading about 0.45 s with 16 gray levels; Clear about 0.9 s with an initial black flash
+播放动画演示	Play animation demo
+10月16日 星期四	Thu, Oct 16
+‹  设置	‹  Settings
+确认操作？	Confirm action?
+‹  显示	‹  Display
+演示已放慢	Demo slowed down
+原厂：瞬间切换	Stock: instant switch
+▶ 点按播放	▶ Tap to play
+底层库变更，完整重启后生效	Display library changes take effect after a full restart
+启用显示后端	Enable display backend
+保持现状,原厂误差扩散,点量化,16级 Bayer	Keep current,Stock error diffusion,Nearest level,16-level Bayer
+保持现状,蓝噪声,Bayer,原厂误差扩散,固定阈值	Keep current,Blue noise,Bayer,Stock error diffusion,Fixed threshold
+保持现状,Bayer,蓝噪声,固定阈值	Keep current,Bayer,Blue noise,Fixed threshold
+算法	Algorithm
+只调整本模式的量化算法，不切换刷新模式	Change quantization for this mode without switching refresh mode
+独立控制 Bayer、蓝噪声和固定阈值的历史稳定；原厂算法不适用	Independent history stability for Bayer, blue noise, and fixed threshold; not for stock error diffusion
+跟随默认,开启,关闭	Follow default,On,Off
+触摸响应加速	Faster touch response
+队列余量降至两张再采样	Sample when only two scans remain in the queue
+余量两张	Two scans remaining
+停顿后首次响应加速	Faster first response after a pause
+关闭时恢复原厂空闲断电代码	Restore stock idle power-down code when disabled
+空闲十秒	Ten-second idle timeout
+滑动时减少系统查询	Fewer system queries while scrolling
+关闭重复触摸查询，关闭功能时条件恢复	Disable repeated touch queries; conditionally restore the setting when disabled
+阅读类应用改用极速刷新	Use Extreme refresh for reading apps
+阅读模式515调整为521；启动前应用，停用时字段级恢复	Change Reading 515 to Extreme 521 before startup; restore owned fields when disabled
+过渡动画总开关	Transition master switch
+各场景仍可单独选择	Each scenario can still be configured independently
+打开应用	Open app
+返回桌面	Return home
+应用内前进	In-app forward
+应用内后退	In-app back
+对话框与菜单	Dialogs and menus
+进入锁屏	Enter lock screen
+唤醒过渡	Wake transition
+扫描线,墨迹晕开,网点长大,百叶窗	Scanlines,Ink spread,Growing dots,Blinds
+方形展开,关键帧擦除,墨迹晕开,网点长大,扫描线,百叶窗	Square reveal,Keyframe wipe,Ink spread,Growing dots,Scanlines,Blinds
+关闭此场景即恢复系统过渡	Restore system transitions when this scenario is disabled
+去掉对话框背景变暗	Remove dialog background dimming
+独立于动画总开关	Independent of the animation master switch
+移除变暗	Remove dimming
+关键帧数	Keyframe count
+关闭此选项时使用两步	Two steps when this option is disabled
+两步,三步,四步	Two steps,Three steps,Four steps
+关键帧停留	Keyframe hold time
+关闭时随温度自动计算	Automatically derived from temperature when disabled
+温度自适应,60ms,100ms,200ms,300ms,500ms,1000ms,自定义曲线	Temperature adaptive,60ms,100ms,200ms,300ms,500ms,1000ms,Custom curve
+展开起点	Reveal origin
+关闭时使用触摸位置	Touch position when disabled
+触摸位置,屏幕中心	Touch position,Screen center
+擦除方向	Wipe direction
+关闭时自动选择方向	Automatic direction when disabled
+自动,从左向右,从右向左,从上向下,从下向上	Automatic,Left to right,Right to left,Top to bottom,Bottom to top
+波形动画速度	Waveform animation speed
+以扫描帧为单位，关闭时使用12帧	Measured in scan frames; 12 when disabled
+12帧,1帧,6帧,18帧,24帧	12 scans,1 scan,6 scans,18 scans,24 scans
+应用内小动画	Small in-app animations
+关闭时恢复原厂倍率	Restore stock duration scale when disabled
+关闭动画,半速时长,原时长	Disable animations,Half duration,Original duration
+自定义锁屏	Custom lock screen
+关闭时恢复有效的原厂样式	Restore a valid stock style when disabled
+液态玻璃,编辑排版,瑞士网格,像素	Liquid glass,Editorial,Swiss grid,Pixel
+锁屏天气	Lock-screen weather
+使用原厂已有天气数据	Use existing stock weather data
+锁屏歌词	Lock-screen lyrics
+支持现有媒体歌词与 Lyric Getter 广播	Supports media lyrics and Lyric Getter broadcasts
+状态栏歌词	Status-bar lyrics
+停止或关闭后恢复通知图标	Restore notification icons when playback stops or this feature is disabled
+锁屏瞬间的刷新方式	Initial lock-screen refresh mode
+阅读模式曾改善空白，残影需观察	Reading previously reduced blank waiting; observe ghosting on screen
+阅读模式3,清晰全刷2	Reading mode 3,Clear full refresh 2
+走时与通知的刷新方式	Clock and notification refresh mode
+关闭时沿用系统模式	Keep the system mode when disabled
+歌词的刷新方式	Lyric refresh mode
+阅读模式3,清晰全刷2,极速模式9	Reading mode 3,Clear full refresh 2,Extreme mode 9
+锁屏画面出现时机	Lock-screen drawing delay
+最低300ms，避免过早送图	Minimum 300 ms to avoid drawing before the screen is ready
+消除锁屏细线	Remove lock-screen lines
+使用点量化，字体灰阶需实屏观察	Nearest-level quantization; evaluate font shading on screen
+桌面主题	Desktop theme
+保留原厂桌面位置与布局	Keep stock icon positions and layout
+流光玻璃,纸间,墨构	Luminous glass,Paper,Ink structure
+图标换肤	Theme icons
+独立恢复原厂图标	Restore stock icons independently
+字体换肤	Theme fonts
+独立恢复原厂字体	Restore stock fonts independently
+壁纸材质	Wallpaper texture
+仅覆盖显示，不改原厂壁纸文件	Display overlay only; original wallpaper files remain unchanged
+主屏组件换肤	Themed home widget
+复用原厂时钟插件的位置	Use the stock clock plugin's position
+时钟,天气,音乐	Clock,Weather,Music
+防止显示服务引发重启	Prevent display-service restarts
+恢复时回到原厂处理逻辑	Restore stock error handling when disabled
+防止刷新配置被写坏	Prevent refresh configuration corruption
+串行化原厂配置写入	Serialize stock configuration writes
+切换应用少刷一次	One less refresh when switching apps
+模式实际改变时正常下发	Submit normally when the mode actually changes
+看完视频恢复正常刷新	Restore normal refresh after video
+生命周期计数候选，待整合后实机验证	Session-counting candidate; integrated device verification pending
+限制其他应用改刷新方式	Restrict refresh-mode changes by other apps
+按UID及证书校验调用方，候选	Validate callers by UID and certificate; candidate
+刷新配置损坏自动还原	Restore corrupt refresh configuration
+启动前检查，备份保留供恢复	Check before startup and retain backups for restoration
+Google 设置图标修复	Google Settings icon fix
+资源覆盖，重启后生效	Resource overlay; full restart required
+GPU 参数缓存	GPU parameter cache
+提交阶段局部优化，不承诺整机提速	Local submission optimization; no promise of overall device speedup
+缓存uniform位置	Cache uniform locations
+视频抖动算法	Video dithering algorithm
+关闭时使用 GPU 蓝噪声；可改用原厂误差扩散对比	GPU blue noise when disabled; stock error diffusion available for comparison
+蓝噪声与迟滞,原厂误差扩散	Blue noise with hysteresis,Stock error diffusion
+未知功能：	Unknown feature: 
+未知显示模式：	Unknown display mode: 
+清晰模式	Clear mode
+视频场景	Video scenario
+不是显示算法或迟滞功能：	Not an algorithm or hysteresis feature: 
+灰阶模式没有独立迟滞	Grayscale modes have no independent hysteresis
+请先开启：	Enable first: 
+该效果需要先开启 GPU 显示后端并完成安装重启	This effect requires the GPU display backend, installation, and a full restart
+依赖未满足	Dependencies not met
+异常：	Error: 
+等待运行确认	Awaiting runtime confirmation
+等待停用确认	Awaiting disable confirmation
+配置格式错误	Invalid configuration format
+配置字段重复	Duplicate configuration field
+配置版本不支持	Unsupported configuration version
+配置修订号无效	Invalid configuration revision
+功能开关无效	Invalid feature toggle
+存在未知配置字段	Unknown configuration fields
+校验摘要格式错误	Invalid digest format
+内置 ZIP 校验失败，请重新安装可信 APK	Bundled ZIP verification failed. Reinstall a trusted APK
+不支持的选项：	Unsupported option: 
+温区数量不符	Incorrect number of temperature bands
+停留时长超出范围	Hold time out of range
+等待检查：	Awaiting check: 
+请先完成安装和完整重启；详见诊断页	Complete installation and fully restart first; see Diagnostics
+本机：	Device: 
+\n仍可预览和导出 ZIP。	\nYou can still preview and export the ZIP.
+墨控：调用方未获授权	InkControl: caller not authorized
+无效媒体控制	Invalid media control
+未知接口	Unknown interface
+配置读取失败，保留原文件	Could not read configuration; original file retained
+ZIP 路径无效	Invalid ZIP path
+命令未注册	Unregistered command
+控制器路径无效	Invalid controller path
+未找到 Root（su 不可用）	Root not found (su unavailable)
+Root 授权或操作超时	Root permission or operation timed out
+Root 未授权或控制器不可用	Root not granted or controller unavailable
+后端安装或启动检查尚未通过	Backend installation or startup checks have not passed
+Provider未就绪	Provider not ready
+恢复待检查：	Restoration awaiting check: 
+配置同步稍后重试	Retry configuration sync later
+运行回执稍后重试	Retry runtime acknowledgement later
+图标覆盖未被系统启用	Icon overlay is not enabled by the system
+系统值已被独立修改，保留该修改；重新关闭再开启可接管	The system value was changed independently and has been preserved. Disable and enable again to take ownership
+GPU 记录到执行错误	GPU execution error recorded
+锁屏样式写入失败	Could not write lock-screen style
+原厂样式恢复失败	Could not restore stock style
+语言	Language
+跟随系统	System
+简体中文	Simplified Chinese
+瞬间切换	Instant switch
+预览素材不可用	Preview assets unavailable

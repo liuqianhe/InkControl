@@ -1,0 +1,77 @@
+package com.inkcontrol.core;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import static com.inkcontrol.core.FeatureDefinition.ApplyMode.*;
+
+public final class FeatureCatalog {
+    private static final List<FeatureDefinition> FEATURES = new ArrayList<>();
+    static {
+        add("display.gpu", "显示", "GPU 显示后端", "底层库变更，完整重启后生效", "backend", "", REBOOT, true, "default", "启用显示后端");
+        for (String scope : DisplayAlgorithms.SCOPES) {
+            boolean gray = DisplayAlgorithms.gray(scope);
+            String values = gray ? "default,stock,nearest,bayer16" : scope.equals("video")
+                    ? "default,blue,bayer,stock,threshold" : "default,bayer,blue,threshold";
+            String labels = gray ? "保持现状,原厂误差扩散,点量化,16级 Bayer" : scope.equals("video")
+                    ? "保持现状,蓝噪声,Bayer,原厂误差扩散,固定阈值" : "保持现状,Bayer,蓝噪声,固定阈值";
+            add("display.alg." + scope, "显示", DisplayAlgorithms.name(scope) + "算法", "只调整本模式的量化算法，不切换刷新模式", "backend", "display.gpu", HOT, true, values, labels);
+            if (!gray) add("display.hyst." + scope, "显示", DisplayAlgorithms.name(scope) + "迟滞", "独立控制 Bayer、蓝噪声和固定阈值的历史稳定；原厂算法不适用", "backend", "display.gpu", HOT, true,
+                    "default,on,off", "跟随默认,开启,关闭");
+        }
+        add("display.sampling", "显示", "触摸响应加速", "队列余量降至两张再采样", "backend", "display.gpu", HOT, false, "2", "余量两张");
+        add("display.idle", "显示", "停顿后首次响应加速", "关闭时恢复原厂空闲断电代码", "backend", "display.gpu", REBOOT, false, "10", "空闲十秒");
+        add("display.dynamic", "显示", "滑动时减少系统查询", "关闭重复触摸查询，关闭功能时条件恢复", "backend", "", HOT, false, "0", "关闭原厂动态切换");
+        add("display.apps", "显示", "阅读类应用改用极速刷新", "阅读模式515调整为521；启动前应用，停用时字段级恢复", "backend", "", REBOOT, false, "521", "515 → 521");
+        add("motion.master", "动画", "过渡动画总开关", "各场景仍可单独选择", "system", "", HOT, true, "default", "按场景应用");
+        String[] scenes = {"app_open", "app_close", "in_app_forward", "in_app_back", "dialog", "gc_clear", "lock", "unlock"};
+        String[] names = {"打开应用", "返回桌面", "应用内前进", "应用内后退", "对话框与菜单", "全刷扫过", "进入锁屏", "唤醒过渡"};
+        for (int i = 0; i < scenes.length; i++) {
+            String values = i == 5 ? "gcsweep" : i >= 6 ? "scan,ink,dots,blind" : "kiris,kwipe,ink,dots,scan,blind";
+            String labels = i == 5 ? "全刷扫过" : i >= 6 ? "扫描线,墨迹晕开,网点长大,百叶窗" : "方形展开,关键帧擦除,墨迹晕开,网点长大,扫描线,百叶窗";
+            add("motion." + scenes[i], "动画", names[i], "关闭此场景即恢复系统过渡", "system", "motion.master", HOT, true, values, labels);
+        }
+        add("motion.dim", "动画", "去掉对话框背景变暗", "独立于动画总开关", "system", "", HOT, false, "default", "移除变暗");
+        add("motion.steps", "动画", "关键帧数", "关闭此选项时使用两步", "system", "motion.master", HOT, false, "2,3,4", "两步,三步,四步");
+        add("motion.hold", "动画", "关键帧停留", "关闭时随温度自动计算", "system", "motion.master", HOT, false, "0,60,100,200,300,500,1000,@curve", "温度自适应,60ms,100ms,200ms,300ms,500ms,1000ms,自定义曲线");
+        add("motion.origin", "动画", "展开起点", "关闭时使用触摸位置", "system", "motion.master", HOT, false, "touch,center", "触摸位置,屏幕中心");
+        add("motion.direction", "动画", "擦除方向", "关闭时自动选择方向", "system", "motion.master", HOT, false, "auto,ltr,rtl,ttb,btt", "自动,从左向右,从右向左,从上向下,从下向上");
+        add("motion.spread", "动画", "波形动画速度", "以扫描帧为单位，关闭时使用12帧", "system", "motion.master", HOT, true, "12,1,6,18,24", "12帧,1帧,6帧,18帧,24帧");
+        add("motion.scale", "动画", "应用内小动画", "关闭时恢复原厂倍率", "system", "", HOT, false, "0,0.5,1", "关闭动画,半速时长,原时长");
+        add("lock.style", "锁屏", "自定义锁屏", "关闭时恢复有效的原厂样式", "systemui", "", HOT, false, "8,5,6,7", "液态玻璃,编辑排版,瑞士网格,像素");
+        add("lock.weather", "锁屏", "锁屏天气", "使用原厂已有天气数据", "systemui", "lock.style", HOT, false, "default", "天气与图标");
+        add("lock.lyric", "锁屏", "锁屏歌词", "支持现有媒体歌词与 Lyric Getter 广播", "systemui", "", HOT, false, "default", "显示歌词");
+        add("lock.statusbar", "锁屏", "状态栏歌词", "停止或关闭后恢复通知图标", "systemui", "", HOT, false, "default", "显示歌词");
+        add("lock.first", "锁屏", "锁屏瞬间的刷新方式", "阅读模式曾改善空白，残影需观察", "systemui", "", HOT, true, "3,2", "阅读模式3,清晰全刷2");
+        add("lock.update", "锁屏", "走时与通知的刷新方式", "关闭时沿用系统模式", "systemui", "", HOT, true, "3,2", "阅读模式3,清晰全刷2");
+        add("lock.lyricmode", "锁屏", "歌词的刷新方式", "关闭时沿用系统模式", "systemui", "lock.lyric", HOT, true, "3,2,9", "阅读模式3,清晰全刷2,极速模式9");
+        add("lock.delay", "锁屏", "锁屏画面出现时机", "最低300ms，避免过早送图", "systemui", "", HOT, false, "300,400,500", "300ms,400ms,500ms");
+        add("lock.dither", "锁屏", "消除锁屏细线", "使用点量化，字体灰阶需实屏观察", "backend", "display.gpu", HOT, true, "nearest", "点量化");
+        add("desktop.theme", "桌面", "桌面主题", "保留原厂桌面位置与布局", "launcher", "", HOT, false, "glass,paper,ink", "流光玻璃,纸间,墨构");
+        add("desktop.icons", "桌面", "图标换肤", "独立恢复原厂图标", "launcher", "desktop.theme", HOT, false, "default", "主题图标");
+        add("desktop.font", "桌面", "字体换肤", "独立恢复原厂字体", "launcher", "desktop.theme", HOT, false, "default", "主题字体");
+        add("desktop.wallpaper", "桌面", "壁纸材质", "仅覆盖显示，不改原厂壁纸文件", "launcher", "desktop.theme", HOT, false, "default", "主题材质");
+        add("desktop.widget", "桌面", "主屏组件换肤", "复用原厂时钟插件的位置", "launcher", "desktop.theme", HOT, false, "clock,weather,music", "时钟,天气,音乐");
+        add("fix.exceptions", "系统增强", "防止显示服务引发重启", "恢复时回到原厂处理逻辑", "system", "", HOT, false, "default", "异常保护");
+        add("fix.configlock", "系统增强", "防止刷新配置被写坏", "串行化原厂配置写入", "system", "", HOT, false, "default", "修复写入锁");
+        add("fix.modes", "系统增强", "切换应用少刷一次", "模式实际改变时正常下发", "system", "", HOT, false, "default", "模式去重");
+        add("fix.video", "系统增强", "看完视频恢复正常刷新", "生命周期计数候选，待整合后实机验证", "system", "", HOT, true, "default", "生命周期清理");
+        add("fix.permissions", "系统增强", "限制其他应用改刷新方式", "按UID及证书校验调用方，候选", "system", "", HOT, true, "default", "调用方校验");
+        add("guard.config", "系统增强", "刷新配置损坏自动还原", "启动前检查，备份保留供恢复", "backend", "", REBOOT, false, "default", "配置守护");
+        add("fix.google", "系统增强", "Google 设置图标修复", "资源覆盖，重启后生效", "backend", "", REBOOT, false, "default", "黑色图标");
+        add("experiment.cache", "实验室", "GPU 参数缓存", "提交阶段局部优化，不承诺整机提速", "backend", "display.gpu", HOT, true, "default", "缓存uniform位置");
+        add("experiment.video", "实验室", "视频抖动算法", "关闭时使用 GPU 蓝噪声；可改用原厂误差扩散对比", "backend", "display.gpu", HOT, true, "blue,stock", "蓝噪声与迟滞,原厂误差扩散");
+    }
+
+    private static void add(String id, String group, String title, String description, String role,
+            String dependency, FeatureDefinition.ApplyMode mode, boolean experimental, String values, String labels) {
+        FEATURES.add(new FeatureDefinition(id, group, title, description, role, dependency, mode,
+                experimental, values.split(","), labels.split(",")));
+    }
+    public static List<FeatureDefinition> all() { return Collections.unmodifiableList(FEATURES); }
+    public static FeatureDefinition get(String id) {
+        for (FeatureDefinition definition : FEATURES) if (definition.id.equals(id)) return definition;
+        throw new IllegalArgumentException("未知功能：" + id);
+    }
+    private FeatureCatalog() {}
+}

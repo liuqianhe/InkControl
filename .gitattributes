@@ -1,0 +1,17 @@
+* text=auto
+*.java text eol=lf
+*.cpp text eol=lf
+*.hpp text eol=lf
+*.py text eol=lf
+*.sh text eol=lf
+*.md text eol=lf
+*.xml text eol=lf
+*.json text eol=lf
+*.tsv text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.der binary
+*.png binary
+*.so binary
+*.apk binary
+*.zip binary

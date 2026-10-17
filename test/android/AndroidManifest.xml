@@ -1,0 +1,8 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.inkcontrol.test">
+    <uses-sdk android:minSdkVersion="29" android:targetSdkVersion="27" />
+    <application android:label="墨控临时验收" android:hasCode="true">
+        <activity android:name="com.inkcontrol.test.MediaActivity" android:exported="true" />
+        <activity android:name="com.inkcontrol.test.PolicyActivity" android:exported="true" />
+    </application>
+    <instrumentation android:name="com.inkcontrol.test.FeatureProbe" android:targetPackage="com.inkcontrol" android:label="墨控临时验收" />
+</manifest>

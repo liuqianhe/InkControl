@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">InkControl</string>
+    <string name="module_description">InkControl: display, animation, lock-screen and desktop enhancements; all off by default</string>
+</resources>
