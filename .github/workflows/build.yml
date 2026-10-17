@@ -91,9 +91,11 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+      - name: Bootstrap verified Android CLI / 安装已校验 Android 命令行工具
+        run: python tools/setup_android.py
       - name: Install pinned Android tools / 固定 Android 工具链
         run: |
-          sdkmanager 'platforms;android-33' 'build-tools;35.0.0' 'ndk;29.0.14206865'
+          sdkmanager 'platform-tools' 'platforms;android-33' 'build-tools;35.0.0' 'ndk;29.0.14206865'
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/29.0.14206865" >> "$GITHUB_ENV"
       - name: Build and verify / 构建与校验
         id: build
@@ -115,4 +117,22 @@ jobs:
             ${{ steps.build.outputs.directory }}/build-manifest.json
             ${{ steps.build.outputs.directory }}/package-verification.json
           if-no-files-found: error
+          retention-days: 7
+      - name: Bilingual UI on cloud emulator / 云端模拟器双语界面
+        env:
+          ANDROID_AVD_HOME: ${{ runner.temp }}/inkcontrol-avd
+        run: |
+          sdkmanager 'emulator' 'system-images;android-29;default;x86_64'
+          sudo chmod 666 /dev/kvm
+          mkdir -p "$ANDROID_AVD_HOME" out/ui
+          printf 'no\n' | avdmanager create avd --force --name inkcontrol-ci --package 'system-images;android-29;default;x86_64'
+          emulator -avd inkcontrol-ci -port 5554 -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect > out/ui/emulator.log 2>&1 &
+          trap 'adb -s emulator-5554 emu kill || true' EXIT
+          python tools/test_cloud_language.py --build '${{ steps.build.outputs.directory }}'
+      - name: Upload UI evidence / 保存界面证据
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: bilingual-ui-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/ui/
           retention-days: 7

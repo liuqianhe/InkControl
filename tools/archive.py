@@ -8,7 +8,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 DIRECTORIES = ('src', 'native', 'backend', 'overlay', 'assets', 'res', 'stubs', 'tools', 'test', 'docs', '.github', 'ci')
-FILES = ('AndroidManifest.xml', 'README.md', 'README.en.md', 'NOTICE.md', 'LICENSE', '.gitignore', '.gitattributes', 'AGENTS.md', 'CONTRIBUTING.md', 'CONTRIBUTING.en.md')
+FILES = ('AndroidManifest.xml', 'README.md', 'README.en.md', 'NOTICE.md', 'NOTICE.en.md', 'LICENSE', '.gitignore', '.gitattributes', 'AGENTS.md', 'CONTRIBUTING.md', 'CONTRIBUTING.en.md')
 
 def digest(path): return hashlib.sha256(path.read_bytes()).hexdigest()
 
