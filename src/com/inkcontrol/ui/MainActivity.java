@@ -211,11 +211,16 @@ public final class MainActivity extends Activity {
         badge.setContentDescription(ink.t("环境状态：" + label));
         badge.setOnClickListener(v -> switchTab(DIAGNOSE));
         row.addView(badge);
+        box.addView(row);
+
+        // Keep the brand/title wide enough on 320dp screens in both languages.
+        LinearLayout details = new LinearLayout(this);
+        details.setGravity(Gravity.CENTER_VERTICAL);
+        details.addView(ink.text(subtitle, 13, Ink.REGULAR), new LinearLayout.LayoutParams(0, -2, 1));
         TextView language = ink.chip("中 / EN", false, v -> UiLanguage.choose(this));
         language.setContentDescription(ink.t("语言 / Language"));
-        row.addView(withMargin(language, 6));
-        box.addView(row);
-        box.addView(spaced(ink.text(subtitle, 13, Ink.REGULAR), 6));
+        details.addView(withMargin(language, 6));
+        box.addView(spaced(details, 6));
         return box;
     }
 

@@ -56,6 +56,12 @@ def main():
         raw=dump();tree=ET.fromstring(raw)
         texts={n.get('text') for n in tree.iter('node')}
         for text in expected: assert text in texts,(name,text)
+        if 'InkControl' in expected:
+            density_text=device('shell','wm','density').decode('utf-8')
+            density=int(re.findall(r'density:\s*(\d+)',density_text)[-1])/160.0
+            brand=next(n for n in tree.iter('node') if n.get('text')=='InkControl')
+            left,top,right,bottom=map(int,re.findall(r'\d+',brand.get('bounds')))
+            assert bottom-top <= 45*density, 'English brand wrapped on narrow screen'
         (evidence/(name+'.xml')).write_bytes(raw)
         (evidence/(name+'.png')).write_bytes(device('exec-out','screencap','-p'))
         results.append({'page':name,'expected':expected,'passed':True})
