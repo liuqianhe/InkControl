@@ -66,7 +66,8 @@ def main():
         (evidence/(name+'.png')).write_bytes(device('exec-out','screencap','-p'))
         results.append({'page':name,'expected':expected,'passed':True})
     try:
-        device('install',fixture,timeout=60)
+        # Cold hosted emulators can finish booting while PackageManager is still busy.
+        device('install',fixture,timeout=180)
         device('shell','input','keyevent','KEYCODE_WAKEUP')
         device('shell','wm','dismiss-keyguard')
         device('shell','am','start','-W','-n','com.inkcontrol/.ui.MainActivity')
@@ -81,6 +82,12 @@ def main():
         device('shell','am','start','-W','-n','com.inkcontrol/.ui.MainActivity')
         time.sleep(1)
         capture('english-after-restart',['InkControl','Features','Install','Diagnostics'])
+    except Exception:
+        # Preserve the original failure even if a busy emulator cannot provide diagnostics.
+        try:
+            (evidence/'failure-logcat.txt').write_bytes(device('logcat','-d','-t','400',timeout=15))
+        except (subprocess.SubprocessError, OSError): pass
+        raise
     finally:
         device('uninstall','com.inkcontrol')
         (evidence/'language-results.json').write_text(json.dumps({'fixture':'temporary emulator-only certificate; never distributed','checks':results},ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
