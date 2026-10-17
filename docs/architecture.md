@@ -1,5 +1,7 @@
 # 架构与业务规则
 
+[English](architecture.en.md)
+
 ## 依赖方向
 
 ```mermaid

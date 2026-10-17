@@ -129,6 +129,10 @@ def main():
         assert 'classes.dex' in archive.namelist()
     with zipfile.ZipFile(backend) as archive: assert archive.testzip() is None
     manifest = {'version': VERSION, 'signing': 'unsigned' if args.unsigned else 'verified', 'verification': 'offline-only; device acceptance pending', 'artifacts': {p.name: sha(p) for p in (apk, backend)}, 'inputs': {name: sha(args.inputs/name) for name in INPUTS}, 'sources': {p.relative_to(ROOT).as_posix(): sha(p) for directory in ('src', 'native', 'backend', 'assets', 'res', 'overlay', 'stubs', 'tools', 'test') for p in sorted((ROOT/directory).rglob('*')) if p.is_file() and '__pycache__' not in str(p) and 'config_monitor_' not in str(p)}}
+    manifest['sources']['AndroidManifest.xml'] = sha(ROOT/'AndroidManifest.xml')
+    for directory in ('.github', 'ci'):
+        for path in sorted((ROOT/directory).rglob('*')):
+            if path.is_file(): manifest['sources'][path.relative_to(ROOT).as_posix()] = sha(path)
     (out/'build-manifest.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
     (out/'SHA256SUMS').write_text(''.join(sha(p)+'  '+p.name+'\n' for p in (apk, backend)), encoding='utf-8')
     print(apk)

@@ -126,7 +126,9 @@ jobs:
           sudo chmod 666 /dev/kvm
           mkdir -p "$ANDROID_AVD_HOME" out/ui
           printf 'no\n' | avdmanager create avd --force --name inkcontrol-ci --package 'system-images;android-29;default;x86_64'
-          emulator -avd inkcontrol-ci -port 5554 -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect > out/ui/emulator.log 2>&1 &
+          sed -i '/^disk.dataPartition.size=/d' "$ANDROID_AVD_HOME/inkcontrol-ci.avd/config.ini"
+          echo 'disk.dataPartition.size=1024M' >> "$ANDROID_AVD_HOME/inkcontrol-ci.avd/config.ini"
+          emulator -avd inkcontrol-ci -port 5554 -partition-size 1024 -memory 1536 -cores 2 -no-window -no-audio -no-snapshot -no-boot-anim -no-metrics -gpu swiftshader_indirect > out/ui/emulator.log 2>&1 &
           trap 'adb -s emulator-5554 emu kill || true' EXIT
           python tools/test_cloud_language.py --build '${{ steps.build.outputs.directory }}'
       - name: Upload UI evidence / 保存界面证据

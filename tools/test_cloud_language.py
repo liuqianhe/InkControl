@@ -21,6 +21,9 @@ def main():
         return subprocess.run(list(map(str,argv)),capture_output=True,check=True,timeout=timeout).stdout
     def device(*argv, timeout=30): return command(adb,'-s',serial,*argv,timeout=timeout)
     for attempt in range(120):
+        emulator_log = ROOT/'out/ui/emulator.log'
+        if emulator_log.exists() and 'FATAL' in emulator_log.read_text(encoding='utf-8',errors='replace'):
+            raise RuntimeError('Cloud emulator failed; see emulator.log')
         try:
             if device('shell','getprop','sys.boot_completed',timeout=5).strip()==b'1': break
         except (subprocess.SubprocessError, OSError): pass

@@ -1,5 +1,7 @@
 # 功能开发示例
 
+[English](development.en.md)
+
 新增功能以一个明确行为为单位，例如新增可选锁屏信息，先定义 `lock.example` 的 ID、选项、依赖、作用进程、HOT／REBOOT 和实验标记。
 
 1. 在 `core/FeatureCatalog` 添加静态定义。默认开关自动为关闭。选项必须有限且可校验，不能塞入可执行文本。
