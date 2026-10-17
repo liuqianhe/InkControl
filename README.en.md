@@ -8,9 +8,9 @@ The repository starts **private**. All compilation runs in GitHub-hosted Actions
 
 ## Current status
 
-The source targets **0.1.0-rc12**, including rc11's per-mode algorithms and independent hysteresis plus bilingual UI and cloud builds. Existing device validation applies to rc10 with the GPU queue fix. rc11 passed host regressions, 59 standalone GPU comparisons on Mali-G52, and six emulator page configurations. Those results do not establish integrated rc12 device acceptance.
+The source targets **0.1.0-rc13**, including rc11's per-mode algorithms and independent hysteresis, rc12's bilingual UI and cloud builds, and a new fixed release signing identity. Existing device validation applies to rc10 with the GPU queue fix. rc11 passed host regressions, 59 standalone GPU comparisons on Mali-G52, and six emulator page configurations. Those results do not establish integrated rc13 device acceptance.
 
-The original signing key exists locally, but its passwords have not been found. Default cloud output is an **unsigned candidate that cannot be installed**. No replacement signing identity is generated. Signed builds require the original key secrets; see [cloud build setup](docs/cloud-build.en.md).
+At the maintainer's request, a new RSA-4096 release key was generated on 2026-10-17. The key and random password stay in local `signing/release-20261017/`; Actions secrets are configured. Cloud builds produce signed candidates by default. **The new identity cannot update the old installation in place**: back up configuration, uninstall the old app, then install the new app and matching backend. The original key is retained; future updates must retain the new release key. See [cloud build setup](docs/cloud-build.en.md).
 
 Known limits: the historical first GPU error lacks its original log and remains unresolved; the Google Settings icon overlay does not work with this firmware's split resources and should remain disabled. Physical-panel quality, power consumption, and long-term stability need separate acceptance.
 
@@ -40,7 +40,7 @@ Root is not needed to browse descriptions, choose a language, view demos, or exp
 | `.github/workflows`, `ci` | Cloud pipeline and pinned encrypted build dependencies |
 | `docs` | Architecture, build, localization, and source documentation |
 
-Push main for an automatic unsigned cloud build. Use Actions → Cloud build → Run workflow for explicit signing selection. PR checks receive no firmware or signing secrets. Tests and candidate artifacts are retained for seven days. CI does not install, flash, reboot, or publish a public release.
+Push main for an automatic signed cloud build. Use Actions → Cloud build → Run workflow to choose signed or unsigned explicitly. Unsigned candidates cannot be installed. PR checks receive no firmware or signing secrets. Tests and candidate artifacts are retained for seven days. CI does not install, flash, reboot, or publish a public release.
 
 `inputs`, `signing`, `out`, `results`, raw device evidence, and backups remain local and are excluded from Git. Encrypted vendor build dependencies are separate from source and excluded from source exports. No SDK or NDK is checked in.
 

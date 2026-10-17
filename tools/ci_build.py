@@ -18,7 +18,7 @@ def digest(path): return hashlib.sha256(path.read_bytes()).hexdigest()
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--signing', choices=('unsigned','signed'), default='unsigned')
+    parser.add_argument('--signing', choices=('unsigned','signed'), default='signed')
     args = parser.parse_args()
     if os.environ.get('GITHUB_ACTIONS') != 'true': raise ValueError('Use GitHub Actions for builds')
     config = json.loads((ROOT/'ci/inputs.json').read_text(encoding='utf-8'))

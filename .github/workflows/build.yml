@@ -7,10 +7,10 @@ on:
   workflow_dispatch:
     inputs:
       signing:
-        description: 'unsigned = 待签名候选 / signed = 原证书签名'
+        description: 'signed = 发行证书签名 / unsigned = 待签名候选'
         type: choice
-        options: [unsigned, signed]
-        default: unsigned
+        options: [signed, unsigned]
+        default: signed
 
 permissions:
   contents: read
@@ -105,11 +105,11 @@ jobs:
           INKCONTROL_STORE_PASSWORD: ${{ secrets.INKCONTROL_STORE_PASSWORD }}
           INKCONTROL_KEY_PASSWORD: ${{ secrets.INKCONTROL_KEY_PASSWORD }}
           INKCONTROL_KEY_ALIAS: ${{ secrets.INKCONTROL_KEY_ALIAS }}
-        run: python tools/ci_build.py --signing '${{ inputs.signing || 'unsigned' }}'
+        run: python tools/ci_build.py --signing '${{ inputs.signing || 'signed' }}'
       - name: Upload candidate / 保存候选产物
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: InkControl-${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.signing || 'unsigned' }}
+          name: InkControl-${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.signing || 'signed' }}
           path: |
             ${{ steps.build.outputs.directory }}/InkControl-*.apk
             ${{ steps.build.outputs.directory }}/inkcontrol_backend-*.zip

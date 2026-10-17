@@ -4,7 +4,7 @@
 
 仓库最初为私有。所有 Java、原生库、资源、Dex、Overlay、Magisk ZIP 与 APK 编译均在 `.github/workflows/build.yml` 的 GitHub 托管 Ubuntu 24.04 运行器执行。本地工具保留为可复现底层入口，不再在本地运行编译。
 
-推送 main 自动构建未签名候选。Actions → Cloud build → Run workflow 可选择 unsigned 或 signed。PR 执行无私有输入的 Java/后端回归、翻译检查、原生策略/队列及软件 GLES 核对照；不读取固件和签名 secrets，不使用 pull_request_target。
+推送 main 自动构建签名候选。Actions → Cloud build → Run workflow 默认 signed，也可选择 unsigned 排查构建。PR 执行无私有输入的 Java/后端回归、翻译检查、原生策略/队列及软件 GLES 核对照；不读取固件和签名 secrets，不使用 pull_request_target。
 
 固定工具链：Python 3.12、Temurin JDK 21（Java 8 目标）、Platform 33、Build Tools 35.0.0、NDK 29.0.14206865、设备 API 29 arm64。依赖安装在 runner 中，未引入本机路径。Actions 引用固定提交 SHA，令牌只读 contents，checkout 不持久化凭据。
 
@@ -16,16 +16,18 @@
 
 ## 签名
 
-`ci/trusted-certificate.der` 仅为当前已安装版本的公钥证书，不能用于签名。未签名产物带 `-unsigned`，App 和 Overlay 均未签名，不能安装。
+`ci/trusted-certificate.der` 是 rc13 起的新发行公钥证书，不能用于签名。未签名产物带 `-unsigned`，App 和 Overlay 均未签名，不能安装。
 
-signed 构建需要以下 Actions secrets：`INKCONTROL_KEYSTORE_BASE64`、`INKCONTROL_STORE_PASSWORD`、`INKCONTROL_KEY_PASSWORD`、`INKCONTROL_KEY_ALIAS`。应由维护者在 GitHub 设置页面或通过标准输入配置，不写入命令参数、文档或日志。本轮未找到原密钥密码，故不生成新密钥、不更换现有签名，也不声称已完成签名构建。
+signed 构建需要以下 Actions secrets：`INKCONTROL_KEYSTORE_BASE64`、`INKCONTROL_STORE_PASSWORD`、`INKCONTROL_KEY_PASSWORD`、`INKCONTROL_KEY_ALIAS`。由维护者在 GitHub 设置页面或通过标准输入配置，不写入仓库、命令参数或日志。2026-10-17 按维护者明确要求新建长期发行密钥并配置这四项 secrets。密钥采用 JKS、RSA-4096、SHA256withRSA、10000 天有效期，别名 `inkcontrol-release`；本地 `signing/release-20261017/` 保存密钥、随机密码说明、公钥与轮换元数据，整个目录不入 Git。密码说明与密钥应一同离线备份。
 
-构建器先签 Overlay，再计算后端 ZIP 哈希并嵌入 App，最后签 App。云端核对输出公钥必须与当前可信证书一致，防止无法覆盖升级。不能只给外层 APK 补签。
+新公钥证书 SHA256：`4d2ddf8b324da50e54c28c11c9c61ae55eae69f1a9f2073be8315d62342aba29`。此前证书 SHA256：`44b04d7a953320f0c0c1bb2843a715a23f8c2207c1d602db5c0c4cfbb4313155`。旧 `candidate.jks` 和此前公钥备份保持原样。此轮是签名身份轮换，**无法直接覆盖旧签名 App**：迁移前备份配置，卸载旧 App，安装新 App 及其配套后端，重新核对框架作用域并完整重启。此处只记录后续人工迁移要求，CI 不执行这些设备操作。后续版本必须保留新发行密钥，避免再次失去升级兼容性。
+
+构建器先签 Overlay，再计算后端 ZIP 哈希并嵌入 App，最后签 App。云端核对输出公钥必须与仓库固定的可信证书一致，防止后续版本意外更换签名。不能只给外层 APK 补签。
 
 ## 证据与产物
 
 每次运行生成唯一目录和七天保留的 artifacts：测试输出、APK、后端 ZIP、SHA256SUMS、构建来源清单及包装验证。记录 commit SHA、run ID 和 attempt。不会自动公开 Release、安装设备或改变设备配置。
 
-离线回归与软件 GLES 成功不等于真实 Mali、HWC 集成、面板观感或长稳验收通过。现有设备仍运行 rc10 修复版；rc12 包含 rc11 的分模式算法改动与本轮双语/云构建改造，需原签名可用后独立上机验收。
+离线回归与软件 GLES 成功不等于真实 Mali、HWC 集成、面板观感或长稳验收通过。现有设备仍运行 rc10 修复版；rc13 包含分模式算法、双语/云构建及本轮签名轮换，需独立执行签名迁移和上机验收。
 
 依据：[GitHub Secrets](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets)、[安全使用 Actions](https://docs.github.com/en/actions/reference/security/secure-use)。

@@ -10,13 +10,13 @@ $env:PYTHONUTF8 = '1'
 $env:PYTHONIOENCODING = 'utf-8'
 python tools/check_repository.py
 python tools/check_i18n.py
-# 推送 main 自动触发未签名构建；手动启动也在云端执行。
-gh workflow run build.yml --repo wzp100/InkControl -f signing=unsigned
+# 推送 main 自动触发发行签名构建；手动启动也在云端执行。
+gh workflow run build.yml --repo wzp100/InkControl -f signing=signed
 ```
 
-底层顺序仍为：Java 核心回归、目录白名单生成、原生库与观察器、Overlay、Magisk ZIP、Java/Dex/资源、App 签名及内置包一致性校验。入口是 `tools/ci_build.py`，调用 `tools/build.py` 与 `tools/verify_package.py`。具体工具版本、私有输入哈希、加密方式与原证书签名 secrets 见云端说明。
+底层顺序仍为：Java 核心回归、目录白名单生成、原生库与观察器、Overlay、Magisk ZIP、Java/Dex/资源、App 签名及内置包一致性校验。入口是 `tools/ci_build.py`，调用 `tools/build.py` 与 `tools/verify_package.py`。具体工具版本、私有输入哈希、加密方式与发行证书签名 secrets 见云端说明。
 
-输出按 run ID 和 attempt 创建新目录，不覆盖旧候选。云构建默认未签名，不能安装；signed 必须沿用原密钥，不能只补签外层 APK。测试和构建产物由 Actions 保存七天，不直接创建公开 Release。
+输出按 run ID 和 attempt 创建新目录，不覆盖旧候选。云构建默认使用固定发行密钥签名；手动 unsigned 产物不能安装。rc13 按维护者要求更换发行身份，首次迁移需备份配置并卸载旧签名 App，后续更新必须沿用新密钥；不能只补签外层 APK。测试和构建产物由 Actions 保存七天，不直接创建公开 Release。
 
 正式交付归档使用 `tools/archive.py`，仍要求与 APK/ZIP 哈希匹配的实际验收摘要；未签名候选不能正式归档。历史发布目录保持不变，不能以云构建成功代替实机验收。
 
