@@ -8,6 +8,9 @@ import re
 import shutil
 import subprocess
 import tempfile
+from urllib.error import HTTPError
+from urllib.parse import quote
+from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY = 'wzp100/InkControl'
@@ -85,6 +88,24 @@ def gh(*args):
                           encoding='utf-8', check=True).stdout
 
 
+def api_json(method, path, payload=None, asset=None):
+    """Use returned release IDs; newly-created drafts need not have a visible tag."""
+    host = 'uploads.github.com' if asset is not None else 'api.github.com'
+    data = asset.read_bytes() if asset is not None else json.dumps(payload).encode('utf-8')
+    headers = {'Authorization': 'Bearer '+os.environ['GH_TOKEN'],
+               'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28',
+               'User-Agent': 'InkControl-Release',
+               'Content-Type': 'application/octet-stream' if asset is not None else 'application/json'}
+    request = Request('https://'+host+'/'+path, data=data, headers=headers, method=method)
+    try:
+        with urlopen(request, timeout=120) as response:
+            return json.load(response)
+    except HTTPError as error:
+        try: message = json.loads(error.read()).get('message', '')
+        except (ValueError, UnicodeError): message = ''
+        raise RuntimeError('GitHub REST operation failed: '+str(error.code)+' '+message[:300]) from None
+
+
 def lookup_release(tag):
     p = subprocess.run(['gh', 'api', 'repos/'+REPOSITORY+'/releases/tags/'+tag],
                        capture_output=True, text=True, encoding='utf-8')
@@ -138,23 +159,27 @@ def publish(tag, prerelease, files, notes, sha):
         if release.get('target_commitish') != sha or marker not in release.get('body', ''):
             raise ValueError('Existing draft belongs to another commit; increment version')
     else:
-        command = ['release', 'create', tag, '--repo', REPOSITORY, '--target', sha,
-                   '--title', '墨控 InkControl '+tag, '--notes-file', str(notes), '--draft']
-        if prerelease:
-            command += ['--prerelease']
-        gh(*command)
-        release = lookup_release(tag)
-        if release is None:
-            raise RuntimeError('Created draft not visible; retain it and retry without overwriting')
+        release = api_json('POST', 'repos/'+REPOSITORY+'/releases', {
+            'tag_name': tag, 'target_commitish': sha, 'name': '墨控 InkControl '+tag,
+            'body': notes.read_text(encoding='utf-8'), 'draft': True, 'prerelease': prerelease})
+        if release.get('draft') is not True or release.get('tag_name') != tag:
+            raise ValueError('Unexpected create-release response')
     present = verify_remote_assets(release, files, require_all=False)
-    missing = [str(path) for path in files if path.name not in present]
-    if missing:
-        gh('release', 'upload', tag, *missing, '--repo', REPOSITORY)
-    release = lookup_release(tag)
+    for path in files:
+        if path.name in present: continue
+        asset = api_json('POST', 'repos/'+REPOSITORY+'/releases/'+str(release['id'])+
+                         '/assets?name='+quote(path.name, safe=''), asset=path)
+        if asset.get('name') != path.name:
+            raise ValueError('Unexpected uploaded asset name')
+        release['assets'].append(asset)
     verify_remote_assets(release, files, require_all=True)
-    gh('release', 'edit', tag, '--repo', REPOSITORY, '--draft=false',
-       '--prerelease='+str(prerelease).lower(), '--latest='+str(not prerelease).lower())
-    return lookup_release(tag)['html_url']
+    published = api_json('PATCH', 'repos/'+REPOSITORY+'/releases/'+str(release['id']),
+                         {'draft': False, 'prerelease': prerelease,
+                          'make_latest': 'false' if prerelease else 'true'})
+    if published.get('draft') is not False or published.get('tag_name') != tag:
+        raise ValueError('Release publication was not confirmed')
+    verify_remote_assets(published, files, require_all=True)
+    return published['html_url']
 
 
 def main():

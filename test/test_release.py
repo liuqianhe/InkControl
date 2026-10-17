@@ -123,5 +123,35 @@ class ReleasePolicyTest(unittest.TestCase):
             with self.assertRaises(RuntimeError): release.lookup_release('v1.0.0')
             api.assert_not_called()
 
+    def test_new_draft_uses_returned_id_without_tag_lookup(self):
+        sha = 'a'*40
+        notes = self.directory/'notes.md'
+        notes.write_text('notes\n<!-- InkControl source: '+sha+' -->\n', encoding='utf-8')
+        artifact = self.directory/'InkControl-v0.1.0-rc14.apk'
+        remote_asset = {'name': artifact.name, 'digest': 'sha256:'+release.digest(artifact)}
+        draft = {'id': 42, 'tag_name': 'v0.1.0-rc14', 'draft': True, 'assets': []}
+        published = dict(draft, draft=False, html_url='https://example.test/release', assets=[remote_asset])
+        with patch.dict(release.os.environ, {'GITHUB_ACTIONS': 'true', 'GITHUB_REF': 'refs/heads/main'}, clear=True), \
+             patch.object(release, 'gh', return_value='{"private":true}'), \
+             patch.object(release, 'lookup_release', return_value=None) as lookup, \
+             patch.object(release, 'api_json', side_effect=[draft, remote_asset, published]) as api:
+            self.assertEqual(release.publish('v0.1.0-rc14', True, [artifact], notes, sha), 'https://example.test/release')
+            self.assertEqual(lookup.call_count, 1)
+            self.assertEqual(api.call_args_list[1].args[1], 'repos/'+release.REPOSITORY+'/releases/42/assets?name='+artifact.name)
+            self.assertEqual(api.call_args_list[2].args[1], 'repos/'+release.REPOSITORY+'/releases/42')
+
+    def test_mismatched_upload_is_never_published(self):
+        sha = 'a'*40
+        notes = self.directory/'notes.md'; notes.write_text('notes', encoding='utf-8')
+        artifact = self.directory/'InkControl-v0.1.0-rc14.apk'
+        draft = {'id': 42, 'tag_name': 'v0.1.0-rc14', 'draft': True, 'assets': []}
+        wrong = {'name': artifact.name, 'digest': 'sha256:'+'0'*64}
+        with patch.dict(release.os.environ, {'GITHUB_ACTIONS': 'true', 'GITHUB_REF': 'refs/heads/main'}, clear=True), \
+             patch.object(release, 'gh', return_value='{"private":true}'), \
+             patch.object(release, 'lookup_release', return_value=None), \
+             patch.object(release, 'api_json', side_effect=[draft, wrong]) as api:
+            with self.assertRaises(ValueError): release.publish('v0.1.0-rc14', True, [artifact], notes, sha)
+            self.assertEqual(api.call_count, 2)
+
 
 if __name__ == '__main__': unittest.main()
