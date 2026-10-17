@@ -1,0 +1,21 @@
+# Evidence and current status
+
+[简体中文](evidence.md) · [Wiki](README.en.md) · [Source register](knowledge-index.json)
+
+| Object | Recorded state | Scope |
+| --- | --- | --- |
+| Device at 2026-10-18 handoff | rc10 app + rc10-gpu-fix1 | Documentation/release work has not updated the phone |
+| Queue-fix candidate | Full restart, alternating video, 12 window cycles, 3 sleep/wake cycles; 1024 waves / 12032 scans, zero CPU waves/errors at capture | Short scoped smoke test; historical first fault and stability remain open |
+| rc11 algorithms | Core810, policy1785, 59 comparisons each on Mali/software GLES, six emulator algorithm pages | Selection, standalone computation, UI; no integrated app/backend installation |
+| rc13 cloud candidate | Signing, packaging, regressions, software GPU, four bilingual pages passed | Cloud/emulator scope, no new signing migration on device |
+| Current source | Version in `AndroidManifest.xml`; Release tied to its commit/run | Consult that Release's evidence |
+
+rc13 reference run: [39046131228](https://github.com/wzp100/InkControl/actions/runs/39046131228), commit `c9e4d7d7ca75214ab6b7a204392ad7adcb16a479`. An earlier attempt timed out installing the emulator fixture after 60 seconds. Extending the limit to 180 seconds and adding diagnostic capture produced a successful repeat; failure evidence was retained.
+
+Known gaps: missing original first-fault logs; unsupported Google split-resource overlay; occasional Vector reinjection failure after service reload; separate acceptance for integrated HWC, temperature, physical panel, lyrics, unplugged power, and long-term stability.
+
+Releases attach `build-manifest.json`, `package-verification.json`, `release-verification.json`, SHA256SUMS, and bilingual notes. The same run retains original test/UI artifacts. Manifests bind commit, run, input, and source hashes; they do not certify physical-device acceptance.
+
+Resolve `Rxx` through [knowledge-index.json](knowledge-index.json). Repository sources are available in a clone. Workspace-only sources require the original workspace; hashes identify the report version reviewed here. Do not invent repository links to absent logs or commit secrets/backups for convenience.
+
+New experiments record input version, device state, parameters, raw evidence, conclusions, and restoration. Preserve failures and old reports; add new verification in new directories. Sources: `R02`, `R03`, `R04`, `R11`.

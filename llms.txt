@@ -1,0 +1,28 @@
+# InkControl / 墨控
+
+> Hisense A5 Pro 经典版 (Classic Edition), monochrome E-ink. Private repository. All compilation and build tests run on GitHub-hosted Actions. Read AGENTS.md before work.
+
+## Read first
+
+- [Repository instructions](AGENTS.md)
+- [Agent handbook, Chinese](docs/wiki/agent-handbook.md)
+- [Agent handbook, English](docs/wiki/agent-handbook.en.md)
+- [Evidence and current device state](docs/wiki/evidence.en.md)
+- [Machine-readable topics, code, and source reports](docs/wiki/knowledge-index.json)
+
+## Topic map
+
+- [Wiki home, Chinese](docs/wiki/README.md)
+- [Wiki home, English](docs/wiki/README.en.md)
+- [Installation](docs/wiki/getting-started.en.md)
+- [Device and display pipeline](docs/wiki/device-and-display.en.md)
+- [Mode and algorithm rules](docs/wiki/algorithms.en.md)
+- [Code, configuration, IPC and restoration](docs/wiki/architecture.en.md)
+- [Diagnostics and recovery](docs/wiki/operations.en.md)
+- [Research findings and limitations](docs/wiki/research.en.md)
+- [Cloud build, signing and automatic private Releases](docs/wiki/build-and-release.en.md)
+- [Glossary](docs/wiki/glossary.en.md)
+
+## Invariants
+
+All 52 enhancements default off. Preserve IDs, defaults, and grayscale/binary separation. Video selection is independent. New signing starts at rc13; old signatures cannot be updated in place. The recorded device still runs rc10 + rc10-gpu-fix1. Runtime acknowledgement, standalone GPU comparison, panel feedback, and long-term validation are separate evidence levels. Raw inputs, logs, backups and signing secrets stay outside Git. Documentation work and CI do not authorize device changes.

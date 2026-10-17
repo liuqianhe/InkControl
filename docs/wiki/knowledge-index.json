@@ -1,0 +1,295 @@
+{
+  "schema_version": 1,
+  "reviewed_date": "2026-10-18",
+  "target": {
+    "name": "Hisense A5 Pro 经典版",
+    "english_description": "Hisense A5 Pro Classic Edition",
+    "screen": "monochrome",
+    "device_gate": "HLTE203T",
+    "api": 29,
+    "abi": "arm64-v8a",
+    "firmware_gate": "L1732.6.01.02"
+  },
+  "source_version": "0.1.0-rc14",
+  "enhancements_default_off": 52,
+  "recorded_device": {
+    "app": "0.1.0-rc10",
+    "backend": "rc10-gpu-fix1",
+    "last_evidence_date": "2026-10-17",
+    "changed_by_documentation_task": false
+  },
+  "reference_cloud_evidence": {
+    "version": "0.1.0-rc13",
+    "run_id": 39046131228,
+    "commit": "c9e4d7d7ca75214ab6b7a204392ad7adcb16a479",
+    "scope": "cloud signing, regression, software GPU, bilingual emulator"
+  },
+  "authority_order": [
+    "current source and matching runtime identity",
+    "scoped raw evidence and latest reports",
+    "Wiki synthesis",
+    "older summaries"
+  ],
+  "topics": [
+    {
+      "id": "README",
+      "title_zh": "知识库首页",
+      "title_en": "Wiki home",
+      "zh": "docs/wiki/README.md",
+      "en": "docs/wiki/README.en.md",
+      "tags": [
+        "overview"
+      ]
+    },
+    {
+      "id": "agent-handbook",
+      "title_zh": "Agent 接手手册",
+      "title_en": "Agent handbook",
+      "zh": "docs/wiki/agent-handbook.md",
+      "en": "docs/wiki/agent-handbook.en.md",
+      "tags": [
+        "agent",
+        "handoff",
+        "authority"
+      ]
+    },
+    {
+      "id": "getting-started",
+      "title_zh": "安装与使用",
+      "title_en": "Installation and usage",
+      "zh": "docs/wiki/getting-started.md",
+      "en": "docs/wiki/getting-started.en.md",
+      "tags": [
+        "install",
+        "scope",
+        "language"
+      ]
+    },
+    {
+      "id": "device-and-display",
+      "title_zh": "设备与显示链路",
+      "title_en": "Device and display",
+      "zh": "docs/wiki/device-and-display.md",
+      "en": "docs/wiki/device-and-display.en.md",
+      "tags": [
+        "HWC",
+        "WBF",
+        "scan"
+      ]
+    },
+    {
+      "id": "algorithms",
+      "title_zh": "模式与算法",
+      "title_en": "Algorithms",
+      "zh": "docs/wiki/algorithms.md",
+      "en": "docs/wiki/algorithms.en.md",
+      "tags": [
+        "video",
+        "hysteresis",
+        "grayscale",
+        "binary"
+      ]
+    },
+    {
+      "id": "architecture",
+      "title_zh": "源码架构",
+      "title_en": "Architecture",
+      "zh": "docs/wiki/architecture.md",
+      "en": "docs/wiki/architecture.en.md",
+      "tags": [
+        "configuration",
+        "IPC",
+        "restoration"
+      ]
+    },
+    {
+      "id": "operations",
+      "title_zh": "诊断与恢复",
+      "title_en": "Operations",
+      "zh": "docs/wiki/operations.md",
+      "en": "docs/wiki/operations.en.md",
+      "tags": [
+        "GPU",
+        "fallback",
+        "logs",
+        "recovery"
+      ]
+    },
+    {
+      "id": "research",
+      "title_zh": "研究与结论",
+      "title_en": "Research",
+      "zh": "docs/wiki/research.md",
+      "en": "docs/wiki/research.en.md",
+      "tags": [
+        "profiling",
+        "experiments",
+        "history"
+      ]
+    },
+    {
+      "id": "build-and-release",
+      "title_zh": "构建与发布",
+      "title_en": "Build and release",
+      "zh": "docs/wiki/build-and-release.md",
+      "en": "docs/wiki/build-and-release.en.md",
+      "tags": [
+        "CI",
+        "signing",
+        "release"
+      ]
+    },
+    {
+      "id": "evidence",
+      "title_zh": "当前状态与证据",
+      "title_en": "Evidence",
+      "zh": "docs/wiki/evidence.md",
+      "en": "docs/wiki/evidence.en.md",
+      "tags": [
+        "validation",
+        "limits",
+        "versions"
+      ]
+    },
+    {
+      "id": "glossary",
+      "title_zh": "术语表",
+      "title_en": "Glossary",
+      "zh": "docs/wiki/glossary.md",
+      "en": "docs/wiki/glossary.en.md",
+      "tags": [
+        "terms"
+      ]
+    }
+  ],
+  "code_entry_points": [
+    "src/com/inkcontrol/core/FeatureCatalog.java",
+    "src/com/inkcontrol/core/DisplayAlgorithms.java",
+    "src/com/inkcontrol/platform/RuntimeStatus.java",
+    "native/service_algorithm_policy.hpp",
+    "native/service_queue_retry.hpp",
+    "native/service_gpu.cpp",
+    "backend/service.sh",
+    "backend/lib/gpu_diagnostics.sh",
+    "tools/ci_build.py",
+    "tools/publish_release.py",
+    ".github/workflows/build.yml"
+  ],
+  "sources": [
+    {
+      "id": "R01",
+      "title_zh": "当前架构与配置规则",
+      "title_en": "Current architecture and configuration",
+      "availability": "repository",
+      "path": "docs/architecture.md",
+      "scope": "implementation contracts; runtime requires matching evidence"
+    },
+    {
+      "id": "R02",
+      "title_zh": "分模式算法选择",
+      "title_en": "Per-mode algorithm selection",
+      "availability": "workspace_only",
+      "workspace_path": "02_模块开发/墨控/docs/2026-10-17_分模式算法选择.md",
+      "sha256": "71cc1b48ff78f9c77e84cd8a5f5e3f2064b7faa7c40e1bd4080ed65c8f398766",
+      "scope": "standalone GPU and emulator; integrated device acceptance pending"
+    },
+    {
+      "id": "R03",
+      "title_zh": "GPU 队列竞态修复与取证",
+      "title_en": "GPU queue race and diagnostics",
+      "availability": "workspace_only",
+      "workspace_path": "02_模块开发/墨控/docs/2026-10-17_GPU队列竞态修复与取证.md",
+      "sha256": "3ac633ed3773b2fcc8089a1c9f4f64aab9a998484c456e3ea336ee3106915197",
+      "scope": "scoped reboot/device smoke; historical first error unresolved"
+    },
+    {
+      "id": "R04",
+      "title_zh": "墨控实机验收",
+      "title_en": "Integrated device acceptance",
+      "availability": "workspace_only",
+      "workspace_path": "02_模块开发/墨控/docs/2026-10-15_墨控实机验收.md",
+      "sha256": "adb18e8f687fe6df76e285b67494c4388119e98b64f9401e743ec529e2ae9911",
+      "scope": "historical integrated candidate and known failures"
+    },
+    {
+      "id": "R05",
+      "title_zh": "原厂算法清单",
+      "title_en": "Stock algorithm inventory",
+      "availability": "workspace_only",
+      "workspace_path": "03_研究实验/墨水屏刷新分析/原厂算法清单.md",
+      "sha256": "d5ad941604fa3fdbd60998f51b2aab2d73c01d95829de455fc4df8c7b2be2934",
+      "scope": "historical reverse engineering; current policy is in source"
+    },
+    {
+      "id": "R06",
+      "title_zh": "HWC 排队机制",
+      "title_en": "HWC queue mechanism",
+      "availability": "workspace_only",
+      "workspace_path": "03_研究实验/墨水屏刷新分析/HWC排队机制_实测.md",
+      "sha256": "00ebfa6fec7c08c78d6ad3dcd814daca3d08b050c6121d0366db72d834c78fc8",
+      "scope": "historical stock queue measurements, not current GPU latency"
+    },
+    {
+      "id": "R07",
+      "title_zh": "真实场景阶段 profiling",
+      "title_en": "Real-app stage profiling",
+      "availability": "workspace_only",
+      "workspace_path": "03_研究实验/调度与功耗分析/docs/2026-10-13_真实场景CPU_GPU调度与阶段Profiling.md",
+      "sha256": "99c60ca6be05124c890d42322a25eae935ed1d0100747b9a212663a7dd2e5f4e",
+      "scope": "historical controlled real-app profiling; no optical/power claim"
+    },
+    {
+      "id": "R08",
+      "title_zh": "GPU 流水线首轮优化",
+      "title_en": "First GPU pipeline optimization",
+      "availability": "workspace_only",
+      "workspace_path": "03_研究实验/调度与功耗分析/docs/2026-10-13_GPU流水线首轮优化.md",
+      "sha256": "d68e60dcc10541300031499b58f8bc2ae4c9581f92a5202ac666508375443201",
+      "scope": "local uniform caching benefit; no stable full-device speed claim"
+    },
+    {
+      "id": "R09",
+      "title_zh": "锁屏误差扩散抑制",
+      "title_en": "Lock-screen diffusion suppression",
+      "availability": "workspace_only",
+      "workspace_path": "03_研究实验/调度与功耗分析/docs/2026-10-15_锁屏水平细线与误差扩散抑制.md",
+      "sha256": "5b02f4a1cd0f6e3a14f3ec01ce270d8ce030eae957b8f25ac4a4a15160ec438e",
+      "scope": "scoped kernel/panel feedback; long-term and hour/lyric coverage pending"
+    },
+    {
+      "id": "R10",
+      "title_zh": "OTA 6.16 分析",
+      "title_en": "OTA 6.16 analysis",
+      "availability": "workspace_only",
+      "workspace_path": "03_研究实验/官方OTA分析/docs/2026-10-12_OTA_6.16.00分析报告.md",
+      "sha256": "caa349d1a9932aac8396c2ad24fdc79aa3c28c52c2c9630044b408667693e9a8",
+      "scope": "partial replay/static ABI analysis; live driver acceptance pending"
+    },
+    {
+      "id": "R11",
+      "title_zh": "新发行签名与云端候选",
+      "title_en": "Release identity and cloud evidence",
+      "availability": "workspace_only",
+      "workspace_path": "00_文档与计划/迁移记录/2026-10-17_墨控新发行签名/README.md",
+      "sha256": "251820185a249e427d6bab9c3eec464d333c28b6ebb619765f814db340342fc8",
+      "scope": "rc13 cloud regressions/signing/emulator; no device migration"
+    },
+    {
+      "id": "R12",
+      "title_zh": "可选锁屏与唤醒动画",
+      "title_en": "Optional lock and wake animation",
+      "availability": "workspace_only",
+      "workspace_path": "02_模块开发/过渡动画模块/docs/2026-10-15_可选锁屏与唤醒动画.md",
+      "sha256": "27cc574d32c5edc730f697e81129a0f35810e18e9a7a35bc49b48b9e092c8287",
+      "scope": "historical module smoke and user feedback; not new integrated acceptance"
+    }
+  ],
+  "open_work": [
+    "historical first GPU fault",
+    "integrated new-version device acceptance",
+    "panel/temperature/long-term validation",
+    "unplugged power baseline",
+    "Google split overlay compatibility",
+    "framework reinjection self-recovery"
+  ]
+}

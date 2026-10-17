@@ -1,49 +1,57 @@
-# InkControl · 墨控
+<p align="center"><img src="docs/brand/banner.svg" alt="InkControl — Hisense A5 Pro 经典版" width="100%"></p>
 
-[简体中文](README.md) · [Cloud builds](https://github.com/wzp100/InkControl/actions) · [Contributing](CONTRIBUTING.en.md)
+<p align="center"><a href="README.md">简体中文</a> · <a href="docs/wiki/README.en.md"><b>Wiki</b></a> · <a href="docs/wiki/agent-handbook.en.md">Start here, agents</a> · <a href="https://github.com/wzp100/InkControl/releases">Downloads</a></p>
 
-E-ink enhancements for the **Hisense A5 Pro CC, HLTE203T, Android 10, firmware L1732.6.01.02**. One `com.inkcontrol` APK includes the matching Magisk backend. All **52 enhancements are off by default**.
+<p align="center"><a href="https://github.com/wzp100/InkControl/actions/workflows/build.yml"><img src="https://github.com/wzp100/InkControl/actions/workflows/build.yml/badge.svg" alt="Cloud build and validation"></a></p>
 
-The repository starts **private**. All compilation runs in GitHub-hosted Actions. The app supports **Simplified Chinese and English**, following the system by default, with an in-app language selector.
+# More control over your E-ink display
 
-## Current status
+**InkControl · 墨控** brings display algorithms, transitions, lock-screen controls, and stock-launcher themes to the **Hisense A5 Pro 经典版 (Classic Edition)** with its **monochrome E-ink screen**. One app contains its matching Magisk backend.
 
-The source targets **0.1.0-rc13**, including rc11's per-mode algorithms and independent hysteresis, rc12's bilingual UI and cloud builds, and a new fixed release signing identity. Existing device validation applies to rc10 with the GPU queue fix. rc11 passed host regressions, 59 standalone GPU comparisons on Mali-G52, and six emulator page configurations. Those results do not establish integrated rc13 device acceptance.
+All **52 enhancements are off by default**. Enable what you need, retain your selections, and see configuration intent separately from runtime acknowledgement.
 
-At the maintainer's request, a new RSA-4096 release key was generated on 2026-10-17. The key and random password stay in local `signing/release-20261017/`; Actions secrets are configured. Cloud builds produce signed candidates by default. **The new identity cannot update the old installation in place**: back up configuration, uninstall the old app, then install the new app and matching backend. The original key is retained; future updates must retain the new release key. See [cloud build setup](docs/cloud-build.en.md).
+| Display | Motion | Lock screen | Stock launcher |
+| --- | --- | --- | --- |
+| Per-mode algorithms; separate video settings | Effects, previews, temperature timing curves | Weather, lyrics, styles, refresh policy | Three themes; independent icons, fonts, widgets |
+| Grayscale and binary groups; independent hysteresis | Existing display path and mode boundaries | Individual controls and conditional restoration | Original layout and app positions retained |
 
-Known limits: the historical first GPU error lacks its original log and remains unresolved; the Google Settings icon overlay does not work with this firmware's split resources and should remain disabled. Physical-panel quality, power consumption, and long-term stability need separate acceptance.
+## Choose your starting point
 
-## Features
-
-- GPU display processing and separate algorithms for Clear, Reading, Fast, Extreme, and video. Grayscale and black-and-white algorithms cannot be mixed. Independent hysteresis appears only where supported. Existing defaults are preserved.
-- Per-scenario transitions, waveform effects, temperature-dependent keyframe timing, and previews.
-- Lock-screen styles, weather, lyrics, stock-launcher themes, and independently selectable components.
-- Display-service protection, configuration restoration, lifecycle cleanup, and runtime status checks.
-
-## Installation of a signed, verified build
-
-1. Install the APK and open **Install** to check compatibility.
-2. Export its matching backend ZIP and install it in Magisk.
-3. Enable InkControl in a Vector/LSPosed-compatible framework for System Framework (`android`), System UI (`com.android.systemui`), and the stock launcher (`com.hmct.vision`).
-4. Fully restart, check Diagnostics, and enable only the features you need.
-
-Root is not needed to browse descriptions, choose a language, view demos, or export the bundled installer. Startup overrides require a full restart. Runtime acknowledgement, rather than a saved switch alone, determines whether a feature is active.
-
-## Repository and builds
-
-| Path | Purpose |
+| I want to… | Read |
 | --- | --- |
-| `src`, `native`, `backend` | App, GPU implementation, Magisk backend |
-| `assets`, `res`, `overlay`, `stubs` | Themes, translations, localized metadata, resource overlay, compile declarations |
-| `test`, `tools` | Regression, build, verification, and archive tools |
-| `.github/workflows`, `ci` | Cloud pipeline and pinned encrypted build dependencies |
-| `docs` | Architecture, build, localization, and source documentation |
+| Install and get started | [Getting started](docs/wiki/getting-started.en.md) |
+| Understand modes, video, and hysteresis | [Display algorithms](docs/wiki/algorithms.en.md) |
+| Diagnose slow refresh or inactive settings | [Operations and recovery](docs/wiki/operations.en.md) |
+| Continue development and understand prior work | [Agent handbook](docs/wiki/agent-handbook.en.md) → [Research](docs/wiki/research.en.md) |
+| Locate code, evidence, and release automation | [Architecture](docs/wiki/architecture.en.md) · [Evidence](docs/wiki/evidence.en.md) · [Build and release](docs/wiki/build-and-release.en.md) |
 
-Push main for an automatic signed cloud build. Use Actions → Cloud build → Run workflow to choose signed or unsigned explicitly. Unsigned candidates cannot be installed. PR checks receive no firmware or signing secrets. Tests and candidate artifacts are retained for seven days. CI does not install, flash, reboot, or publish a public release.
+## Getting started
 
-`inputs`, `signing`, `out`, `results`, raw device evidence, and backups remain local and are excluded from Git. Encrypted vendor build dependencies are separate from source and excluded from source exports. No SDK or NDK is checked in.
+1. Download a signed APK from [Releases](https://github.com/wzp100/InkControl/releases). Read its notes and checksums. `rc` versions are prereleases.
+2. Open **Install**, check compatibility, export the bundled backend ZIP, and install it through Magisk.
+3. Enable InkControl in a Vector/LSPosed-compatible framework for System Framework, System UI, and the stock launcher.
+4. Restart fully, check **Diagnostics**, then enable individual enhancements.
 
-[Architecture](docs/architecture.en.md) · [Cloud builds and signing](docs/cloud-build.en.md) · [Localization](docs/localization.en.md) · [Sources](docs/sources.en.md) · [License boundaries](NOTICE.en.md)
+The backend checks `HLTE203T / Android 10 / arm64 / L1732.6.01.02` and exact vendor-input hashes. Without Root you can browse guides, switch languages, preview effects, and export the installer. See [installation and recovery](docs/wiki/getting-started.en.md).
 
-Original implementations use MIT. Vendor binaries, third-party artwork, trademarks, and external runtimes retain their own rights. This repository alone cannot recreate the vendor HWC inputs. Keep the repository private until a separate public-distribution review.
+> **Signing migration:** rc13 introduced a fixed new release identity. Back up configuration and uninstall the old signed app before migrating to the new app and matching backend. Subsequent updates retain that identity.
+
+## A look inside
+
+<table><tr><th>简体中文</th><th>English</th></tr><tr><td><img src="docs/media/ui-zh.png" alt="Chinese features page in the cloud emulator" width="260"></td><td><img src="docs/media/ui-en.png" alt="English features page in the cloud emulator" width="260"></td></tr></table>
+
+Actual rc13 cloud-emulator screenshots; they do not establish physical-panel quality. The app follows the system language by default and supports independent Chinese/English selection.
+
+## Project status
+
+The source targets **0.1.0-rc14**, with per-mode algorithms, independent hysteresis, bilingual UI, a shared visual identity, and a versioned knowledge base. All compilation and validation runs in the cloud. New versions publish a private Release after every check passes; rerunning an existing version never overwrites its Release.
+
+The recorded device installation as of 2026-10-18 remains **rc10 app + rc10-gpu-fix1 backend**. rc13 passed cloud signing, regressions, and four bilingual UI configurations. Integrated HWC behavior, panel quality, power, temperature coverage, and long-term stability need separate acceptance. The historical first GPU error remains unexplained; the firmware's Google split-resource icon overlay should stay off. See [evidence boundaries](docs/wiki/evidence.en.md).
+
+## Developers and agents
+
+Start with [AGENTS.md](AGENTS.md) and the [agent handbook](docs/wiki/agent-handbook.en.md). [llms.txt](llms.txt) provides a short entry point; the [knowledge index](docs/wiki/knowledge-index.json) maps topics to code and evidence.
+
+The feature catalog is the single configuration definition. The UI calls application services. See [contributing](CONTRIBUTING.en.md), [architecture](docs/wiki/architecture.en.md), and [localization](docs/localization.en.md).
+
+This repository remains **private**. Original code and artwork follow [MIT](LICENSE). Vendor binaries, third-party assets, and external frameworks retain their own terms; see [NOTICE](NOTICE.en.md). Keys, passwords, plaintext firmware, personal backups, and raw device logs stay outside Git.

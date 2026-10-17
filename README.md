@@ -1,49 +1,57 @@
-# 墨控 · InkControl
+<p align="center"><img src="docs/brand/banner.svg" alt="墨控 InkControl — Hisense A5 Pro 经典版" width="100%"></p>
 
-[English](README.en.md) · [云端构建](https://github.com/wzp100/InkControl/actions) · [参与开发](CONTRIBUTING.md)
+<p align="center"><a href="README.en.md">English</a> · <a href="docs/wiki/README.md"><b>知识库 / Wiki</b></a> · <a href="docs/wiki/agent-handbook.md">Agent 从这里开始</a> · <a href="https://github.com/wzp100/InkControl/releases">下载安装包</a></p>
 
-面向 **海信 A5 Pro CC（HLTE203T，Android 10，固件 L1732.6.01.02）** 的墨水屏增强套件。一个 `com.inkcontrol` APK 内置配套 Magisk ZIP，**52 个增强全部默认关闭**。
+<p align="center"><a href="https://github.com/wzp100/InkControl/actions/workflows/build.yml"><img src="https://github.com/wzp100/InkControl/actions/workflows/build.yml/badge.svg" alt="云端构建与验证"></a></p>
 
-仓库首先以**私有仓库**维护。**所有编译走 GitHub Actions 云端**。应用支持**简体中文和英文**，默认跟随系统，右上角可独立选择语言。
+# 黑白之间，多一点掌控
 
-## 当前状态
+**墨控 · InkControl**，为 **Hisense A5 Pro 经典版**打造的黑白墨水屏增强套件。用一个应用管理显示算法、过渡动画、锁屏与原厂桌面，内置与 App 匹配的 Magisk 后端。
 
-源码版本为 **0.1.0-rc13**：包含 rc11 分模式算法和独立迟滞、rc12 双语及云构建改造，并启用新的固定发行签名。手机已验收范围仍是 rc10 App + GPU 队列修复后端。此前 rc11 已通过电脑回归、目标 Mali-G52 独立 GPU 核 59 场景对照及六种模拟器页面配置；这些不能替代 rc13 完整设备集成验收。
+**52 个增强全部默认关闭。** 按需开启，保留原有选择；清楚展示期望配置、运行回执和异常状态。
 
-2026-10-17 按维护者要求生成新的 RSA-4096 长期发行密钥，密钥和随机密码留在本地 `signing/release-20261017/`，并配置 Actions secrets。默认云构建生成签名候选。**新签名不能覆盖安装旧版**；首次迁移需先备份配置、卸载旧签名 App，再安装新版本及配套后端。原密钥保留，后续更新固定沿用新密钥。详见[云端构建与签名](docs/cloud-build.md)。
+| 显示 | 动画 | 锁屏 | 原厂桌面 |
+| --- | --- | --- | --- |
+| 四种模式分别选算法，视频独立设置 | 场景效果、预览、温度停留曲线 | 天气、歌词、样式、刷新策略 | 三套主题，图标、字体、组件分别选择 |
+| 灰度与黑白分组，迟滞独立开关 | 复用显示链路，保留模式边界 | 逐项启停与条件恢复 | 保留原厂布局和应用位置 |
 
-已知限制：历史 GPU 首错原日志丢失，根因未确定；本固件 Google 拆分资源图标覆盖未生效，应保持关闭。面板观感、功耗和长稳仍需独立验收。
+## 先找到你的入口
 
-## 功能
-
-- GPU 显示处理，清晰、阅读、快速、极速和视频各自选择算法；灰阶与黑白不能混选，迟滞仅在支持时显示，保留现有默认。
-- 按场景过渡动画、波形效果、随温度调整的关键帧停留、效果预览。
-- 锁屏样式、天气、歌词、原厂桌面主题及独立换肤项目。
-- 显示服务保护、配置恢复、生命周期清理、真实运行状态检查。
-
-## 已签名并验证版本的安装
-
-1. 安装 APK，进入“安装”检查适配环境。
-2. 从 App 导出匹配的后端 ZIP，在 Magisk 中从本地安装。
-3. 在 Vector/LSPosed 类框架中启用墨控，勾选系统框架 `android`、系统界面 `com.android.systemui` 和原厂桌面 `com.hmct.vision`。
-4. 完整重启，检查“诊断”，再按需开启增强。
-
-无 Root 可浏览说明、选择语言、看演示和导出安装包。启动期覆盖需要完整重启。保存开关不等于已生效，以当前进程回执和后端确认判断状态。
-
-## 目录与构建
-
-| 路径 | 用途 |
+| 我想…… | 阅读入口 |
 | --- | --- |
-| `src`、`native`、`backend` | App、GPU 实现、Magisk 后端 |
-| `assets`、`res`、`overlay`、`stubs` | 主题、翻译、双语资源、图标覆盖和编译声明 |
-| `test`、`tools` | 回归、构建、校验和归档工具 |
-| `.github/workflows`、`ci` | 云端流水线、固定工具链及加密私有依赖 |
-| `docs` | 架构、构建、双语和来源说明 |
+| 安装和开始使用 | [使用入门](docs/wiki/getting-started.md) |
+| 理解四个模式、视频和迟滞 | [显示算法](docs/wiki/algorithms.md) |
+| 排查卡顿、GPU 回退、配置未生效 | [诊断与恢复](docs/wiki/operations.md) |
+| 接手开发，理解已经做过什么 | [Agent 手册](docs/wiki/agent-handbook.md) → [研究与结论](docs/wiki/research.md) |
+| 找源码、证据与发布流程 | [源码架构](docs/wiki/architecture.md) · [证据索引](docs/wiki/evidence.md) · [构建与 Release](docs/wiki/build-and-release.md) |
 
-推送 main 自动云构建签名候选；Actions → Cloud build → Run workflow 可显式选择 signed 或 unsigned。未签名候选不能安装。PR 检查不读取固件或签名 secrets。测试和候选产物保留七天。CI 不操作手机、不刷写、不重启、不自动公开发布 Release。
+## 使用方式
 
-`inputs`、`signing`、`out`、`results`、实机原始证据和备份留在本地，不进入 Git。厂商构建输入加密单独保存，源码导出不包含它们。仓库不附 SDK/NDK。历史带日期的本地验收报告保留原路径，但不随仓库上传。
+1. 从 [Releases](https://github.com/wzp100/InkControl/releases) 下载签名 APK，先看该版本说明与校验文件。`rc` 是候选预发布。
+2. 安装后进入“安装”页，核对环境，从 App 导出配套后端 ZIP，交给 Magisk 安装。
+3. 在 Vector／LSPosed 类框架中启用墨控，勾选系统框架、系统界面和原厂桌面作用域。
+4. 完整重启，在“诊断”页检查当前状态，再逐项开启需要的功能。
 
-[架构](docs/architecture.md) · [云端构建](docs/cloud-build.md) · [双语维护](docs/localization.md) · [来源依赖](docs/sources.md) · [许可边界](NOTICE.md)
+适配门槛为 `HLTE203T / Android 10 / arm64 / L1732.6.01.02`，以设备检查和输入哈希为准。无 Root 也可浏览说明、切换中英文、看预览及导出安装包。[详细步骤与恢复](docs/wiki/getting-started.md)。
 
-原创实现按 MIT 整理；厂商二进制、第三方图形、商标和外部运行环境仍适用原权利。仅凭本仓库不能重新生成厂商 HWC 输入。公开分发前应单独复核许可与签名，本轮保持私有。
+> **签名迁移：** rc13 起使用固定的新发行签名，不能覆盖安装旧签名 App。首次迁移先备份配置并卸载旧 App，再安装新版及其配套后端；后续继续沿用该签名。
+
+## 界面一览
+
+<table><tr><th>简体中文</th><th>English</th></tr><tr><td><img src="docs/media/ui-zh.png" alt="中文功能首页，云端模拟器截图" width="260"></td><td><img src="docs/media/ui-en.png" alt="English features page, cloud emulator screenshot" width="260"></td></tr></table>
+
+以上为 rc13 云端模拟器的实际截图，不代表真实面板观感验收。应用语言默认跟随系统，可独立选择中文或英文。
+
+## 当前进度
+
+源码为 **0.1.0-rc14** 候选，包含分模式算法、独立迟滞、双语界面、统一图标和文档知识库。全部编译和检查在云端执行，新版本通过后自动生成私有 Release；相同版本重跑不会覆盖已有 Release。
+
+截至 2026-10-18 已记录的手机状态仍是 **rc10 App + rc10-gpu-fix1 后端**；rc13 已完成云端签名、回归和四组双语界面验证。新候选的完整 HWC 集成、面板、功耗、温区及长期稳定需独立验收。历史首个 GPU 错误根因未确定；本固件 Google split 图标覆盖未通过，保持关闭。[验证范围](docs/wiki/evidence.md)。
+
+## 给开发者和 agent
+
+先读 [AGENTS.md](AGENTS.md) 和 [Agent 手册](docs/wiki/agent-handbook.md)。[llms.txt](llms.txt) 提供精简入口，[知识索引](docs/wiki/knowledge-index.json) 提供结构化导航和来源定位。
+
+功能目录是唯一配置定义，界面只调用应用服务。[参与开发](CONTRIBUTING.md) · [架构](docs/wiki/architecture.md) · [双语维护](docs/localization.md)。
+
+仓库保持**私有**。原创实现与标识采用 [MIT](LICENSE)；厂商二进制、第三方素材及外部框架适用各自权利，见 [NOTICE](NOTICE.md)。私钥、密码、明文固件、个人备份和原始设备日志不入 Git。

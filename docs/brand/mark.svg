@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 64 64" role="img" aria-label="InkControl mark">
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="#171717"/>
+  <path fill="#fff" d="M16 16h32v7H16zm0 13h22v7H16zm0 13h32v7H16zM42 29h6v7h-6z"/>
+  <path fill="#fff" d="M51 29h3v3h-3zm0 6h3v3h-3z"/>
+</svg>

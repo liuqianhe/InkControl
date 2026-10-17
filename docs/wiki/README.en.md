@@ -1,0 +1,26 @@
+<p><img src="../brand/mark.svg" width="56" alt="InkControl"></p>
+
+# InkControl knowledge base
+
+[简体中文](README.md) · [Project](../../README.en.md) · [Machine-readable index](knowledge-index.json)
+
+For the **Hisense A5 Pro 经典版 (Classic Edition), monochrome screen**. This versioned, offline-readable Wiki explains usage, code, experimental findings, and open questions. Original experiments and device backups remain in the local workspace.
+
+| Chapter | Contents |
+| --- | --- |
+| [Getting started](getting-started.en.md) | Installation, scopes, defaults, upgrades, languages |
+| [Agent handbook](agent-handbook.en.md) | Reading order, authority, task recipes, handoff |
+| [Device and display](device-and-display.en.md) | Compatibility, pixels to scans, modes versus waveforms |
+| [Algorithms](algorithms.en.md) | Supported choices, video activation, hysteresis |
+| [Architecture](architecture.en.md) | Responsibilities, configuration, IPC, acknowledgements, restoration |
+| [Operations](operations.en.md) | GPU fallback, first-fault evidence, framework and mode diagnosis |
+| [Research](research.en.md) | Completed work, measurements, unsuccessful approaches, limitations |
+| [Build and release](build-and-release.en.md) | Cloud compilation, signing, automatic releases, versioning |
+| [Evidence and status](evidence.en.md) | Timeline, validation scope, known issues, sources |
+| [Glossary](glossary.en.md) | HWC, waveform, scan, hysteresis, revision |
+
+Agent reading order: **handbook → evidence → architecture → task chapter → relevant code**. An old summary alone is insufficient for deployment decisions.
+
+Implementation, standalone-kernel validation, device smoke tests, reboot checks, panel evaluation, and long-term tests are distinct evidence levels. `Rxx` references resolve through the [source index](knowledge-index.json), which records repository sources and hashes for workspace-only reports.
+
+The recorded device as of 2026-10-18 runs rc10 app + rc10-gpu-fix1. New signing starts at rc13. Read `AndroidManifest.xml` for the current source version and Release attachments for exact build evidence. Documentation is not authorization to install, mount, flash, or reboot a device.

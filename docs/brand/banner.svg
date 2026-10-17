@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="400" viewBox="0 0 1280 400" role="img" aria-labelledby="title desc">
+  <title id="title">墨控 · InkControl</title>
+  <desc id="desc">Display control for the Hisense A5 Pro 经典版 monochrome E-ink screen</desc>
+  <defs>
+    <pattern id="dots" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="3" height="3" fill="#171717"/></pattern>
+    <pattern id="scan" width="8" height="8" patternUnits="userSpaceOnUse"><path d="M0 1h8" stroke="#171717" stroke-width="1"/></pattern>
+  </defs>
+  <rect width="1280" height="400" rx="20" fill="#f5f4ef"/>
+  <path d="M872 0v400" stroke="#d8d7d0"/>
+  <g transform="translate(64 48)">
+    <rect width="64" height="64" rx="17" fill="#171717"/>
+    <path fill="#fff" d="M15 15h33v7H15zm0 13h22v7H15zm0 13h33v7H15zM41 28h7v7h-7zM51 28h3v3h-3zm0 6h3v3h-3z"/>
+  </g>
+  <g fill="#171717" font-family="Inter,Segoe UI,Noto Sans CJK SC,Microsoft YaHei,sans-serif">
+    <text x="148" y="76" font-size="17" letter-spacing="4">INKCONTROL</text>
+    <text x="148" y="103" font-size="14" fill="#62615a">HISENSE A5 PRO / CLASSIC EDITION</text>
+    <text x="60" y="231" font-size="82" font-weight="650" letter-spacing="-3">InkControl <tspan font-size="64" letter-spacing="2">墨控</tspan></text>
+    <text x="64" y="286" font-size="22" fill="#55544e">Display · Motion · Lock screen · Stock launcher</text>
+    <text x="64" y="354" font-size="13" letter-spacing="3">ONE APP. MATCHED BACKEND. YOUR CHOICE.</text>
+  </g>
+  <g transform="translate(925 49)">
+    <rect x="0" y="0" width="278" height="298" rx="17" fill="#fff" stroke="#171717" stroke-width="2"/>
+    <rect x="22" y="24" width="234" height="38" fill="#171717"/>
+    <rect x="22" y="73" width="234" height="38" fill="url(#scan)"/>
+    <rect x="22" y="122" width="234" height="38" fill="url(#dots)"/>
+    <path d="M22 198h52v-19h48v37h48v-18h86" fill="none" stroke="#171717" stroke-width="3"/>
+    <path d="M22 247h234" stroke="#d8d7d0"/>
+    <text x="22" y="275" fill="#55544e" font-family="Consolas,monospace" font-size="12" letter-spacing="2">PIXELS → WAVEFORMS</text>
+  </g>
+</svg>

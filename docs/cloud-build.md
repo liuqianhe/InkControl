@@ -26,8 +26,8 @@ signed 构建需要以下 Actions secrets：`INKCONTROL_KEYSTORE_BASE64`、`INKC
 
 ## 证据与产物
 
-每次运行生成唯一目录和七天保留的 artifacts：测试输出、APK、后端 ZIP、SHA256SUMS、构建来源清单及包装验证。记录 commit SHA、run ID 和 attempt。不会自动公开 Release、安装设备或改变设备配置。
+每次运行生成唯一目录和七天保留的 artifacts：测试输出、APK、后端 ZIP、SHA256SUMS、构建来源清单及包装验证。记录 commit SHA、run ID 和 attempt。main 的签名构建全部检查通过后自动创建私有版本 Release；rc 版本标为预发布，已发布同版本跳过不覆盖。发布 job 单独持有 contents:write，先验证同轮证据与哈希，再建草稿、上传并校验附件、发布。不会安装设备或改变设备配置。详见 [Wiki 发布流程](wiki/build-and-release.md)。
 
-离线回归与软件 GLES 成功不等于真实 Mali、HWC 集成、面板观感或长稳验收通过。现有设备仍运行 rc10 修复版；rc13 包含分模式算法、双语/云构建及本轮签名轮换，需独立执行签名迁移和上机验收。
+离线回归与软件 GLES 成功不等于真实 Mali、HWC 集成、面板观感或长稳验收通过。现有设备仍运行 rc10 修复版；新候选包含分模式算法、双语/云构建和新发行签名，需独立执行签名迁移和上机验收。
 
 依据：[GitHub Secrets](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets)、[安全使用 Actions](https://docs.github.com/en/actions/reference/security/secure-use)。

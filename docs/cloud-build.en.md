@@ -26,8 +26,8 @@ The Overlay is signed first, then the backend ZIP is hashed and embedded into th
 
 ## Evidence and artifacts
 
-Each run has a unique directory. Artifacts retained for seven days contain test evidence, APK, backend ZIP, SHA256SUMS, a source manifest, and package verification. Commit SHA, run ID, and attempt are recorded. CI does not publish public releases, install on devices, or modify device settings.
+Each run has a unique directory. Artifacts retained for seven days contain test evidence, APK, backend ZIP, SHA256SUMS, a source manifest, and package verification. Commit SHA, run ID, and attempt are recorded. A successful signed main build automatically publishes a private versioned Release. RC versions become prereleases; existing published versions are retained without replacement. Only the release job has contents:write. It validates same-run evidence/hashes, creates a draft, uploads/verifies assets, then publishes. It never installs on devices or changes device settings. See the [release Wiki](wiki/build-and-release.en.md).
 
-Software GLES and regression success do not prove Mali execution, HWC integration, panel quality, or long-term stability. The device still runs rc10 with the GPU fix. rc13 includes per-mode algorithms, bilingual UI, cloud builds, and the signing rotation; signing migration and device acceptance remain separate tasks.
+Software GLES and regression success do not prove Mali execution, HWC integration, panel quality, or long-term stability. The device still runs rc10 with the GPU fix. New candidates include per-mode algorithms, bilingual UI, cloud builds, and the new release identity; signing migration and device acceptance remain separate tasks.
 
 References: [GitHub Secrets](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets), [Actions security](https://docs.github.com/en/actions/reference/security/secure-use).

@@ -17,7 +17,7 @@ permissions:
 
 concurrency:
   group: build-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   PYTHONUTF8: '1'
@@ -47,6 +47,7 @@ jobs:
         run: |
           python tools/check_repository.py
           python tools/check_i18n.py
+          python tools/check_docs.py
       - name: Java and backend regression / Java 及后端回归
         run: python tools/test.py
       - name: Native policy and GPU shaders / 原生策略与 GPU 核
@@ -139,3 +140,28 @@ jobs:
           name: bilingual-ui-${{ github.run_id }}-${{ github.run_attempt }}
           path: out/ui/
           retention-days: 7
+
+  release:
+    name: Release / 私有发布
+    needs: [checks, android]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && (inputs.signing || 'signed') == 'signed'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Download this run's evidence / 下载同轮产物及证据
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          pattern: '*-${{ github.run_id }}-${{ github.run_attempt }}*'
+          path: out/release-input
+      - name: Verify and publish immutable version / 校验并发布独立版本
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python tools/publish_release.py --input out/release-input --publish
