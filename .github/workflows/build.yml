@@ -122,6 +122,7 @@ jobs:
         env:
           ANDROID_AVD_HOME: ${{ runner.temp }}/inkcontrol-avd
         run: |
+          python tools/prepare_cloud_emulator.py
           sdkmanager 'emulator' 'system-images;android-29;default;x86_64'
           sudo chmod 666 /dev/kvm
           mkdir -p "$ANDROID_AVD_HOME" out/ui
