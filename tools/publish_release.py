@@ -91,7 +91,14 @@ def lookup_release(tag):
     if p.returncode == 0:
         return json.loads(p.stdout)
     if 'HTTP 404' in p.stderr:
-        return None
+        # Draft releases can exist before their tag is created. The tag endpoint
+        # returns 404 for that state; the authenticated release list includes drafts.
+        pages = json.loads(gh('api', '--paginate', '--slurp',
+                              'repos/'+REPOSITORY+'/releases?per_page=100'))
+        matches = [row for page in pages for row in page if row['tag_name'] == tag]
+        if len(matches) > 1:
+            raise ValueError('Multiple releases use the same tag')
+        return matches[0] if matches else None
     raise RuntimeError('Release lookup failed; do not create or replace anything')
 
 
@@ -137,6 +144,8 @@ def publish(tag, prerelease, files, notes, sha):
             command += ['--prerelease']
         gh(*command)
         release = lookup_release(tag)
+        if release is None:
+            raise RuntimeError('Created draft not visible; retain it and retry without overwriting')
     present = verify_remote_assets(release, files, require_all=False)
     missing = [str(path) for path in files if path.name not in present]
     if missing:

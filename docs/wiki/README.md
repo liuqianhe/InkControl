@@ -23,6 +23,10 @@
 
 首次接手的 agent：**手册 → 证据 → 架构 → 任务对应章节 → 对应源码**。不要只读旧总结后直接部署。
 
+## GitHub 原生 Wiki
+
+本私有仓库目前请求开启 Wiki 后仍返回 `has_wiki=false`；接口未提供账号套餐信息。[GitHub 说明](https://docs.github.com/en/communities/documenting-your-project-with-wikis/about-wikis)私有仓库 Wiki 需要 Pro／Team 等支持。这里先保留完整知识内容；`python tools/export_wiki.py --destination out/native-wiki` 可导出 22 个原生页面、Home、双语侧边栏和页脚，并转换链接。原生入口可用后再将导出内容提交到 `InkControl.wiki.git`。该命令只生成本地文件，不会改变仓库可见性或假装已经发布原生 Wiki。
+
 ## 阅读约定
 
 - “源码支持”指代码和配置中存在实现；“独立核通过”只覆盖对应计算；“上机冒烟”“重启验证”“面板评价”“长稳”分别记录。

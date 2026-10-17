@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location('publish_release', Path(__file__).resolve().parents[1]/'tools/publish_release.py')
@@ -108,6 +109,19 @@ class ReleasePolicyTest(unittest.TestCase):
              patch.object(release, 'lookup_release', return_value={'draft': False, 'html_url': 'https://example.test/release'}):
             self.assertEqual(release.publish('v1.0.0', False, [], None, 'a'*40), 'https://example.test/release')
             self.assertEqual(api.call_count, 1)
+
+    def test_draft_without_tag_resolves_from_authenticated_list(self):
+        draft = {'id': 42, 'tag_name': 'v1.0.0-rc1', 'draft': True, 'assets': []}
+        with patch.object(release.subprocess, 'run', return_value=SimpleNamespace(returncode=1, stderr='gh: Not Found (HTTP 404)')), \
+             patch.object(release, 'gh', return_value=json.dumps([[], [draft]])):
+            self.assertEqual(release.lookup_release('v1.0.0-rc1'), draft)
+            self.assertIsNone(release.lookup_release('v2.0.0'))
+
+    def test_lookup_network_failure_does_not_create_release(self):
+        with patch.object(release.subprocess, 'run', return_value=SimpleNamespace(returncode=1, stderr='connection reset')), \
+             patch.object(release, 'gh') as api:
+            with self.assertRaises(RuntimeError): release.lookup_release('v1.0.0')
+            api.assert_not_called()
 
 
 if __name__ == '__main__': unittest.main()

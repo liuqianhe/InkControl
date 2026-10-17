@@ -173,7 +173,8 @@
     "backend/lib/gpu_diagnostics.sh",
     "tools/ci_build.py",
     "tools/publish_release.py",
-    ".github/workflows/build.yml"
+    ".github/workflows/build.yml",
+    "tools/export_wiki.py"
   ],
   "sources": [
     {
