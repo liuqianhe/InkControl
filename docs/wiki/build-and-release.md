@@ -47,3 +47,5 @@ Actions 原始测试、UI PNG/XML 等 artifacts 保留七天；Release 附件按
 两个 HWC 输入加密为 `ci/private-inputs.zip.enc`；解密在运行器临时目录，校验成员与哈希，退出清理。Release 不附原始私钥、密码、备份和明文输入。部署与正式实机交付归档仍单独执行，自动 Release 不操作手机。
 
 实现：[workflow](../../.github/workflows/build.yml)、[发布器](../../tools/publish_release.py)。依据：[GitHub CLI Release](https://cli.github.com/manual/gh_release_create)、[Actions Secrets](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets)。
+
+每份 Release 说明都应保留醒目的测试机建议、手机之外的数据备份提醒，以及无法开机、数据丢失和故障无法恢复的风险；不得把云端通过或回退机制写成安全或可恢复的保证。

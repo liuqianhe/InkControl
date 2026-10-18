@@ -6,6 +6,16 @@
 
 Target: **Hisense A5 Pro 经典版 (Classic Edition), monochrome**. The backend checks `ro.product.device=HLTE203T`, API 29, `arm64-v8a`, firmware containing `L1732.6.01.02`, and exact stock-library hashes. A matching retail name does not bypass these gates. Relevant enhancements require Magisk and Vector or a compatible Xposed framework.
 
+## Risks and disclaimer
+
+This project is experimental and remains a release candidate. **Use a spare device or a dedicated test device; it is not recommended for a primary phone used for communication, payments, or important data.** Passing cloud builds and automated tests does not certify stability on a physical device or compatibility with every device and firmware.
+
+Root, Magisk modules, system-framework hooks, and display-backend changes may cause freezes, boot loops, failure to boot, data loss, or device damage. **Some failures may be unrecoverable. Disabling, uninstalling, or rolling back the module is not guaranteed to recover the device or its data.**
+
+**Before installing, upgrading, or enabling features, back up photos, documents, chats, app data, and important configuration. Copy the backup to a computer or other independent storage and check that it is readable. Do not keep the only backup on the phone being tested.** Prepare recovery materials and a recovery method matching the device and firmware. If you do not know how to disable a module or restore the system, do not proceed yet.
+
+The project is provided as is, without a promise of fault-free operation, data preservation, or recovery. Understand the risks and decide whether to use it; see the warranty disclaimer in [LICENSE](../../LICENSE). A backup reduces the risk of losing data but does not guarantee that the device can be repaired.
+
 ## First installation
 
 1. Download a signed APK from [Releases](https://github.com/wzp100/InkControl/releases); check its notes and SHA256SUMS. `-unsigned` files cannot be installed. Do not mix old artifacts.

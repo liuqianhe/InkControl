@@ -6,6 +6,8 @@
 
 For the **Hisense A5 Pro 经典版 (Classic Edition), monochrome screen**. This versioned, offline-readable Wiki explains usage, code, experimental findings, and open questions. Original experiments and device backups remain in the local workspace.
 
+> **Use a spare/test device and back up important data off the phone before proceeding. Boot failure, data loss, or unrecoverable damage is possible; rollback is not a recovery guarantee. Read the [full risks and disclaimer](getting-started.en.md#risks-and-disclaimer).**
+
 | Chapter | Contents |
 | --- | --- |
 | [Getting started](getting-started.en.md) | Installation, scopes, defaults, upgrades, languages |

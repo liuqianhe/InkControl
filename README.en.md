@@ -15,6 +15,8 @@ All **52 enhancements are off by default**. Enable what you need, retain your se
 | Per-mode algorithms; separate video settings | Effects, previews, temperature timing curves | Weather, lyrics, styles, refresh policy | Three themes; independent icons, fonts, widgets |
 | Grayscale and binary groups; independent hysteresis | Existing display path and mode boundaries | Individual controls and conditional restoration | Original layout and app positions retained |
 
+> **Test devices only recommended: back up important data to a computer or independent storage first. Boot failure, permanent data loss, and unrecoverable device damage are possible. Read [risks and disclaimer](#risks-and-disclaimer) before installation.**
+
 ## Choose your starting point
 
 | I want to… | Read |
@@ -57,3 +59,13 @@ The feature catalog is the single configuration definition. The UI calls applica
 The repository is public, with Chinese and English documentation on the [native GitHub Wiki](https://github.com/wzp100/InkControl/wiki/Home.en). Original code and artwork follow [MIT](LICENSE). Vendor binaries, third-party assets, and external frameworks retain their own terms; see [NOTICE](NOTICE.en.md). Keys, passwords, plaintext firmware, personal backups, and raw device logs stay outside Git.
 
 [Publication and Wiki maintenance](docs/publication.en.md)
+
+## Risks and disclaimer
+
+This project is experimental and remains a release candidate. **Use a spare device or a dedicated test device; it is not recommended for a primary phone used for communication, payments, or important data.** Passing cloud builds and automated tests does not certify stability on a physical device or compatibility with every device and firmware.
+
+Root, Magisk modules, system-framework hooks, and display-backend changes may cause freezes, boot loops, failure to boot, data loss, or device damage. **Some failures may be unrecoverable. Disabling, uninstalling, or rolling back the module is not guaranteed to recover the device or its data.**
+
+**Before installing, upgrading, or enabling features, back up photos, documents, chats, app data, and important configuration. Copy the backup to a computer or other independent storage and check that it is readable. Do not keep the only backup on the phone being tested.** Prepare recovery materials and a recovery method matching the device and firmware. If you do not know how to disable a module or restore the system, do not proceed yet.
+
+The project is provided as is, without a promise of fault-free operation, data preservation, or recovery. Understand the risks and decide whether to use it; see the warranty disclaimer in [LICENSE](LICENSE). A backup reduces the risk of losing data but does not guarantee that the device can be repaired.

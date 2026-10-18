@@ -35,3 +35,5 @@ The fixed signing identity starts at rc13. The public certificate is tracked; pr
 The two HWC inputs are encrypted in `ci/private-inputs.zip.enc`, decrypted and validated only in temporary runner storage, then cleaned. No private key, password, backup, or plaintext input is attached. Device deployment and acceptance archival remain separate tasks.
 
 Implementation: [workflow](../../.github/workflows/build.yml), [publisher](../../tools/publish_release.py). References: [GitHub CLI](https://cli.github.com/manual/gh_release_create), [Actions secrets](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets).
+
+Every Release description must retain a prominent test-device recommendation, an off-device backup reminder, and the risks of boot failure, data loss and unrecoverable damage. Cloud success and rollback mechanisms must not be described as guarantees of safety or recovery.
