@@ -10,9 +10,12 @@
 | GPU 队列修复候选 | 完整重启、交替视频、12轮窗口、3轮睡眠唤醒；取证时1024波次/12032扫描、CPU波次0、GPU错误0 | 这批场景短期冒烟通过；历史首错与长稳未结案 |
 | rc11 算法候选 | 核心810、策略1785、目标Mali与软件GLES各59场景零差异；六种模拟器算法页 | 选择规则、独立核与页面；未安装完整新App/后端 |
 | rc13 云端候选 | 签名、包装、回归、软件GPU与四组双语页面全部通过 | 云构建与模拟器范围，尚无新版实机迁移 |
+| rc15 公开候选 | 云端各任务全部通过；66项Python、策略1785/队列6/GPU59、四组UI；7个Release附件哈希核对通过 | 带签名公开预发布；实机验收仍待做 |
 | 当前源码 | `AndroidManifest.xml` 中的版本；Release 包与该 commit/run 绑定 | 当前验证以对应 Release 附件为准 |
 
-rc13 参考云运行：[39046131228](https://github.com/wzp100/InkControl/actions/runs/39046131228)，提交 `c9e4d7d7ca75214ab6b7a204392ad7adcb16a479`。其第一次运行曾在模拟器安装60秒超时；延长到180秒并补充失败日志后复核通过，失败记录没有删除。
+公开 rc15：[云运行39098632837](https://github.com/wzp100/InkControl/actions/runs/39098632837)，来源 `3db347f5c36134d4344c1f3d215caa784f0e8c95`，[Release](https://github.com/wzp100/InkControl/releases/tag/v0.1.0-rc15)。下方 rc13 记录位于私有历史归档，仅维护者可读。
+
+rc13 参考云运行：[39046131228](https://github.com/wzp100/InkControl-private-archive-20261018/actions/runs/39046131228)，提交 `c9e4d7d7ca75214ab6b7a204392ad7adcb16a479`。其第一次运行曾在模拟器安装60秒超时；延长到180秒并补充失败日志后复核通过，失败记录没有删除。
 
 ## 已知问题与未完成项
 

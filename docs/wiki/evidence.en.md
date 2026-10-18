@@ -8,9 +8,12 @@
 | Queue-fix candidate | Full restart, alternating video, 12 window cycles, 3 sleep/wake cycles; 1024 waves / 12032 scans, zero CPU waves/errors at capture | Short scoped smoke test; historical first fault and stability remain open |
 | rc11 algorithms | Core810, policy1785, 59 comparisons each on Mali/software GLES, six emulator algorithm pages | Selection, standalone computation, UI; no integrated app/backend installation |
 | rc13 cloud candidate | Signing, packaging, regressions, software GPU, four bilingual pages passed | Cloud/emulator scope, no new signing migration on device |
+| rc15 public candidate | All cloud jobs passed; 66 Python tests, policy1785/queue6/GPU59, four UI configurations; seven Release asset hashes verified | Signed public prerelease; device acceptance remains pending |
 | Current source | Version in `AndroidManifest.xml`; Release tied to its commit/run | Consult that Release's evidence |
 
-rc13 reference run: [39046131228](https://github.com/wzp100/InkControl/actions/runs/39046131228), commit `c9e4d7d7ca75214ab6b7a204392ad7adcb16a479`. An earlier attempt timed out installing the emulator fixture after 60 seconds. Extending the limit to 180 seconds and adding diagnostic capture produced a successful repeat; failure evidence was retained.
+Public rc15: [run 39098632837](https://github.com/wzp100/InkControl/actions/runs/39098632837), source `3db347f5c36134d4344c1f3d215caa784f0e8c95`, [Release](https://github.com/wzp100/InkControl/releases/tag/v0.1.0-rc15). The rc13 reference below is in the private historical archive.
+
+rc13 reference run: [39046131228](https://github.com/wzp100/InkControl-private-archive-20261018/actions/runs/39046131228), commit `c9e4d7d7ca75214ab6b7a204392ad7adcb16a479`. An earlier attempt timed out installing the emulator fixture after 60 seconds. Extending the limit to 180 seconds and adding diagnostic capture produced a successful repeat; failure evidence was retained.
 
 Known gaps: missing original first-fault logs; unsupported Google split-resource overlay; occasional Vector reinjection failure after service reload; separate acceptance for integrated HWC, temperature, physical panel, lyrics, unplugged power, and long-term stability.
 
