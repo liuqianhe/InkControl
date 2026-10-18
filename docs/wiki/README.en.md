@@ -23,7 +23,7 @@ Agent reading order: **handbook → evidence → architecture → task chapter �
 
 ## Native GitHub Wiki
 
-This private repository still reports `has_wiki=false` after an enable request; account-plan information is unavailable through the current API. [GitHub documents](https://docs.github.com/en/communities/documenting-your-project-with-wikis/about-wikis) paid-plan support for private wikis. Content remains versioned here. `python tools/export_wiki.py --destination out/native-wiki` exports 22 native pages, Home, a bilingual sidebar/footer, and rewritten links. Once available, commit that export to `InkControl.wiki.git`. Exporting only creates local files; it does not change visibility or claim native publication.
+Read the [native GitHub Wiki](https://github.com/wzp100/InkControl/wiki/Home.en), with Chinese and English navigation. The source of truth stays in `docs/wiki` for review and offline agent access. Export with `python tools/export_wiki.py --destination out/native-wiki-<unique-id>`; commit the 22 pages plus sidebar/footer to the separate `InkControl.wiki.git` repository. Never edit both copies independently. The exporter creates files only; publication requires a separate Git push.
 
 Implementation, standalone-kernel validation, device smoke tests, reboot checks, panel evaluation, and long-term tests are distinct evidence levels. `Rxx` references resolve through the [source index](knowledge-index.json), which records repository sources and hashes for workspace-only reports.
 

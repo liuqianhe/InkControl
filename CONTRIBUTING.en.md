@@ -2,7 +2,7 @@
 
 [简体中文](CONTRIBUTING.md)
 
-Read the [agent handbook](docs/wiki/agent-handbook.en.md) and [evidence](docs/wiki/evidence.en.md) first. The target is Hisense A5 Pro 经典版 (Classic Edition), monochrome. Maintain paired Wiki pages and sources; run `python tools/check_docs.py`. Successful new versions publish private Releases automatically. Increment versions for code/resource changes; never replace published versions.
+Read the [agent handbook](docs/wiki/agent-handbook.en.md) and [evidence](docs/wiki/evidence.en.md) first. The target is Hisense A5 Pro 经典版 (Classic Edition), monochrome. Maintain paired Wiki pages and sources; run `python tools/check_docs.py`. Successful new versions publish Releases automatically. Increment versions for code/resource changes; never replace published versions.
 
 Use UTF-8. Make changes on a branch and use pull requests for cloud regression checks. Do not compile locally. Pushes to main run regression tests, GPU kernel comparisons, native compilation, and APK/Magisk packaging in GitHub-hosted Actions. Artifacts are retained for seven days. Pull requests run checks without private firmware inputs or signing secrets.
 

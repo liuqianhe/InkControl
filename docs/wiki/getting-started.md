@@ -8,7 +8,7 @@
 
 ## 第一次安装
 
-1. 从私有仓库 [Releases](https://github.com/wzp100/InkControl/releases) 下载带签名 APK，核对版本说明和 SHA256SUMS。`-unsigned` 文件不可安装，旧版产物不要混用。
+1. 从 [Releases](https://github.com/wzp100/InkControl/releases) 下载带签名 APK，核对版本说明和 SHA256SUMS。`-unsigned` 文件不可安装，旧版产物不要混用。
 2. 先备份现有配置、旧 APK 和模块；rc13 起为新发行签名，旧签名 App 需卸载后再安装。不要为了覆盖安装自行重新签名。
 3. 进入 App“安装”页，检查环境与旧模块冲突，从该 APK 导出匹配的 Magisk ZIP 并安装。
 4. 框架作用域：系统框架 `android`、系统界面 `com.android.systemui`、原厂桌面 `com.hmct.vision`。

@@ -143,7 +143,7 @@ jobs:
           retention-days: 7
 
   release:
-    name: Release / 私有发布
+    name: Release / 自动发布
     needs: [checks, android]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && (inputs.signing || 'signed') == 'signed'
     runs-on: ubuntu-24.04

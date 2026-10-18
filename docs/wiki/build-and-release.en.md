@@ -2,7 +2,7 @@
 
 [简体中文](build-and-release.md) · [Wiki](README.en.md) · [Toolchain details](../cloud-build.en.md)
 
-The pipeline is: **main push/manual signed run → repository/docs/translations → Java/backend/native/GPU regressions → compile/sign → packaging/four bilingual UI configurations → same-run provenance/hash checks → private draft/upload/verify/publish**.
+The pipeline is: **main push/manual signed run → repository/docs/translations → Java/backend/native/GPU regressions → compile/sign → packaging/four bilingual UI configurations → same-run provenance/hash checks → draft/upload/verify/publish**.
 
 All compilation and build tests run on GitHub-hosted Ubuntu 24.04. Local work is editing/static inspection. PRs receive no private firmware or signing secrets and cannot publish. Main defaults to signed; manual unsigned output cannot be installed or released. Pinned tools: Python3.12, JDK21 targeting Java8, Platform33, Build Tools35.0.0, NDK29.0.14206865.
 
@@ -28,7 +28,7 @@ The publisher verifies this run/attempt's repository, commit, trusted certificat
 | `release-verification.json` | Release-time regression/UI/GPU/certificate/provenance evidence |
 | `RELEASE_NOTES.md` | Bilingual changes and validation boundaries |
 
-Raw Actions test/UI artifacts last seven days. Versioned Release assets remain private and retained. Failed checks, unsigned builds, and a public repository cannot publish through this tool.
+Raw Actions test/UI artifacts last seven days. Versioned Release assets are publicly retained. Failed checks and unsigned builds cannot publish. Publication is restricted to the expected repository and Actions/main; foreign repositories are rejected.
 
 The fixed signing identity starts at rc13. The public certificate is tracked; private keys/passwords stay local and in Actions secrets. Old signed-app migration requires backup and uninstall; future updates retain the new key. Overlay and app are signed in sequence; outer-APK-only signing is insufficient.
 

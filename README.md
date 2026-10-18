@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/brand/banner.svg" alt="墨控 InkControl — Hisense A5 Pro 经典版" width="100%"></p>
 
-<p align="center"><a href="README.en.md">English</a> · <a href="docs/wiki/README.md"><b>知识库 / Wiki</b></a> · <a href="docs/wiki/agent-handbook.md">Agent 从这里开始</a> · <a href="https://github.com/wzp100/InkControl/releases">下载安装包</a></p>
+<p align="center"><a href="README.en.md">English</a> · <a href="https://github.com/wzp100/InkControl/wiki"><b>知识库 / Wiki</b></a> · <a href="docs/wiki/agent-handbook.md">Agent 从这里开始</a> · <a href="https://github.com/wzp100/InkControl/releases">下载安装包</a></p>
 
 <p align="center"><a href="https://github.com/wzp100/InkControl/actions/workflows/build.yml"><img src="https://github.com/wzp100/InkControl/actions/workflows/build.yml/badge.svg" alt="云端构建与验证"></a></p>
 
@@ -44,7 +44,7 @@
 
 ## 当前进度
 
-源码为 **0.1.0-rc14** 候选，包含分模式算法、独立迟滞、双语界面、统一图标和文档知识库。全部编译和检查在云端执行，新版本通过后自动生成私有 Release；相同版本重跑不会覆盖已有 Release。
+源码为 **0.1.0-rc14** 候选，包含分模式算法、独立迟滞、双语界面、统一图标和文档知识库。全部编译和检查在云端执行，新版本通过后自动生成 Release；相同版本重跑不会覆盖已有 Release。
 
 截至 2026-10-18 已记录的手机状态仍是 **rc10 App + rc10-gpu-fix1 后端**；rc13 已完成云端签名、回归和四组双语界面验证。新候选的完整 HWC 集成、面板、功耗、温区及长期稳定需独立验收。历史首个 GPU 错误根因未确定；本固件 Google split 图标覆盖未通过，保持关闭。[验证范围](docs/wiki/evidence.md)。
 
@@ -54,4 +54,4 @@
 
 功能目录是唯一配置定义，界面只调用应用服务。[参与开发](CONTRIBUTING.md) · [架构](docs/wiki/architecture.md) · [双语维护](docs/localization.md)。
 
-仓库保持**私有**。原创实现与标识采用 [MIT](LICENSE)；厂商二进制、第三方素材及外部框架适用各自权利，见 [NOTICE](NOTICE.md)。私钥、密码、明文固件、个人备份和原始设备日志不入 Git。
+仓库公开维护，中文与英文知识库见 [GitHub Wiki](https://github.com/wzp100/InkControl/wiki)。原创实现与标识采用 [MIT](LICENSE)；厂商二进制、第三方素材及外部框架适用各自权利，见 [NOTICE](NOTICE.md)。私钥、密码、明文固件、个人备份和原始设备日志不入 Git。

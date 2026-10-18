@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/brand/banner.svg" alt="InkControl — Hisense A5 Pro 经典版" width="100%"></p>
 
-<p align="center"><a href="README.md">简体中文</a> · <a href="docs/wiki/README.en.md"><b>Wiki</b></a> · <a href="docs/wiki/agent-handbook.en.md">Start here, agents</a> · <a href="https://github.com/wzp100/InkControl/releases">Downloads</a></p>
+<p align="center"><a href="README.md">简体中文</a> · <a href="https://github.com/wzp100/InkControl/wiki/Home.en"><b>Wiki</b></a> · <a href="docs/wiki/agent-handbook.en.md">Start here, agents</a> · <a href="https://github.com/wzp100/InkControl/releases">Downloads</a></p>
 
 <p align="center"><a href="https://github.com/wzp100/InkControl/actions/workflows/build.yml"><img src="https://github.com/wzp100/InkControl/actions/workflows/build.yml/badge.svg" alt="Cloud build and validation"></a></p>
 
@@ -44,7 +44,7 @@ Actual rc13 cloud-emulator screenshots; they do not establish physical-panel qua
 
 ## Project status
 
-The source targets **0.1.0-rc14**, with per-mode algorithms, independent hysteresis, bilingual UI, a shared visual identity, and a versioned knowledge base. All compilation and validation runs in the cloud. New versions publish a private Release after every check passes; rerunning an existing version never overwrites its Release.
+The source targets **0.1.0-rc14**, with per-mode algorithms, independent hysteresis, bilingual UI, a shared visual identity, and a versioned knowledge base. All compilation and validation runs in the cloud. New versions publish a Release after every check passes; rerunning an existing version never overwrites its Release.
 
 The recorded device installation as of 2026-10-18 remains **rc10 app + rc10-gpu-fix1 backend**. rc13 passed cloud signing, regressions, and four bilingual UI configurations. Integrated HWC behavior, panel quality, power, temperature coverage, and long-term stability need separate acceptance. The historical first GPU error remains unexplained; the firmware's Google split-resource icon overlay should stay off. See [evidence boundaries](docs/wiki/evidence.en.md).
 
@@ -54,4 +54,4 @@ Start with [AGENTS.md](AGENTS.md) and the [agent handbook](docs/wiki/agent-handb
 
 The feature catalog is the single configuration definition. The UI calls application services. See [contributing](CONTRIBUTING.en.md), [architecture](docs/wiki/architecture.en.md), and [localization](docs/localization.en.md).
 
-This repository remains **private**. Original code and artwork follow [MIT](LICENSE). Vendor binaries, third-party assets, and external frameworks retain their own terms; see [NOTICE](NOTICE.en.md). Keys, passwords, plaintext firmware, personal backups, and raw device logs stay outside Git.
+The repository is public, with Chinese and English documentation on the [native GitHub Wiki](https://github.com/wzp100/InkControl/wiki/Home.en). Original code and artwork follow [MIT](LICENSE). Vendor binaries, third-party assets, and external frameworks retain their own terms; see [NOTICE](NOTICE.en.md). Keys, passwords, plaintext firmware, personal backups, and raw device logs stay outside Git.

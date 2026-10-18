@@ -20,7 +20,7 @@
 - [Code, configuration, IPC and restoration](docs/wiki/architecture.en.md)
 - [Diagnostics and recovery](docs/wiki/operations.en.md)
 - [Research findings and limitations](docs/wiki/research.en.md)
-- [Cloud build, signing and automatic private Releases](docs/wiki/build-and-release.en.md)
+- [Cloud build, signing and automatic Releases](docs/wiki/build-and-release.en.md)
 - [Glossary](docs/wiki/glossary.en.md)
 
 ## Invariants

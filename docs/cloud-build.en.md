@@ -2,7 +2,7 @@
 
 [简体中文](cloud-build.md)
 
-The repository starts private. All Java, native, resource, Dex, Overlay, Magisk ZIP, and APK compilation runs on GitHub-hosted Ubuntu 24.04 through `.github/workflows/build.yml`. Low-level build tools remain for reproducibility but are no longer run locally.
+The repository is public. All Java, native, resource, Dex, Overlay, Magisk ZIP, and APK compilation runs on GitHub-hosted Ubuntu 24.04 through `.github/workflows/build.yml`. Low-level build tools remain for reproducibility but are no longer run locally.
 
 Pushes to main produce signed candidates. Actions → Cloud build → Run workflow defaults to signed; unsigned remains available for build investigation. Pull requests run translation, Java/backend regression, native policy/queue, and software GLES tests without private firmware or signing secrets. The workflow does not use pull_request_target.
 
@@ -12,7 +12,7 @@ Toolchain: Python 3.12, Temurin JDK 21 targeting Java 8, Platform 33, Build Tool
 
 `ci/private-inputs.zip.enc` contains exactly two matching HWC dependencies, encrypted with OpenSSL AES-256-CBC and PBKDF2 at 200000 iterations. `ci/inputs.json` records encrypted and plaintext hashes; the build tool checks its own pinned input hashes as well. The passphrase exists only as the `INKCONTROL_INPUT_PASSWORD` Actions secret. Decryption uses a temporary runner directory, validates member names, and removes temporary inputs on exit. Neither plaintext input archives nor complete temporary directories are uploaded.
 
-Vendor binaries are outside the MIT license. Built APK/ZIP artifacts necessarily contain their runtime derivatives and remain protected by private repository access. Source archives exclude the encrypted dependencies. Review redistribution rights separately before changing visibility.
+Vendor binaries are outside the MIT license. Public APK/ZIP downloads contain the runtime binary derivatives; public visibility does not relicense these under MIT. Source archives exclude encrypted dependencies. See NOTICE.en.md for third-party rights.
 
 ## Signing
 
@@ -26,7 +26,7 @@ The Overlay is signed first, then the backend ZIP is hashed and embedded into th
 
 ## Evidence and artifacts
 
-Each run has a unique directory. Artifacts retained for seven days contain test evidence, APK, backend ZIP, SHA256SUMS, a source manifest, and package verification. Commit SHA, run ID, and attempt are recorded. A successful signed main build automatically publishes a private versioned Release. RC versions become prereleases; existing published versions are retained without replacement. Only the release job has contents:write. It validates same-run evidence/hashes, creates a draft, uploads/verifies assets, then publishes. It never installs on devices or changes device settings. See the [release Wiki](wiki/build-and-release.en.md).
+Each run has a unique directory. Artifacts retained for seven days contain test evidence, APK, backend ZIP, SHA256SUMS, a source manifest, and package verification. Commit SHA, run ID, and attempt are recorded. A successful signed main build automatically publishes a versioned Release. RC versions become prereleases; existing published versions are retained without replacement. Only the release job has contents:write. It validates same-run evidence/hashes, creates a draft, uploads/verifies assets, then publishes. It never installs on devices or changes device settings. See the [release Wiki](wiki/build-and-release.en.md).
 
 Software GLES and regression success do not prove Mali execution, HWC integration, panel quality, or long-term stability. The device still runs rc10 with the GPU fix. New candidates include per-mode algorithms, bilingual UI, cloud builds, and the new release identity; signing migration and device acceptance remain separate tasks.
 

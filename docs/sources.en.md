@@ -8,6 +8,6 @@ The native baseline comes from the lock-motion-v6 implementation, with independe
 
 Build tools are Python 3.12, JDK 21 targeting Java 8, Android Platform 33, Build Tools 35.0.0, and NDK r29. Magisk and Vector/LSPosed are external runtime requirements. No complete SDK, NDK, framework, or firmware image is included in source.
 
-Two version-locked HWC dependencies are required. Their hashes are listed in `ci/inputs.json` and independently checked by `tools/build.py`. Only encrypted copies are in the private repository; their password is an Actions secret. Private signing keys, user backups, raw device logs, build outputs, and local dated acceptance reports are excluded.
+Two version-locked HWC dependencies are required. Their hashes are listed in `ci/inputs.json` and independently checked by `tools/build.py`. Only encrypted copies are in the repository; their password is an Actions secret. Private signing keys, user backups, raw device logs, build outputs, and local dated acceptance reports are excluded.
 
-Original code and self-created theme assets use MIT. Vendor binaries, Google artwork, trademarks, and external tools retain their own rights. See [NOTICE](../NOTICE.en.md). The repository remains private; public redistribution requires a separate licensing and signing review.
+Original code and self-created theme assets use MIT. Vendor binaries, Google artwork, trademarks, and external tools retain their own rights. See [NOTICE](../NOTICE.en.md). Public visibility does not grant MIT rights to third-party assets. The release signing identity is fixed from rc13 onward; published assets and provenance are recorded on GitHub Releases.

@@ -11,7 +11,7 @@ flowchart LR
   C --> D[云编译并签 Overlay 与 App]
   D --> E[包装校验与四组双语 UI]
   E --> F[校对同轮来源与附件哈希]
-  F --> G[私有草稿 / 上传 / 校验 / 发布]
+  F --> G[草稿 / 上传 / 校验 / 发布]
 ```
 
 所有编译及构建验证在 GitHub 托管 Ubuntu 24.04；本地只做编辑与静态检查。PR 只跑无私有输入的检查，不拿固件与签名 secrets，也不发布。main 默认 signed；手动 unsigned 仅生成不可安装候选，不发布。工具链固定 Python 3.12、JDK21/Java8目标、Platform33、Build Tools35.0.0、NDK29.0.14206865。
@@ -38,7 +38,7 @@ flowchart LR
 | `release-verification.json` | 发布时核对的回归、UI、GPU、证书与来源 |
 | `RELEASE_NOTES.md` | 中英文变更与实际验证边界 |
 
-Actions 原始测试、UI PNG/XML 等 artifacts 保留七天；Release 附件按版本留存，仓库和下载保持私有。失败的检查不会发布，unsigned 不发布，公开仓库会被发布器拒绝。
+Actions 原始测试、UI PNG/XML 等 artifacts 保留七天；Release 附件按版本公开留存。失败的检查与 unsigned 不发布；发布器限定目标仓库身份及 Actions/main，并拒绝其他仓库。
 
 ## 签名与私有输入
 

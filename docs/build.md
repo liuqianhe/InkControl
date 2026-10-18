@@ -21,6 +21,6 @@ gh workflow run build.yml --repo wzp100/InkControl -f signing=signed
 
 正式交付归档使用 `tools/archive.py`，仍要求与 APK/ZIP 哈希匹配的实际验收摘要；未签名候选不能正式归档。历史发布目录保持不变，不能以云构建成功代替实机验收。
 
-main 签名构建全检查通过后另由 CI 自动生成私有 Release，附云端验证边界，不冒充实机交付归档；rc 标记预发布，同版本不覆盖。详见 [Wiki](wiki/build-and-release.md)。
+main 签名构建全检查通过后另由 CI 自动生成 Release，附云端验证边界，不冒充实机交付归档；rc 标记预发布，同版本不覆盖。详见 [Wiki](wiki/build-and-release.md)。
 
 设备脚本 `tools/test_device_*.py` 独立于构建，可能改开关、切换模块或重启，只能在明确设备授权后执行。目录整理与本次仓库改造不执行这些脚本。

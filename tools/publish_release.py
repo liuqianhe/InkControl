@@ -1,4 +1,4 @@
-"""Validate one cloud run, then publish a private, versioned GitHub Release."""
+"""Validate one cloud run, then publish an immutable GitHub Release."""
 import argparse
 import hashlib
 import json
@@ -148,8 +148,8 @@ def publish(tag, prerelease, files, notes, sha):
     if os.environ.get('GITHUB_ACTIONS') != 'true' or os.environ.get('GITHUB_REF') != 'refs/heads/main':
         raise ValueError('Publishing is restricted to main in GitHub Actions')
     repo = json.loads(gh('api', 'repos/'+REPOSITORY))
-    if repo.get('private') is not True:
-        raise ValueError('Repository must remain private')
+    if repo.get('full_name') != REPOSITORY:
+        raise ValueError('Unexpected release repository')
     release = lookup_release(tag)
     if release and not release['draft']:
         print('Existing published release retained: '+release['html_url'])
@@ -203,8 +203,8 @@ def main():
         if os.environ.get('GITHUB_ACTIONS') != 'true' or os.environ.get('GITHUB_REF') != 'refs/heads/main':
             raise ValueError('Publishing requires Actions/main')
         repo = json.loads(gh('api', 'repos/'+REPOSITORY))
-        if repo.get('private') is not True:
-            raise ValueError('Repository must remain private')
+        if repo.get('full_name') != REPOSITORY:
+            raise ValueError('Unexpected release repository')
         existing = lookup_release(tag)
         if existing and not existing['draft']:
             print('Existing published release retained: '+existing['html_url'])

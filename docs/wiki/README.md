@@ -25,7 +25,7 @@
 
 ## GitHub 原生 Wiki
 
-本私有仓库目前请求开启 Wiki 后仍返回 `has_wiki=false`；接口未提供账号套餐信息。[GitHub 说明](https://docs.github.com/en/communities/documenting-your-project-with-wikis/about-wikis)私有仓库 Wiki 需要 Pro／Team 等支持。这里先保留完整知识内容；`python tools/export_wiki.py --destination out/native-wiki` 可导出 22 个原生页面、Home、双语侧边栏和页脚，并转换链接。原生入口可用后再将导出内容提交到 `InkControl.wiki.git`。该命令只生成本地文件，不会改变仓库可见性或假装已经发布原生 Wiki。
+在线阅读入口为 [GitHub 原生 Wiki](https://github.com/wzp100/InkControl/wiki)，提供中文与英文导航。`docs/wiki` 保留同一内容的维护源，便于代码审查和 agent 离线阅读。使用 `python tools/export_wiki.py --destination out/native-wiki-<唯一编号>` 导出 22 篇正文及侧边栏、页脚，再提交到独立的 `InkControl.wiki.git`。两处不要分别修改；导出命令只生成文件，发布需要另行 Git 推送。
 
 ## 阅读约定
 

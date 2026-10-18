@@ -8,7 +8,7 @@ Target: **Hisense A5 Pro 经典版 (Classic Edition), monochrome**. The backend 
 
 ## First installation
 
-1. Download a signed APK from private [Releases](https://github.com/wzp100/InkControl/releases); check its notes and SHA256SUMS. `-unsigned` files cannot be installed. Do not mix old artifacts.
+1. Download a signed APK from [Releases](https://github.com/wzp100/InkControl/releases); check its notes and SHA256SUMS. `-unsigned` files cannot be installed. Do not mix old artifacts.
 2. Back up configuration, old APK, and modules. rc13 introduced a new release identity; uninstall the old signed app before migration. Do not re-sign packages merely to force installation.
 3. Open **Install**, check compatibility and old-module conflicts, export this APK's matching Magisk ZIP, and install it.
 4. Framework scopes: System Framework `android`, System UI `com.android.systemui`, stock launcher `com.hmct.vision`.

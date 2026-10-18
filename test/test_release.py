@@ -96,16 +96,22 @@ class ReleasePolicyTest(unittest.TestCase):
         with self.assertRaises(ValueError): release.verify_remote_assets(existing, [path], True)
         with self.assertRaises(ValueError): release.verify_remote_assets({'assets': []}, [path], True)
 
-    def test_public_repository_and_noncloud_publication_rejected(self):
+    def test_foreign_repository_and_noncloud_publication_rejected(self):
         with patch.dict(release.os.environ, {}, clear=True):
             with self.assertRaises(ValueError): release.publish('v1.0.0', False, [], None, 'a'*40)
         with patch.dict(release.os.environ, {'GITHUB_ACTIONS': 'true', 'GITHUB_REF': 'refs/heads/main'}, clear=True):
-            with patch.object(release, 'gh', return_value='{"private":false}'):
+            with patch.object(release, 'gh', return_value='{"full_name":"other/fork","private":false}'):
                 with self.assertRaises(ValueError): release.publish('v1.0.0', False, [], None, 'a'*40)
+
+    def test_public_repository_can_retain_published_version(self):
+        with patch.dict(release.os.environ, {'GITHUB_ACTIONS': 'true', 'GITHUB_REF': 'refs/heads/main'}, clear=True), \
+             patch.object(release, 'gh', return_value=json.dumps({'full_name': release.REPOSITORY, 'private': False})), \
+             patch.object(release, 'lookup_release', return_value={'draft': False, 'html_url': 'https://example.test/release'}):
+            self.assertEqual(release.publish('v1.0.0', False, [], None, 'a'*40), 'https://example.test/release')
 
     def test_published_version_is_retained(self):
         with patch.dict(release.os.environ, {'GITHUB_ACTIONS': 'true', 'GITHUB_REF': 'refs/heads/main'}, clear=True), \
-             patch.object(release, 'gh', return_value='{"private":true}') as api, \
+             patch.object(release, 'gh', return_value=json.dumps({'full_name': release.REPOSITORY, 'private': True})) as api, \
              patch.object(release, 'lookup_release', return_value={'draft': False, 'html_url': 'https://example.test/release'}):
             self.assertEqual(release.publish('v1.0.0', False, [], None, 'a'*40), 'https://example.test/release')
             self.assertEqual(api.call_count, 1)
@@ -132,7 +138,7 @@ class ReleasePolicyTest(unittest.TestCase):
         draft = {'id': 42, 'tag_name': 'v0.1.0-rc14', 'draft': True, 'assets': []}
         published = dict(draft, draft=False, html_url='https://example.test/release', assets=[remote_asset])
         with patch.dict(release.os.environ, {'GITHUB_ACTIONS': 'true', 'GITHUB_REF': 'refs/heads/main'}, clear=True), \
-             patch.object(release, 'gh', return_value='{"private":true}'), \
+             patch.object(release, 'gh', return_value=json.dumps({'full_name': release.REPOSITORY, 'private': True})), \
              patch.object(release, 'lookup_release', return_value=None) as lookup, \
              patch.object(release, 'api_json', side_effect=[draft, remote_asset, published]) as api:
             self.assertEqual(release.publish('v0.1.0-rc14', True, [artifact], notes, sha), 'https://example.test/release')
@@ -147,7 +153,7 @@ class ReleasePolicyTest(unittest.TestCase):
         draft = {'id': 42, 'tag_name': 'v0.1.0-rc14', 'draft': True, 'assets': []}
         wrong = {'name': artifact.name, 'digest': 'sha256:'+'0'*64}
         with patch.dict(release.os.environ, {'GITHUB_ACTIONS': 'true', 'GITHUB_REF': 'refs/heads/main'}, clear=True), \
-             patch.object(release, 'gh', return_value='{"private":true}'), \
+             patch.object(release, 'gh', return_value=json.dumps({'full_name': release.REPOSITORY, 'private': True})), \
              patch.object(release, 'lookup_release', return_value=None), \
              patch.object(release, 'api_json', side_effect=[draft, wrong]) as api:
             with self.assertRaises(ValueError): release.publish('v0.1.0-rc14', True, [artifact], notes, sha)
