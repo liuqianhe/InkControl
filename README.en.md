@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/brand/banner.svg" alt="InkControl — Hisense A5 Pro 经典版" width="100%"></p>
 
-<p align="center"><a href="README.md">简体中文</a> · <a href="https://github.com/wzp100/InkControl/wiki/Home.en"><b>Wiki</b></a> · <a href="docs/wiki/agent-handbook.en.md">Start here, agents</a> · <a href="https://github.com/wzp100/InkControl/releases">Downloads</a></p>
+<p align="center"><a href="README.md">简体中文</a> · <a href="https://github.com/wzp100/InkControl/wiki/Home.en"><b>Wiki</b></a> · <a href="https://github.com/wzp100/InkControl/wiki/agent-handbook.en">Start here, agents</a> · <a href="https://github.com/wzp100/InkControl/releases">Downloads</a></p>
 
 <p align="center"><a href="https://github.com/wzp100/InkControl/actions/workflows/build.yml"><img src="https://github.com/wzp100/InkControl/actions/workflows/build.yml/badge.svg" alt="Cloud build and validation"></a></p>
 
@@ -19,11 +19,11 @@ All **52 enhancements are off by default**. Enable what you need, retain your se
 
 | I want to… | Read |
 | --- | --- |
-| Install and get started | [Getting started](docs/wiki/getting-started.en.md) |
-| Understand modes, video, and hysteresis | [Display algorithms](docs/wiki/algorithms.en.md) |
-| Diagnose slow refresh or inactive settings | [Operations and recovery](docs/wiki/operations.en.md) |
-| Continue development and understand prior work | [Agent handbook](docs/wiki/agent-handbook.en.md) → [Research](docs/wiki/research.en.md) |
-| Locate code, evidence, and release automation | [Architecture](docs/wiki/architecture.en.md) · [Evidence](docs/wiki/evidence.en.md) · [Build and release](docs/wiki/build-and-release.en.md) |
+| Install and get started | [Getting started](https://github.com/wzp100/InkControl/wiki/getting-started.en) |
+| Understand modes, video, and hysteresis | [Display algorithms](https://github.com/wzp100/InkControl/wiki/algorithms.en) |
+| Diagnose slow refresh or inactive settings | [Operations and recovery](https://github.com/wzp100/InkControl/wiki/operations.en) |
+| Continue development and understand prior work | [Agent handbook](https://github.com/wzp100/InkControl/wiki/agent-handbook.en) → [Research](https://github.com/wzp100/InkControl/wiki/research.en) |
+| Locate code, evidence, and release automation | [Architecture](https://github.com/wzp100/InkControl/wiki/architecture.en) · [Evidence](https://github.com/wzp100/InkControl/wiki/evidence.en) · [Build and release](https://github.com/wzp100/InkControl/wiki/build-and-release.en) |
 
 ## Getting started
 
@@ -32,7 +32,7 @@ All **52 enhancements are off by default**. Enable what you need, retain your se
 3. Enable InkControl in a Vector/LSPosed-compatible framework for System Framework, System UI, and the stock launcher.
 4. Restart fully, check **Diagnostics**, then enable individual enhancements.
 
-The backend checks `HLTE203T / Android 10 / arm64 / L1732.6.01.02` and exact vendor-input hashes. Without Root you can browse guides, switch languages, preview effects, and export the installer. See [installation and recovery](docs/wiki/getting-started.en.md).
+The backend checks `HLTE203T / Android 10 / arm64 / L1732.6.01.02` and exact vendor-input hashes. Without Root you can browse guides, switch languages, preview effects, and export the installer. See [installation and recovery](https://github.com/wzp100/InkControl/wiki/getting-started.en).
 
 > **Signing migration:** rc13 introduced a fixed new release identity. Back up configuration and uninstall the old signed app before migrating to the new app and matching backend. Subsequent updates retain that identity.
 
@@ -46,12 +46,14 @@ Actual rc13 cloud-emulator screenshots; they do not establish physical-panel qua
 
 The source targets **0.1.0-rc15**, with per-mode algorithms, independent hysteresis, bilingual UI, a shared visual identity, and a versioned knowledge base. All compilation and validation runs in the cloud. New versions publish a Release after every check passes; rerunning an existing version never overwrites its Release.
 
-The recorded device installation as of 2026-10-18 remains **rc10 app + rc10-gpu-fix1 backend**. rc13 passed cloud signing, regressions, and four bilingual UI configurations. Integrated HWC behavior, panel quality, power, temperature coverage, and long-term stability need separate acceptance. The historical first GPU error remains unexplained; the firmware's Google split-resource icon overlay should stay off. See [evidence boundaries](docs/wiki/evidence.en.md).
+The recorded device installation as of 2026-10-18 remains **rc10 app + rc10-gpu-fix1 backend**. rc13 passed cloud signing, regressions, and four bilingual UI configurations. Integrated HWC behavior, panel quality, power, temperature coverage, and long-term stability need separate acceptance. The historical first GPU error remains unexplained; the firmware's Google split-resource icon overlay should stay off. See [evidence boundaries](https://github.com/wzp100/InkControl/wiki/evidence.en).
 
 ## Developers and agents
 
-Start with [AGENTS.md](AGENTS.md) and the [agent handbook](docs/wiki/agent-handbook.en.md). [llms.txt](llms.txt) provides a short entry point; the [knowledge index](docs/wiki/knowledge-index.json) maps topics to code and evidence.
+Start with [AGENTS.md](AGENTS.md) and the [agent handbook](https://github.com/wzp100/InkControl/wiki/agent-handbook.en). [llms.txt](llms.txt) provides a short entry point; the [knowledge index](docs/wiki/knowledge-index.json) maps topics to code and evidence.
 
-The feature catalog is the single configuration definition. The UI calls application services. See [contributing](CONTRIBUTING.en.md), [architecture](docs/wiki/architecture.en.md), and [localization](docs/localization.en.md).
+The feature catalog is the single configuration definition. The UI calls application services. See [contributing](CONTRIBUTING.en.md), [architecture](https://github.com/wzp100/InkControl/wiki/architecture.en), and [localization](docs/localization.en.md).
 
 The repository is public, with Chinese and English documentation on the [native GitHub Wiki](https://github.com/wzp100/InkControl/wiki/Home.en). Original code and artwork follow [MIT](LICENSE). Vendor binaries, third-party assets, and external frameworks retain their own terms; see [NOTICE](NOTICE.en.md). Keys, passwords, plaintext firmware, personal backups, and raw device logs stay outside Git.
+
+[Publication and Wiki maintenance](docs/publication.en.md)

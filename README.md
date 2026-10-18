@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/brand/banner.svg" alt="墨控 InkControl — Hisense A5 Pro 经典版" width="100%"></p>
 
-<p align="center"><a href="README.en.md">English</a> · <a href="https://github.com/wzp100/InkControl/wiki"><b>知识库 / Wiki</b></a> · <a href="docs/wiki/agent-handbook.md">Agent 从这里开始</a> · <a href="https://github.com/wzp100/InkControl/releases">下载安装包</a></p>
+<p align="center"><a href="README.en.md">English</a> · <a href="https://github.com/wzp100/InkControl/wiki"><b>知识库 / Wiki</b></a> · <a href="https://github.com/wzp100/InkControl/wiki/agent-handbook">Agent 从这里开始</a> · <a href="https://github.com/wzp100/InkControl/releases">下载安装包</a></p>
 
 <p align="center"><a href="https://github.com/wzp100/InkControl/actions/workflows/build.yml"><img src="https://github.com/wzp100/InkControl/actions/workflows/build.yml/badge.svg" alt="云端构建与验证"></a></p>
 
@@ -19,11 +19,11 @@
 
 | 我想…… | 阅读入口 |
 | --- | --- |
-| 安装和开始使用 | [使用入门](docs/wiki/getting-started.md) |
-| 理解四个模式、视频和迟滞 | [显示算法](docs/wiki/algorithms.md) |
-| 排查卡顿、GPU 回退、配置未生效 | [诊断与恢复](docs/wiki/operations.md) |
-| 接手开发，理解已经做过什么 | [Agent 手册](docs/wiki/agent-handbook.md) → [研究与结论](docs/wiki/research.md) |
-| 找源码、证据与发布流程 | [源码架构](docs/wiki/architecture.md) · [证据索引](docs/wiki/evidence.md) · [构建与 Release](docs/wiki/build-and-release.md) |
+| 安装和开始使用 | [使用入门](https://github.com/wzp100/InkControl/wiki/getting-started) |
+| 理解四个模式、视频和迟滞 | [显示算法](https://github.com/wzp100/InkControl/wiki/algorithms) |
+| 排查卡顿、GPU 回退、配置未生效 | [诊断与恢复](https://github.com/wzp100/InkControl/wiki/operations) |
+| 接手开发，理解已经做过什么 | [Agent 手册](https://github.com/wzp100/InkControl/wiki/agent-handbook) → [研究与结论](https://github.com/wzp100/InkControl/wiki/research) |
+| 找源码、证据与发布流程 | [源码架构](https://github.com/wzp100/InkControl/wiki/architecture) · [证据索引](https://github.com/wzp100/InkControl/wiki/evidence) · [构建与 Release](https://github.com/wzp100/InkControl/wiki/build-and-release) |
 
 ## 使用方式
 
@@ -32,7 +32,7 @@
 3. 在 Vector／LSPosed 类框架中启用墨控，勾选系统框架、系统界面和原厂桌面作用域。
 4. 完整重启，在“诊断”页检查当前状态，再逐项开启需要的功能。
 
-适配门槛为 `HLTE203T / Android 10 / arm64 / L1732.6.01.02`，以设备检查和输入哈希为准。无 Root 也可浏览说明、切换中英文、看预览及导出安装包。[详细步骤与恢复](docs/wiki/getting-started.md)。
+适配门槛为 `HLTE203T / Android 10 / arm64 / L1732.6.01.02`，以设备检查和输入哈希为准。无 Root 也可浏览说明、切换中英文、看预览及导出安装包。[详细步骤与恢复](https://github.com/wzp100/InkControl/wiki/getting-started)。
 
 > **签名迁移：** rc13 起使用固定的新发行签名，不能覆盖安装旧签名 App。首次迁移先备份配置并卸载旧 App，再安装新版及其配套后端；后续继续沿用该签名。
 
@@ -46,12 +46,14 @@
 
 源码为 **0.1.0-rc15** 候选，包含分模式算法、独立迟滞、双语界面、统一图标和文档知识库。全部编译和检查在云端执行，新版本通过后自动生成 Release；相同版本重跑不会覆盖已有 Release。
 
-截至 2026-10-18 已记录的手机状态仍是 **rc10 App + rc10-gpu-fix1 后端**；rc13 已完成云端签名、回归和四组双语界面验证。新候选的完整 HWC 集成、面板、功耗、温区及长期稳定需独立验收。历史首个 GPU 错误根因未确定；本固件 Google split 图标覆盖未通过，保持关闭。[验证范围](docs/wiki/evidence.md)。
+截至 2026-10-18 已记录的手机状态仍是 **rc10 App + rc10-gpu-fix1 后端**；rc13 已完成云端签名、回归和四组双语界面验证。新候选的完整 HWC 集成、面板、功耗、温区及长期稳定需独立验收。历史首个 GPU 错误根因未确定；本固件 Google split 图标覆盖未通过，保持关闭。[验证范围](https://github.com/wzp100/InkControl/wiki/evidence)。
 
 ## 给开发者和 agent
 
-先读 [AGENTS.md](AGENTS.md) 和 [Agent 手册](docs/wiki/agent-handbook.md)。[llms.txt](llms.txt) 提供精简入口，[知识索引](docs/wiki/knowledge-index.json) 提供结构化导航和来源定位。
+先读 [AGENTS.md](AGENTS.md) 和 [Agent 手册](https://github.com/wzp100/InkControl/wiki/agent-handbook)。[llms.txt](llms.txt) 提供精简入口，[知识索引](docs/wiki/knowledge-index.json) 提供结构化导航和来源定位。
 
-功能目录是唯一配置定义，界面只调用应用服务。[参与开发](CONTRIBUTING.md) · [架构](docs/wiki/architecture.md) · [双语维护](docs/localization.md)。
+功能目录是唯一配置定义，界面只调用应用服务。[参与开发](CONTRIBUTING.md) · [架构](https://github.com/wzp100/InkControl/wiki/architecture) · [双语维护](docs/localization.md)。
 
 仓库公开维护，中文与英文知识库见 [GitHub Wiki](https://github.com/wzp100/InkControl/wiki)。原创实现与标识采用 [MIT](LICENSE)；厂商二进制、第三方素材及外部框架适用各自权利，见 [NOTICE](NOTICE.md)。私钥、密码、明文固件、个人备份和原始设备日志不入 Git。
+
+[公开前审查与 Wiki 维护](docs/publication.md)

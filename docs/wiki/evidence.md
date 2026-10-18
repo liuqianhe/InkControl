@@ -28,3 +28,6 @@ Release 附 `build-manifest.json`、`package-verification.json`、`release-verif
 本 Wiki 的 `Rxx` 引用解析到 [knowledge-index.json](knowledge-index.json)。`repository` 来源可随克隆读取；`workspace_only` 来源需完整本地工作区，SHA256 标识本次整理读取的报告版本。不要伪造仓库内不存在的原始日志链接，也不要为了方便阅读提交私有日志、签名或备份。
 
 新增实验记录输入版本、设备状态、参数、原始日志、结论、恢复方式；保留失败尝试和旧报告，新增验证以新目录记录。来源：`R02`、`R03`、`R04`、`R11`。
+
+
+公开前审查与历史提交身份见 [公开仓库说明](../publication.md)。早期私有构建的 SHA 在清理邮箱后已映射为新提交；当前公开 Release 清单记录其准确公开来源。

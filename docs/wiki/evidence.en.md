@@ -19,3 +19,6 @@ Releases attach `build-manifest.json`, `package-verification.json`, `release-ver
 Resolve `Rxx` through [knowledge-index.json](knowledge-index.json). Repository sources are available in a clone. Workspace-only sources require the original workspace; hashes identify the report version reviewed here. Do not invent repository links to absent logs or commit secrets/backups for convenience.
 
 New experiments record input version, device state, parameters, raw evidence, conclusions, and restoration. Preserve failures and old reports; add new verification in new directories. Sources: `R02`, `R03`, `R04`, `R11`.
+
+
+Repository publication and historical commit identities are described in the [publication record](../publication.en.md). Earlier private build SHAs were remapped when author emails were sanitized; current public Release manifests carry the exact public commit.
