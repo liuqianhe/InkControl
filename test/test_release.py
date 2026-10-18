@@ -22,15 +22,15 @@ class ReleasePolicyTest(unittest.TestCase):
         self.context = {'GITHUB_REPOSITORY': release.REPOSITORY, 'GITHUB_SHA': 'a'*40,
                         'GITHUB_RUN_ID': '123', 'GITHUB_RUN_ATTEMPT': '1'}
         self.artifacts = {}
-        for name, data in [('InkControl-v0.1.0-rc14.apk', b'app'), ('inkcontrol_backend-v0.1.0-rc14.zip', b'backend')]:
+        for name, data in [('InkControl-v0.1.0-rc15.apk', b'app'), ('inkcontrol_backend-v0.1.0-rc15.zip', b'backend')]:
             (self.directory/name).write_bytes(data)
             self.artifacts[name] = hashlib.sha256(data).hexdigest()
-        self.manifest = {'version': '0.1.0-rc14', 'signing': 'verified', 'artifacts': self.artifacts,
+        self.manifest = {'version': '0.1.0-rc15', 'signing': 'verified', 'artifacts': self.artifacts,
                          'cloud': dict(self.context), 'sources': {'ci/trusted-certificate.der': 'c'*64}}
-        self.package = {'version': '0.1.0-rc14', 'signing': 'verified', 'default_off': 52,
+        self.package = {'version': '0.1.0-rc15', 'signing': 'verified', 'default_off': 52,
                         'module_checksums': True, 'embedded_zip_identical': True, 'overlay_zip_valid': True,
-                        'apk_sha256': self.artifacts['InkControl-v0.1.0-rc14.apk'],
-                        'zip_sha256': self.artifacts['inkcontrol_backend-v0.1.0-rc14.zip']}
+                        'apk_sha256': self.artifacts['InkControl-v0.1.0-rc15.apk'],
+                        'zip_sha256': self.artifacts['inkcontrol_backend-v0.1.0-rc15.zip']}
         self.save()
 
     def save(self):
@@ -42,7 +42,7 @@ class ReleasePolicyTest(unittest.TestCase):
         return release.validate_candidate(self.directory, self.context, 'c'*64)
 
     def test_signed_pair_and_versions(self):
-        self.assertEqual(self.validate()['version'], '0.1.0-rc14')
+        self.assertEqual(self.validate()['version'], '0.1.0-rc15')
         self.assertEqual(release.release_identity('1.2.3'), ('v1.2.3', False))
         self.assertEqual(release.release_identity('1.2.3-rc2'), ('v1.2.3-rc2', True))
 
@@ -67,7 +67,7 @@ class ReleasePolicyTest(unittest.TestCase):
                 with self.assertRaises(ValueError): self.validate()
 
     def test_tampered_artifact_and_package(self):
-        name = 'InkControl-v0.1.0-rc14.apk'
+        name = 'InkControl-v0.1.0-rc15.apk'
         (self.directory/name).write_bytes(b'tampered')
         with self.assertRaises(ValueError): self.validate()
         (self.directory/name).write_bytes(b'app')
@@ -89,7 +89,7 @@ class ReleasePolicyTest(unittest.TestCase):
             with self.assertRaises(ValueError): release.release_identity(version)
 
     def test_existing_assets_must_match_without_overwrite(self):
-        path = self.directory/'InkControl-v0.1.0-rc14.apk'
+        path = self.directory/'InkControl-v0.1.0-rc15.apk'
         existing = {'assets': [{'name': path.name, 'digest': 'sha256:'+release.digest(path)}]}
         self.assertEqual(release.verify_remote_assets(existing, [path], True), {path.name})
         existing['assets'][0]['digest'] = 'sha256:'+'0'*64
@@ -133,15 +133,15 @@ class ReleasePolicyTest(unittest.TestCase):
         sha = 'a'*40
         notes = self.directory/'notes.md'
         notes.write_text('notes\n<!-- InkControl source: '+sha+' -->\n', encoding='utf-8')
-        artifact = self.directory/'InkControl-v0.1.0-rc14.apk'
+        artifact = self.directory/'InkControl-v0.1.0-rc15.apk'
         remote_asset = {'name': artifact.name, 'digest': 'sha256:'+release.digest(artifact)}
-        draft = {'id': 42, 'tag_name': 'v0.1.0-rc14', 'draft': True, 'assets': []}
+        draft = {'id': 42, 'tag_name': 'v0.1.0-rc15', 'draft': True, 'assets': []}
         published = dict(draft, draft=False, html_url='https://example.test/release', assets=[remote_asset])
         with patch.dict(release.os.environ, {'GITHUB_ACTIONS': 'true', 'GITHUB_REF': 'refs/heads/main'}, clear=True), \
              patch.object(release, 'gh', return_value=json.dumps({'full_name': release.REPOSITORY, 'private': True})), \
              patch.object(release, 'lookup_release', return_value=None) as lookup, \
              patch.object(release, 'api_json', side_effect=[draft, remote_asset, published]) as api:
-            self.assertEqual(release.publish('v0.1.0-rc14', True, [artifact], notes, sha), 'https://example.test/release')
+            self.assertEqual(release.publish('v0.1.0-rc15', True, [artifact], notes, sha), 'https://example.test/release')
             self.assertEqual(lookup.call_count, 1)
             self.assertEqual(api.call_args_list[1].args[1], 'repos/'+release.REPOSITORY+'/releases/42/assets?name='+artifact.name)
             self.assertEqual(api.call_args_list[2].args[1], 'repos/'+release.REPOSITORY+'/releases/42')
@@ -149,14 +149,14 @@ class ReleasePolicyTest(unittest.TestCase):
     def test_mismatched_upload_is_never_published(self):
         sha = 'a'*40
         notes = self.directory/'notes.md'; notes.write_text('notes', encoding='utf-8')
-        artifact = self.directory/'InkControl-v0.1.0-rc14.apk'
-        draft = {'id': 42, 'tag_name': 'v0.1.0-rc14', 'draft': True, 'assets': []}
+        artifact = self.directory/'InkControl-v0.1.0-rc15.apk'
+        draft = {'id': 42, 'tag_name': 'v0.1.0-rc15', 'draft': True, 'assets': []}
         wrong = {'name': artifact.name, 'digest': 'sha256:'+'0'*64}
         with patch.dict(release.os.environ, {'GITHUB_ACTIONS': 'true', 'GITHUB_REF': 'refs/heads/main'}, clear=True), \
              patch.object(release, 'gh', return_value=json.dumps({'full_name': release.REPOSITORY, 'private': True})), \
              patch.object(release, 'lookup_release', return_value=None), \
              patch.object(release, 'api_json', side_effect=[draft, wrong]) as api:
-            with self.assertRaises(ValueError): release.publish('v0.1.0-rc14', True, [artifact], notes, sha)
+            with self.assertRaises(ValueError): release.publish('v0.1.0-rc15', True, [artifact], notes, sha)
             self.assertEqual(api.call_count, 2)
 
 
