@@ -82,6 +82,8 @@ public final class Hook implements IXposedHookLoadPackage {
         }catch(Throwable ignored){}}});
         XposedHelpers.findAndHookMethod("com.hmct.vision.LauncherPreferenceActivity",loader,"onCreate",Bundle.class,new XC_MethodHook(){@Override protected void afterHookedMethod(MethodHookParam m){
             PreferenceActivity a=(PreferenceActivity)m.thisObject;if(a.getPreferenceScreen()==null)return;
+            // 未启用桌面主题时不注入入口，原厂桌面设置保持原样，避免被误认为已修改。
+            if(!RuntimeConfig.enabled("desktop.theme"))return;
             Preference pref=new Preference(a);pref.setKey("einkthemes_theme");pref.setTitle("桌面主题与小组件");pref.setSummary(themeSummary());pref.setOrder(-100);pref.setPersistent(false);
             pref.setOnPreferenceClickListener(x->{a.startActivity(new Intent().setClassName("com.inkcontrol","com.inkcontrol.ui.MainActivity"));return true;});a.getPreferenceScreen().addPreference(pref);
         }});
@@ -91,15 +93,14 @@ public final class Hook implements IXposedHookLoadPackage {
         handler.post(()->{try{Assets.init(c);c.getContentResolver().registerContentObserver(ThemeProvider.URI,true,new ContentObserver(handler){@Override public void onChange(boolean self,android.net.Uri uri){
             if(uri!=null&&uri.getPath()!=null&&uri.getPath().endsWith("weather"))return;refresh();}});refresh();RuntimeConfig.markReady();}catch(Throwable t){RuntimeConfig.failInitialization("桌面初始化失败："+t.getClass().getSimpleName());XposedBridge.log("EinkThemes: initialization failed "+t);}});
     }
-    /** 原厂设置页摘要：只反映当前真实状态，未启用时不显示主题名，避免看起来被改过。 */
+    /** 启用桌面主题时，设置页摘要显示当前主题名；入口本身只在启用时才注入。 */
     static String themeSummary(){
         try{
-            if(!RuntimeConfig.enabled("desktop.theme"))return "未启用 · 保持原厂桌面";
             com.inkcontrol.core.FeatureDefinition feature=com.inkcontrol.core.FeatureCatalog.get("desktop.theme");
             String value=RuntimeConfig.value("desktop.theme");int index=feature.values.indexOf(value);
             String label=index>=0&&index<feature.labels.size()?feature.labels.get(index):value;
             return "使用中：" + label;
-        }catch(Throwable t){return "未启用 · 保持原厂桌面";}
+        }catch(Throwable t){return "";}
     }
     static Object field(Object object,String name){if(object==null)return null;for(Class<?> c=object.getClass();c!=null;c=c.getSuperclass())try{Field f=c.getDeclaredField(name);f.setAccessible(true);return f.get(object);}catch(Exception ignored){}return null;}
     private static void setField(Object object,String name,Object value)throws Exception{for(Class<?> c=object.getClass();c!=null;c=c.getSuperclass())try{Field f=c.getDeclaredField(name);f.setAccessible(true);f.set(object,value);return;}catch(NoSuchFieldException ignored){}throw new NoSuchFieldException(name);}
