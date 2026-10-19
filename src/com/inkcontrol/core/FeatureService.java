@@ -29,6 +29,11 @@ public final class FeatureService {
         store.save(after);
         executor.apply(before, after);
     }
+    public synchronized void restoreGroup(String group) throws Exception {
+        Configuration before = store.load(), after = before.restoreGroup(group);
+        store.save(after);
+        executor.apply(before, after);
+    }
     public void retryApply() throws Exception { Configuration value = store.load(); executor.apply(value, value); }
     public String status(String id) throws Exception {
         Configuration config = store.load();

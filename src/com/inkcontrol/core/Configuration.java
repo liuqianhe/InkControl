@@ -33,6 +33,18 @@ public final class Configuration {
     public Configuration disableAll() {
         return new Configuration(revision + 1, new LinkedHashMap<>(), new LinkedHashMap<>(options));
     }
+    /** 只把某一分类恢复默认（关闭并取默认值）；其它分类与布局无关的原始设置不动。 */
+    public Configuration restoreGroup(String group) {
+        Map<String, Boolean> flags = new LinkedHashMap<>(switches);
+        Map<String, String> values = new LinkedHashMap<>(options);
+        for (FeatureDefinition feature : FeatureCatalog.all()) {
+            if (group.equals(feature.group)) {
+                flags.put(feature.id, false);
+                values.put(feature.id, feature.defaultValue());
+            }
+        }
+        return new Configuration(revision + 1, flags, values);
+    }
     public String text() {
         StringBuilder out = new StringBuilder("version=1\nrevision=" + revision + "\n");
         for (FeatureDefinition feature : FeatureCatalog.all()) {

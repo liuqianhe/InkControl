@@ -60,6 +60,7 @@ public final class ApplicationServices {
         inspect();
     }
     public void disableAll() throws Exception { features.disableAll(); }
+    public void restoreGroup(String group) throws Exception { features.restoreGroup(group); }
     public String retry() throws Exception { features.retryApply(); return inspect(); }
     public String inspect() {
         try {
