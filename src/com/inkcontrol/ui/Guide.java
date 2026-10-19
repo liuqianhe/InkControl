@@ -80,6 +80,10 @@ final class Guide {
                 {"各场景用什么动画", "motion.app_open", "motion.app_close", "motion.in_app_forward", "motion.in_app_back", "motion.dialog", "motion.lock", "motion.unlock", "motion.gc_clear"},
                 {"动画节奏", "motion.steps", "motion.hold", "motion.spread", "motion.origin", "motion.direction"},
                 {"其他", "motion.dim", "motion.scale"}});
+        cat("自动刷新", "点击、按键或阅读时累计操作，达到设定次数后自动刷新，减少墨水屏残影。", new String[][]{
+                {"总开关", "refresh.master"}, {"触发方式", "refresh.touch", "refresh.key", "refresh.reading"},
+                {"节奏", "refresh.interval", "refresh.debounce", "refresh.delay", "refresh.period"},
+                {"应用名单", "refresh.apps"}});
         cat("锁屏", "锁屏样式、天气、歌词，以及锁屏时用哪种刷新方式。", new String[][]{
                 {"样式", "lock.style", "lock.weather"}, {"歌词", "lock.lyric", "lock.statusbar", "lock.lyricmode"},
                 {"锁屏刷新", "lock.first", "lock.update", "lock.delay", "lock.dither"}});
@@ -89,10 +93,6 @@ final class Guide {
                 {"稳定性", "fix.exceptions", "fix.configlock", "guard.config"}, {"刷新行为", "fix.modes", "fix.video"},
                 {"安全", "fix.permissions"}, {"外观", "fix.google"}});
         cat("实验室", "仍在验证的优化，效果因场景而异。", new String[][]{{"实验项目", "experiment.cache"}});
-        cat("自动刷新", "点击、按键或阅读时累计操作，达到设定次数后自动刷新，减少墨水屏残影。", new String[][]{
-                {"总开关", "refresh.master"}, {"触发方式", "refresh.touch", "refresh.key", "refresh.reading"},
-                {"节奏", "refresh.interval", "refresh.debounce", "refresh.delay", "refresh.period"},
-                {"应用名单", "refresh.apps"}});
     }
     private static void cat(String name, String intro, String[][] sections) { CATEGORIES.put(name, new Category(name, intro, sections)); }
 
