@@ -31,13 +31,35 @@ ic_validate() {
         if (length(value)>3 || n<1 || n>999) return 0
         return 1
       }
-      function apps(choices, value,   n, parts, i) {
+      function pkglist(list,   n, parts, j) {
+        if (list=="") return 1
+        n=split(list, parts, ",")
+        if (n>200) return 0
+        for (j=1; j<=n; j++) if (parts[j]!~/^[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)*$/ || length(parts[j])>255) return 0
+        return 1
+      }
+      function apps(choices, value,   mode, semi, second, white, black) {
         if (index("," choices ",", ",@apps,")==0) return 0
         if (value=="") return 1
-        n=split(value, parts, ",")
-        if (n>200) return 0
-        for (i=1; i<=n; i++) if (parts[i]!~/^[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)*$/ || length(parts[i])>255) return 0
-        return 1
+        semi=index(value, ";")
+        if (semi==0) {
+          second=index(value, ":")
+          if (second>0) {
+            mode=substr(value, 1, second-1)
+            if (mode!="whitelist" && mode!="blacklist") return 0
+            return pkglist(substr(value, second+1))
+          }
+          return (value=="whitelist" || value=="blacklist")
+        }
+        mode=substr(value, 1, semi-1)
+        if (mode!="whitelist" && mode!="blacklist") return 0
+        second=index(substr(value, semi+1), ";")
+        if (second==0) return 0
+        second=semi+second
+        if (index(substr(value, second+1), ";")>0) return 0
+        white=substr(value, semi+1, second-semi-1)
+        black=substr(value, second+1)
+        return pkglist(white) && pkglist(black)
       }
       NR==FNR {split($0,s,"\t"); choices[s[1]]=s[2]; known[s[1]]=1; n++; next}
       {if (NF!=2 || seen[$1]++) bad=1}
@@ -49,7 +71,7 @@ ic_validate() {
         if(!seen["version"] || !seen["revision"]) bad=1
         for(key in known) {
           # 旧版配置没有分模式选项与自动刷新项；仅允许这些新增字段整对缺省，其他字段仍严格检查。
-          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video)|hyst\.(fast|extreme|video))$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|scope|apps)$/)
+          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video)|hyst\.(fast|extreme|video))$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/)
           if(optional && !seen[key] && !seen[key ".value"]) continue
           if(!seen[key] || !seen[key ".value"]) bad=1
         }

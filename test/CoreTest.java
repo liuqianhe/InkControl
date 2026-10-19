@@ -134,14 +134,25 @@ public final class CoreTest {
         check(interval.acceptsNumber() && !interval.acceptsCurve() && FeatureDefinition.number("3") == 3);
         interval.validate("3"); check(Configuration.parse(config.change("refresh.interval", true, "3").text()).value("refresh.interval").equals("3"));
         for (String bad : new String[]{"0", "1000", "abc", "-1", "@number", "", "3.5", " 3", "@curve"}) reject(() -> interval.validate(bad));
-        FeatureDefinition appList = FeatureCatalog.get("refresh.apps");
-        check(appList.acceptsApps() && !appList.acceptsNumber() && !appList.acceptsCurve() && appList.defaultValue().isEmpty());
+        FeatureDefinition appFilter = FeatureCatalog.get("refresh.apps");
+        check(appFilter.acceptsApps() && !appFilter.acceptsNumber() && !appFilter.acceptsCurve() && appFilter.defaultValue().isEmpty());
         check(FeatureDefinition.apps("").isEmpty()); check(FeatureDefinition.apps("com.tencent.mm").equals("com.tencent.mm"));
         check(FeatureDefinition.apps("com.a,android,com.b_c.d1") != null);
-        for (String bad : new String[]{"com.a,", ",com.a", "com a", "com;id", "@apps", "com.a/com.b", "$(id)", "com.a\ncom.b", "com..a", ".com.a", "com.a."})
-            reject(() -> appList.validate(bad));
-        check(Configuration.parse(config.change("refresh.apps", true, "com.tencent.mm,android").text()).value("refresh.apps").equals("com.tencent.mm,android"));
-        check(!FeatureCatalog.get("refresh.scope").acceptsApps() && FeatureCatalog.get("refresh.scope").defaultValue().equals("whitelist"));
+        check(FeatureDefinition.appFilter("") != null && FeatureDefinition.appFilter("whitelist") != null && FeatureDefinition.appFilter("blacklist") != null);
+        check(FeatureDefinition.appFilter("whitelist:com.tencent.mm,android") != null && FeatureDefinition.appFilter("blacklist:") != null);
+        check(FeatureDefinition.appFilter("whitelist;;") != null && FeatureDefinition.appFilter("blacklist;com.a,android;com.b_c.d1") != null);
+        check(FeatureDefinition.filterWhitelist("") && FeatureDefinition.filterWhitelist("whitelist;com.a;com.b") && !FeatureDefinition.filterWhitelist("blacklist;com.a;com.b"));
+        check(FeatureDefinition.filterWhiteList("blacklist;com.a;com.b").equals("com.a") && FeatureDefinition.filterBlackList("blacklist;com.a;com.b").equals("com.b"));
+        check(FeatureDefinition.filterList("blacklist;com.a,com.b;com.c").equals("com.c") && FeatureDefinition.filterList("").isEmpty());
+        check(FeatureDefinition.filterWhiteList("whitelist:com.a").equals("com.a") && FeatureDefinition.filterBlackList("whitelist:com.a").isEmpty());
+        check(FeatureDefinition.filterList("blacklist:com.a,com.b").equals("com.a,com.b"));
+        check(FeatureDefinition.filterValue(false, "com.a", "com.b").equals("blacklist;com.a;com.b"));
+        check(FeatureDefinition.filterMode("blacklist;com.a;com.b", true).equals("whitelist;com.a;com.b"));
+        check(FeatureDefinition.withActiveList("whitelist;com.a;com.b", "com.c").equals("whitelist;com.c;com.b"));
+        check(FeatureDefinition.withActiveList("blacklist;com.a;com.b", "").equals("blacklist;com.a;"));
+        for (String bad : new String[]{"com.a,", ",com.a", "com a", "com;id", "@apps", "com.a/com.b", "$(id)", "com.a\ncom.b", "com..a", ".com.a", "com.a.", "green:com.a", "whitelist:com..a", "whitelist:com.a,", "whitelist;com.a", "whitelist;com.a;com.b;com.c", "green;com.a;com.b", "whitelist;com..a;", "whitelist;;com.a,"})
+            reject(() -> appFilter.validate(bad));
+        check(Configuration.parse(config.change("refresh.apps", true, "whitelist;com.tencent.mm,android;").text()).value("refresh.apps").equals("whitelist;com.tencent.mm,android;"));
         reject(() -> FeatureCatalog.get("motion.hold").validate("3"));
         reject(() -> Configuration.parse(config.text() + "alien=1\n"));
         reject(() -> Configuration.parse(config.text() + "version=1\n"));

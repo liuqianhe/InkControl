@@ -1,6 +1,7 @@
 package com.inkcontrol.features.refresh;
 
 import com.inkcontrol.core.Configuration;
+import com.inkcontrol.core.FeatureDefinition;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -20,16 +21,17 @@ final class RefreshConfig {
         this.apps = apps;
     }
     static RefreshConfig from(Configuration config) {
+        String filter = config.value("refresh.apps");
         Set<String> apps = new LinkedHashSet<>();
-        String list = config.value("refresh.apps");
-        if (list != null && !list.isEmpty()) for (String part : list.split(",")) if (!part.isEmpty()) apps.add(part);
+        String list = FeatureDefinition.filterList(filter);
+        if (!list.isEmpty()) for (String part : list.split(",")) if (!part.isEmpty()) apps.add(part);
         return new RefreshConfig(
                 config.enabled("refresh.master"),
                 config.enabled("refresh.touch"),
                 config.enabled("refresh.key"),
                 config.enabled("refresh.reading"),
-                config.enabled("refresh.scope"),
-                "whitelist".equals(config.value("refresh.scope")),
+                config.enabled("refresh.apps"),
+                FeatureDefinition.filterWhitelist(filter),
                 number(config.value("refresh.interval"), 10),
                 number(config.value("refresh.debounce"), 1000),
                 number(config.value("refresh.delay"), 500),

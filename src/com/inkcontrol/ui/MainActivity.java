@@ -448,7 +448,11 @@ public final class MainActivity extends Activity {
     /** 列表里显示的当前选择；只有一个选项的功能不显示。 */
     private String valueSummary(FeatureDefinition f, String value, boolean on) {
         if (f.id.equals("motion.hold")) return on ? holdSummary(value) : "温度自适应";
-        if (f.id.equals("refresh.apps")) { int count = appList(value).size(); return count == 0 ? "" : count + " 个应用"; }
+        if (f.id.equals("refresh.apps")) {
+            String mode = FeatureDefinition.filterWhitelist(value) ? "白名单" : "黑名单";
+            int count = appList(value).size();
+            return count == 0 ? mode : mode + " · " + count + " 个应用";
+        }
         List<String> real = realValues(f);
         if (real.size() <= 1) return "";
         return Guide.optionName(f, value);
@@ -522,10 +526,11 @@ public final class MainActivity extends Activity {
             dependencyHint(statusCard, "display.gpu", "所选效果是波形动画，需要先开启「GPU 显示后端」并完整重启。");
         body.addView(card(statusCard));
 
-        // 2. 说明
+        // 2. 名单编辑器（模式 + 应用），放在说明之前
+        if (f.id.equals("refresh.apps")) appsFilterEditor(f, requested, current);
+        // 3. 说明
         if (!g.what.isEmpty()) body.addView(spaced(section("它做什么", paragraph(g.what, 15)), 20));
-        if (f.id.equals("refresh.apps")) appsEditor(f, current);
-        // 3. 演示 / 示意图
+        // 4. 演示 / 示意图
         View visual = visual(f, g, selected);
         if (visual != null) {
             body.addView(spaced(visual, 16));
@@ -897,29 +902,55 @@ public final class MainActivity extends Activity {
 
     private static List<String> appList(String value) {
         List<String> result = new ArrayList<>();
-        if (value == null || value.isEmpty()) return result;
-        for (String part : value.split(",")) if (!part.isEmpty()) result.add(part);
+        String list = FeatureDefinition.filterList(value);
+        if (list.isEmpty()) return result;
+        for (String part : list.split(",")) if (!part.isEmpty()) result.add(part);
         return result;
     }
 
-    private void appsEditor(FeatureDefinition f, String current) {
+    private void appsFilterEditor(FeatureDefinition f, boolean requested, String current) {
+        boolean white = FeatureDefinition.filterWhitelist(current);
         List<String> chosen = appList(current);
-        LinearLayout box = column(ink.text("应用名单", 18, Ink.BOLD),
-                spaced(paragraph("白名单模式下只有名单内的应用会触发自动刷新；黑名单模式下名单内的应用会被跳过；未开启过滤时对所有应用生效。", 14), 8),
-                spaced(ink.text(chosen.isEmpty() ? "尚未选择应用" : "已加入 " + chosen.size() + " 个应用", 16, Ink.BOLD), 12),
-                spaced(ink.button("选择应用", Ink.Kind.PRIMARY, v -> appPickerDialog(f, current)), 12));
+        LinearLayout box = column(ink.text("名单模式", 18, Ink.BOLD),
+                spaced(modeCard(f, requested, current, true, "白名单", "只有名单内应用会触发刷新", white), 10),
+                spaced(modeCard(f, requested, current, false, "黑名单", "名单内应用会被跳过，其余照常", !white), 10),
+                spaced(ink.text((white ? "白名单" : "黑名单") + " · " + (chosen.isEmpty() ? "尚未选择应用" : "已加入 " + chosen.size() + " 个应用"), 15, Ink.BOLD), 14),
+                spaced(ink.button("选择应用", Ink.Kind.PRIMARY, v -> appPickerDialog(f, requested, current)), 10));
         if (!chosen.isEmpty()) box.addView(spaced(ink.button("清空名单", Ink.Kind.SECONDARY, v -> {
-            if (!begin(f.id, false, "")) return;
+            String value = FeatureDefinition.withActiveList(current, "");
+            if (!begin(f.id, requested, value)) return;
             perform("清空名单", () -> {
-                change(f.id, false, "");
+                change(f.id, requested, value);
                 return "已清空名单应用";
             }, false);
         }), 10));
         body.addView(spaced(box, 22));
     }
 
+    /** 白/黑名单模式卡片；点按立即写入，保留已选名单。 */
+    private View modeCard(FeatureDefinition f, boolean requested, String current, boolean white, String name, String detail, boolean selected) {
+        LinearLayout card = new LinearLayout(this);
+        card.setPadding(ink.dp(14), ink.dp(14), ink.dp(14), ink.dp(14));
+        card.setBackground(ink.box(Ink.PAPER, Ink.INK, selected ? 3 : 1.5f, 12));
+        LinearLayout content = column(ink.text(name, 16, selected ? Ink.BOLD : Ink.MEDIUM),
+                spaced(paragraph(detail, 13), 4));
+        if (selected) content.addView(spaced(ink.tag(requested ? "✓ 正在使用" : "已选（未开启）", true), 6));
+        card.addView(content, new LinearLayout.LayoutParams(0, -2, 1));
+        card.setContentDescription(ink.t(name));
+        card.setOnClickListener(v -> {
+            if (selected) return;
+            String value = FeatureDefinition.filterMode(current, white);
+            if (!begin(f.id, requested, value)) return;
+            perform("使用「" + name + "」", () -> {
+                change(f.id, requested, value);
+                return "已保存「" + f.title + "」：" + name;
+            }, false);
+        });
+        return card;
+    }
+
     /** 应用选择器：列出可启动应用，支持搜索与多选，保存为逗号分隔的包名。 */
-    private void appPickerDialog(FeatureDefinition f, String current) {
+    private void appPickerDialog(FeatureDefinition f, boolean requested, String current) {
         LinkedHashMap<String, String> apps = launcherApps();
         List<CheckBox> boxes = new ArrayList<>();
         List<String> packages = new ArrayList<>();
@@ -961,16 +992,16 @@ public final class MainActivity extends Activity {
         content.addView(search);
         content.addView(scroller, new LinearLayout.LayoutParams(-1, ink.dp(360)));
         new AlertDialog.Builder(this)
-                .setTitle(ink.t("选择应用") + " · " + ink.t(f.title))
+                .setTitle(ink.t("选择应用") + " · " + ink.t(f.title) + " · " + ink.t(FeatureDefinition.filterWhitelist(current) ? "白名单" : "黑名单"))
                 .setView(content)
                 .setNegativeButton(ink.t("取消"), null)
                 .setPositiveButton(ink.t("保存"), (dialog, which) -> {
                     List<String> chosen = new ArrayList<>();
                     for (int i = 0; i < boxes.size(); i++) if (boxes.get(i).isChecked()) chosen.add(packages.get(i));
-                    String value = String.join(",", chosen);
-                    if (!begin(f.id, true, value)) return;
+                    String value = FeatureDefinition.withActiveList(current, String.join(",", chosen));
+                    if (!begin(f.id, requested, value)) return;
                     perform(ink.t("保存"), () -> {
-                        change(f.id, true, value);
+                        change(f.id, requested, value);
                         return "已保存「" + f.title + "」：" + chosen.size() + " 个应用";
                     }, false);
                 }).show();

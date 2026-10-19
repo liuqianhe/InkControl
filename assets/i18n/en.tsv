@@ -819,24 +819,20 @@ GPU 记录到执行错误	GPU execution error recorded
 不合并，逐次计数。	No merging; count each action.
 手动输入 0–999 毫秒。	Enter 0–999 ms manually.
 点按后手动输入数值。	Tap to enter a value manually.
-应用过滤	App filter
-只让名单内的应用触发，或跳过名单内的应用	Trigger only for listed apps, or skip listed apps
-仅白名单应用,排除黑名单应用	Whitelist only,Exclude blacklist
-名单应用	App list
-在应用选择器中勾选要纳入名单的应用	Pick the apps to include from the app selector
 应用名单	App list
 只在指定应用里计入刷新	Count only for selected apps
-开启后按下面的名单过滤：白名单只统计名单内应用的操作，其它应用不计入；黑名单反过来，跳过名单内应用的操作。关闭时对所有应用生效。	When enabled, filter by the list below: whitelist counts only listed apps, blacklist skips them. When off, every app counts.
+名单模式	Filter mode
+白名单	Whitelist
+黑名单	Blacklist
+应用黑白名单	App whitelist/blacklist
+白名单只统计名单内应用，黑名单跳过名单内应用	Whitelist counts only listed apps; blacklist skips them
+黑白名单	Whitelist/Blacklist
+只有名单内应用会触发刷新	Only listed apps trigger refresh
+名单内应用会被跳过，其余照常	Listed apps are skipped; others still count
+开启后按这里的名单过滤：白名单只统计名单内应用的操作，其它应用不计入；黑名单跳过名单内应用的操作。关闭时对所有应用生效。	When enabled, filter by this list: whitelist counts only listed apps, blacklist skips them. When off, every app counts.
 只影响点击、滑动、按键和阅读界面的计数；周期性刷新不受名单限制，仍按设定时间执行。	Only affects tap, scroll, key, and reading-screen counting; periodic refresh is not restricted and still runs on schedule.
-仅白名单应用	Only whitelisted apps
-只有名单内的应用会累计操作次数。	Only listed apps accumulate actions.
-排除黑名单应用	Exclude blacklisted apps
-名单内的应用不会累计操作次数，其余应用照常。	Listed apps do not accumulate actions; other apps count normally.
-选择名单里包含哪些应用	Choose which apps are in the list
-点按下方按钮，在应用选择器中勾选要加入名单的应用；名单含义由上面的「应用过滤」决定。	Tap the button below to pick apps from the selector; the list meaning follows the App filter above.
-名单以包名保存，卸载或停用应用后条目会保留，可再次进入列表取消勾选。	The list is saved as package names. Entries remain after an app is uninstalled or disabled; re-open the list to uncheck them.
+白名单与黑名单各自保存，互不影响。名单以包名保存，卸载或停用应用后条目会保留，可再次进入列表取消勾选。	Whitelist and blacklist are saved separately. Lists are saved as package names; entries remain after an app is uninstalled or disabled; re-open the list to uncheck them.
  个应用	 apps
-白名单模式下只有名单内的应用会触发自动刷新；黑名单模式下名单内的应用会被跳过；未开启过滤时对所有应用生效。	In whitelist mode only the listed apps trigger auto refresh; in blacklist mode the listed apps are skipped; when filtering is off, every app counts.
 尚未选择应用	No apps selected
 已加入 	Added 
 选择应用	Choose apps

@@ -8,7 +8,7 @@
 
 **InkControl · 墨控** brings display algorithms, transitions, lock-screen controls, and stock-launcher themes to the **Hisense A5 Pro 经典版 (Classic Edition)** with its **monochrome E-ink screen**. One app contains its matching Magisk backend.
 
-All **62 enhancements are off by default**. Enable what you need, retain your selections, and see configuration intent separately from runtime acknowledgement.
+All **61 enhancements are off by default**. Enable what you need, retain your selections, and see configuration intent separately from runtime acknowledgement.
 
 | Display | Motion | Lock screen | Stock launcher |
 | --- | --- | --- | --- |

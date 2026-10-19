@@ -81,17 +81,17 @@ IC_LIB={shlex.quote(posix(SCHEMA))}
         stripped='\n'.join(line for line in original.splitlines() if not line.startswith('refresh.debounce'))
         self.config.write_text(stripped+'\n',encoding='utf-8')
         self.shell('ic_validate "$IC_CONFIG"\n')
-    def test_refresh_app_list_and_scope(self):
+    def test_refresh_app_filter(self):
         original=self.config.read_text()
-        for good in ('','com.tencent.mm','com.a,android,com.b_c.d1'):
+        for good in ('','whitelist','blacklist','whitelist:com.tencent.mm','blacklist:com.a,android,com.b_c.d1',
+                     'whitelist;;','whitelist;com.a;','blacklist;com.a,android;com.b_c.d1','whitelist;com.a;com.b'):
             self.config.write_text(original.replace('refresh.apps.value=','refresh.apps.value='+good),encoding='utf-8')
             self.shell('ic_validate "$IC_CONFIG"\n')
-        for bad in ('com.a,',',com.a','com a','@apps','com.a/com.b','com..a','.com.a','com.a.','junk;$x'):
+        for bad in ('com.a,',',com.a','com a','@apps','com.a/com.b','com..a','.com.a','com.a.','junk;$x','green:com.a','whitelist:com..a','whitelist:com.a,',
+                    'whitelist;com.a','whitelist;com.a;com.b;com.c','green;com.a;com.b','whitelist;com..a;','whitelist;;com.a,','whitelist;com.a;com.b,'):
             self.config.write_text(original.replace('refresh.apps.value=','refresh.apps.value='+bad),encoding='utf-8')
             self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
-        self.config.write_text(original.replace('refresh.scope.value=whitelist','refresh.scope.value=global'),encoding='utf-8')
-        self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
-        stripped='\n'.join(line for line in original.splitlines() if not line.startswith(('refresh.scope','refresh.apps')))
+        stripped='\n'.join(line for line in original.splitlines() if not line.startswith('refresh.apps'))
         self.config.write_text(stripped+'\n',encoding='utf-8')
         self.shell('ic_validate "$IC_CONFIG"\n')
     def test_service_waits_for_boot_before_hot_apply(self):

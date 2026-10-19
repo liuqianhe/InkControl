@@ -41,7 +41,7 @@ public final class FeatureDefinition {
         if (values.contains(value)) return;
         if (acceptsCurve() && curve(value) != null) return;
         if (acceptsNumber() && number(value) != null) return;
-        if (acceptsApps() && apps(value) != null) return;
+        if (acceptsApps() && appFilter(value) != null) return;
         throw new IllegalArgumentException("不支持的选项：" + title);
     }
 
@@ -68,6 +68,78 @@ public final class FeatureDefinition {
         if (parts.length > APPS_MAX) return null;
         for (String part : parts) if (!packageName(part)) return null;
         return value;
+    }
+    public static final String WHITELIST = "whitelist", BLACKLIST = "blacklist";
+    /** 解析应用过滤取值：空串（默认）或 模式;白名单;黑名单；旧格式 模式[:名单] 仍可读取。 */
+    public static String appFilter(String value) {
+        if (value == null) return null;
+        if (value.isEmpty()) return "";
+        int semi = value.indexOf(';');
+        if (semi < 0) {
+            int colon = value.indexOf(':');
+            String mode = colon < 0 ? value : value.substring(0, colon);
+            if (!mode.equals(WHITELIST) && !mode.equals(BLACKLIST)) return null;
+            String list = colon < 0 ? "" : value.substring(colon + 1);
+            if (apps(list) == null) return null;
+            boolean white = mode.equals(WHITELIST);
+            return filterValue(white, white ? list : "", white ? "" : list);
+        }
+        String mode = value.substring(0, semi);
+        if (!mode.equals(WHITELIST) && !mode.equals(BLACKLIST)) return null;
+        int second = value.indexOf(';', semi + 1);
+        if (second < 0 || value.indexOf(';', second + 1) >= 0) return null;
+        if (apps(value.substring(semi + 1, second)) == null) return null;
+        if (apps(value.substring(second + 1)) == null) return null;
+        return value;
+    }
+    /** 应用过滤是否白名单；未设置或空值按白名单。 */
+    public static boolean filterWhitelist(String value) {
+        if (value == null || value.isEmpty()) return true;
+        if (value.indexOf(';') >= 0) return value.startsWith(WHITELIST + ";");
+        int colon = value.indexOf(':');
+        return !BLACKLIST.equals(colon < 0 ? value : value.substring(0, colon));
+    }
+    /** 白名单自身的应用列表（与当前模式无关）。 */
+    public static String filterWhiteList(String value) {
+        if (value == null || value.isEmpty()) return "";
+        int semi = value.indexOf(';');
+        if (semi >= 0) {
+            int second = value.indexOf(';', semi + 1);
+            return second < 0 ? "" : value.substring(semi + 1, second);
+        }
+        int colon = value.indexOf(':');
+        return filterWhitelist(value) && colon >= 0 ? value.substring(colon + 1) : "";
+    }
+    /** 黑名单自身的应用列表（与当前模式无关）。 */
+    public static String filterBlackList(String value) {
+        if (value == null || value.isEmpty()) return "";
+        int semi = value.indexOf(';');
+        if (semi >= 0) {
+            int second = value.indexOf(';', semi + 1);
+            return second < 0 ? "" : value.substring(second + 1);
+        }
+        int colon = value.indexOf(':');
+        return !filterWhitelist(value) && colon >= 0 ? value.substring(colon + 1) : "";
+    }
+    /** 取当前模式使用的名单；白名单取白名单，黑名单取黑名单。 */
+    public static String filterList(String value) {
+        return filterWhitelist(value) ? filterWhiteList(value) : filterBlackList(value);
+    }
+    /** 生成应用过滤取值：模式 + 两份独立名单。 */
+    public static String filterValue(boolean whitelist, String whiteList, String blackList) {
+        return (whitelist ? WHITELIST : BLACKLIST) + ";"
+                + (whiteList == null ? "" : whiteList) + ";"
+                + (blackList == null ? "" : blackList);
+    }
+    /** 只切换模式，两份名单原样保留。 */
+    public static String filterMode(String value, boolean whitelist) {
+        return filterValue(whitelist, filterWhiteList(value), filterBlackList(value));
+    }
+    /** 只替换当前模式的名单，另一份原样保留。 */
+    public static String withActiveList(String value, String list) {
+        return filterWhitelist(value)
+                ? filterValue(true, list, filterBlackList(value))
+                : filterValue(false, filterWhiteList(value), list);
     }
     private static boolean packageName(String name) {
         if (name.isEmpty() || name.length() > 255 || name.charAt(0) == '.' || name.charAt(name.length() - 1) == '.') return false;
