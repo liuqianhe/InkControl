@@ -9,7 +9,7 @@
 | rc11 algorithms | Core810, policy1785, 59 comparisons each on Mali/software GLES, six emulator algorithm pages | Selection, standalone computation, UI; no integrated app/backend installation |
 | rc13 cloud candidate | Signing, packaging, regressions, software GPU, four bilingual pages passed | Cloud/emulator scope, no new signing migration on device |
 | rc15 public candidate | All cloud jobs passed; 66 Python tests, policy1785/queue6/GPU59, four UI configurations; seven Release asset hashes verified | Signed public prerelease; device acceptance remains pending |
-| rc16 auto-refresh candidate | Seven new auto-refresh options, all off by default; the accessibility service is reconciled only from the master switch | Cloud static-check scope; the refresh entry and device acceptance remain open |
+| rc16 auto-refresh candidate | Eight new auto-refresh options, all off by default; the accessibility service is reconciled only from the master switch | Cloud static-check scope; the refresh entry and device acceptance remain open |
 | Current source | Version in `AndroidManifest.xml`; Release tied to its commit/run | Consult that Release's evidence |
 
 Public rc15: [run 39098632837](https://github.com/wzp100/InkControl/actions/runs/39098632837), source `3db347f5c36134d4344c1f3d215caa784f0e8c95`, [Release](https://github.com/wzp100/InkControl/releases/tag/v0.1.0-rc15). The rc13 reference below is in the private historical archive.

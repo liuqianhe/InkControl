@@ -25,17 +25,23 @@ ic_validate() {
         for (i=1; i<=n; i++) if (parts[i]!~/^[0-9]+$/ || length(parts[i])>4 || parts[i]+0>2000) return 0
         return 1
       }
+      function number(choices, value,   n) {
+        if (index("," choices ",", ",@number,")==0 || value!~/^[0-9]+$/) return 0
+        n=value+0
+        if (length(value)>3 || n<1 || n>999) return 0
+        return 1
+      }
       NR==FNR {split($0,s,"\t"); choices[s[1]]=s[2]; known[s[1]]=1; n++; next}
       {if (NF!=2 || seen[$1]++) bad=1}
       $1=="version" {if($2!="1") bad=1; next}
       $1=="revision" {if($2!~/^[0-9]+$/ || length($2)>15) bad=1; next}
-      {key=$1; if(sub(/\.value$/,"",key)) {if(!known[key] || $2=="@curve" || (index("," choices[key] ",", "," $2 ",")==0 && !curve(choices[key], $2))) bad=1}
+      {key=$1; if(sub(/\.value$/,"",key)) {if(!known[key] || $2=="@curve" || $2=="@number" || (index("," choices[key] ",", "," $2 ",")==0 && !curve(choices[key], $2) && !number(choices[key], $2))) bad=1}
        else if(!known[key] || ($2!="0" && $2!="1")) bad=1}
       END {
         if(!seen["version"] || !seen["revision"]) bad=1
         for(key in known) {
           # 旧版配置没有分模式选项与自动刷新项；仅允许这些新增字段整对缺省，其他字段仍严格检查。
-          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video)|hyst\.(fast|extreme|video))$/ || key ~ /^refresh\.(master|touch|key|reading|interval|delay|period)$/)
+          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video)|hyst\.(fast|extreme|video))$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period)$/)
           if(optional && !seen[key] && !seen[key ".value"]) continue
           if(!seen[key] || !seen[key ".value"]) bad=1
         }

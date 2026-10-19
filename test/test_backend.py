@@ -59,6 +59,28 @@ IC_LIB={shlex.quote(posix(SCHEMA))}
             self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
         self.config.write_text(original.replace('motion.steps.value=2','motion.steps.value=curve:1,2,3,4,5,6,7,8,9'),encoding='utf-8')
         self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
+    def test_refresh_interval_accepts_custom_number(self):
+        original=self.config.read_text()
+        for good in ('3','1','42','999'):
+            self.config.write_text(original.replace('refresh.interval.value=5','refresh.interval.value='+good),encoding='utf-8')
+            self.shell('ic_validate "$IC_CONFIG"\n')
+        for bad in ('0','1000','abc','-1','@number','@curve','3.5',' 3'):
+            self.config.write_text(original.replace('refresh.interval.value=5','refresh.interval.value='+bad),encoding='utf-8')
+            self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
+        for key,value in (('refresh.delay','3'),('motion.hold','3'),('refresh.period','3')):
+            self.config.write_text(original.replace(key+'.value=0',key+'.value='+value),encoding='utf-8')
+            self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
+    def test_refresh_debounce_accepts_custom_number_and_is_optional(self):
+        original=self.config.read_text()
+        for good in ('1000','500','2000','0','250','999'):
+            self.config.write_text(original.replace('refresh.debounce.value=1000','refresh.debounce.value='+good),encoding='utf-8')
+            self.shell('ic_validate "$IC_CONFIG"\n')
+        for bad in ('abc','-1','@number','@curve','3.5','5000',' 3'):
+            self.config.write_text(original.replace('refresh.debounce.value=1000','refresh.debounce.value='+bad),encoding='utf-8')
+            self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
+        stripped='\n'.join(line for line in original.splitlines() if not line.startswith('refresh.debounce'))
+        self.config.write_text(stripped+'\n',encoding='utf-8')
+        self.shell('ic_validate "$IC_CONFIG"\n')
     def test_service_waits_for_boot_before_hot_apply(self):
         service=(ROOT/'backend/service.sh').read_text(encoding='utf-8')
         self.assertLess(service.index('sys.boot_completed'),service.index('ic_apply_hot'))

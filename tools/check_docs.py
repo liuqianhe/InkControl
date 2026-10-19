@@ -22,7 +22,7 @@ def main():
     build = (ROOT/'tools/build.py').read_text(encoding='utf-8')
     assert "VERSION = '"+version+"'" in build and 'versionCode='+code+'\\n' in build
     assert "= '"+version+"' ]" in (ROOT/'backend/lib/common.sh').read_text(encoding='utf-8')
-    assert (ROOT/'docs/releases'/(version+'.md')).is_file(), 'Missing bilingual release notes'
+    assert (ROOT/'docs/releases'/(version+'.md')).is_file(), 'Missing release notes'
     expected = set()
     for topic in index['topics']:
         for language in ('zh', 'en'):

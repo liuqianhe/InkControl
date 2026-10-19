@@ -91,7 +91,7 @@ final class Guide {
         cat("实验室", "仍在验证的优化，效果因场景而异。", new String[][]{{"实验项目", "experiment.cache"}});
         cat("自动刷新", "点击、按键或阅读时累计操作，达到设定次数后自动刷新，减少墨水屏残影。", new String[][]{
                 {"总开关", "refresh.master"}, {"触发方式", "refresh.touch", "refresh.key", "refresh.reading"},
-                {"节奏", "refresh.interval", "refresh.delay", "refresh.period"}});
+                {"节奏", "refresh.interval", "refresh.debounce", "refresh.delay", "refresh.period"}});
     }
     private static void cat(String name, String intro, String[][] sections) { CATEGORIES.put(name, new Category(name, intro, sections)); }
 
@@ -116,8 +116,14 @@ final class Guide {
         Option o = get(f.id).options.get(value);
         if (o != null) return o.name;
         if (com.inkcontrol.core.FeatureDefinition.curve(value) != null) return "自定义曲线";
+        if (com.inkcontrol.core.FeatureDefinition.number(value) != null) return value + numberUnit(f);
         int i = f.values.indexOf(value);
         return i < 0 ? value : f.labels.get(i);
+    }
+
+    /** 自定义数值的单位：合并间隔按毫秒，其余（触发次数）按次。 */
+    static String numberUnit(com.inkcontrol.core.FeatureDefinition f) {
+        return f.id.equals("refresh.debounce") ? " 毫秒" : " 次";
     }
 
     private static final String SCENE_COMMON = "选「瞬间切换」以外的效果后，这个场景就不再是原厂的直接跳变。波形类效果（墨迹、网点、扫描线、百叶窗）需要先开启 GPU 显示后端。";
@@ -295,7 +301,12 @@ final class Guide {
                 .option("default", "识别阅读界面", "");
         put("refresh.interval").summary("累计多少次操作后刷新一次").what("操作次数达到这个数值时触发一次刷新，然后重新计数。")
                 .cost("数值越小刷新越频繁，残影越少但闪动越多。")
-                .option("5", "5次", "最频繁，残影最少。").option("10", "10次", "默认，平衡。").option("15", "15次", "较省电。").option("20", "20次", "更省电。").option("30", "30次", "最省电。");
+                .option("5", "5次", "最频繁，残影最少。").option("10", "10次", "默认，平衡。").option("15", "15次", "较省电。").option("20", "20次", "更省电。").option("30", "30次", "最省电。")
+                .option(com.inkcontrol.core.FeatureDefinition.NUMBER_TOKEN, "自定义", "手动输入 1–999 之间的次数。");
+        put("refresh.debounce").summary("连续操作多久算一次").what("滑动往往一次就上报很多次，按键也可能连按。间隔内的重复操作只算一次，避免比设定的触发次数更早刷新。")
+                .cost("间隔越大越不容易被连续滑动误触发，代价是快速连点也可能被合并成一次。")
+                .option("1000", "1秒", "推荐：一次滑动大致只算一次。").option("500", "500毫秒", "更灵敏，适合慢速逐次操作。").option("2000", "2秒", "更迟钝，基本按手势次数计。").option("0", "关闭", "不合并，逐次计数。")
+                .option(com.inkcontrol.core.FeatureDefinition.NUMBER_TOKEN, "自定义", "手动输入 0–999 毫秒。");
         put("refresh.delay").summary("最后一次操作后多久刷新").what("达到触发次数后，等待这段时间再刷新，避免连续操作时打断你。")
                 .option("0", "立即", "达到次数后马上刷新。").option("300", "300毫秒", "稍等片刻。").option("500", "500毫秒", "默认。").option("1000", "1000毫秒", "等操作完全停下。");
         put("refresh.period").summary("每隔一段时间自动刷新一次").what("无论是否操作，每隔这段时间主动刷新一次屏幕，适合长时间静止显示。")

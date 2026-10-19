@@ -1,4 +1,4 @@
-﻿package com.inkcontrol.features.refresh;
+package com.inkcontrol.features.refresh;
 
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.accessibility.AccessibilityEvent;
@@ -32,6 +33,7 @@ public final class RefreshService extends AccessibilityService {
     private AndroidConfigStore store;
     private volatile RefreshConfig config = RefreshConfig.from(new Configuration());
     private int count;
+    private long lastCountTime;
 
     private final Runnable refresh = new Runnable() { @Override public void run() { trigger(); } };
     private final Runnable periodic = new Runnable() {
@@ -112,6 +114,7 @@ public final class RefreshService extends AccessibilityService {
         catch (Throwable error) { Log.w(TAG, "config load failed", error); next = RefreshConfig.from(new Configuration()); }
         config = next;
         synchronized (lock) { count = 0; }
+        lastCountTime = 0;
         armPeriodic();
     }
 
@@ -125,6 +128,10 @@ public final class RefreshService extends AccessibilityService {
     private void countAction() {
         RefreshConfig current = config;
         if (!current.enabled || current.interval <= 0) return;
+        long now = SystemClock.elapsedRealtime();
+        // 合并间隔内的重复操作只算一次：滑动一次会连续上报多帧，按键也可能连按。
+        if (current.debounce > 0 && now - lastCountTime < current.debounce) return;
+        lastCountTime = now;
         int value;
         synchronized (lock) { value = ++count; if (value >= current.interval) count = 0; }
         if (value >= current.interval) {

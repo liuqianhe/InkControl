@@ -747,7 +747,7 @@ GPU 记录到执行错误	GPU execution error recorded
 按下音量键或翻页键后刷新	Refresh after volume or page keys
 触发次数	Trigger count
 累计多少次操作后刷新一次	Operations required before each refresh
-5次,10次,15次,20次,30次	5,10,15,20,30 times
+5次,10次,15次,20次,30次,自定义	5,10,15,20,30 times,Custom
 刷新前延时	Delay before refresh
 操作停止后再等多久刷新，避免打断连续操作	Wait this long after the last action before refreshing
 立即,300毫秒,500毫秒,1000毫秒	Immediately,300 ms,500 ms,1000 ms
@@ -798,3 +798,24 @@ GPU 记录到执行错误	GPU execution error recorded
 30分钟	30 minutes
 不进行周期刷新。	No periodic refresh.
 每分钟刷新一次。	Refresh once per minute.
+自定义	Custom
+ 次	 times
+当前：	Current: 
+手动输入 1–999 之间的次数。	Enter a number between 1 and 999.
+输入数值	Enter a value
+使用	Use
+请输入 1–999 之间的整数	Enter a whole number between 1 and 999
+合并间隔	Merge interval
+短时间内连续操作只算一次，避免滑动被重复计数	Merge repeated actions within a short window so one scroll is not over-counted
+1秒,500毫秒,2秒,关闭,自定义	1 second,500 ms,2 seconds,Off,Custom
+连续操作多久算一次	How long repeated actions merge into one
+滑动往往一次就上报很多次，按键也可能连按。间隔内的重复操作只算一次，避免比设定的触发次数更早刷新。	One scroll usually reports many events and keys can repeat. Repeated actions inside this window count once, so refreshes do not happen earlier than the set count.
+间隔越大越不容易被连续滑动误触发，代价是快速连点也可能被合并成一次。	A larger window is less likely to be tripped by continuous scrolling, but quick taps may also merge into one.
+1秒	1 second
+推荐：一次滑动大致只算一次。	Recommended: one scroll roughly counts once.
+更灵敏，适合慢速逐次操作。	More responsive; suits slow, step-by-step actions.
+2秒	2 seconds
+更迟钝，基本按手势次数计。	Slower; counts roughly per gesture.
+不合并，逐次计数。	No merging; count each action.
+手动输入 0–999 毫秒。	Enter 0–999 ms manually.
+点按后手动输入数值。	Tap to enter a value manually.

@@ -64,7 +64,8 @@ public final class FeatureCatalog {
         add("refresh.master", "自动刷新", "自动刷新总开关", "按点击、按键或阅读界面判断何时刷新", "system", "", HOT, true, "default", "启用自动刷新");
         add("refresh.touch", "自动刷新", "响应触摸", "点击或滑动累计到设定次数后刷新", "system", "refresh.master", HOT, false, "default", "响应点击");
         add("refresh.key", "自动刷新", "响应按键", "按下音量键或翻页键后刷新", "system", "refresh.master", HOT, false, "default", "响应按键");
-        add("refresh.interval", "自动刷新", "触发次数", "累计多少次操作后刷新一次", "system", "refresh.master", HOT, false, "5,10,15,20,30", "5次,10次,15次,20次,30次");
+        add("refresh.interval", "自动刷新", "触发次数", "累计多少次操作后刷新一次", "system", "refresh.master", HOT, false, "5,10,15,20,30,@number", "5次,10次,15次,20次,30次,自定义");
+        add("refresh.debounce", "自动刷新", "合并间隔", "短时间内连续操作只算一次，避免滑动被重复计数", "system", "refresh.master", HOT, false, "1000,500,2000,0,@number", "1秒,500毫秒,2秒,关闭,自定义");
         add("refresh.delay", "自动刷新", "刷新前延时", "操作停止后再等多久刷新，避免打断连续操作", "system", "refresh.master", HOT, false, "0,300,500,1000", "立即,300毫秒,500毫秒,1000毫秒");
         add("refresh.reading", "自动刷新", "识别阅读界面", "检测到整屏文字时自动刷新，改善翻页残影", "system", "refresh.master", HOT, false, "default", "识别阅读界面");
         add("refresh.period", "自动刷新", "周期性刷新", "每隔一段时间刷新一次屏幕", "system", "refresh.master", HOT, false, "0,60,300,600,1800", "关闭,1分钟,5分钟,10分钟,30分钟");

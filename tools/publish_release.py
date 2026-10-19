@@ -47,7 +47,7 @@ def validate_candidate(directory, context, certificate_sha):
         raise ValueError('Build checksums do not match manifest')
     package = json.loads((directory/'package-verification.json').read_text(encoding='utf-8'))
     if not (package.get('version') == version and package.get('signing') == 'verified'
-            and package.get('default_off') == 59 and package.get('module_checksums') is True
+            and package.get('default_off') == 60 and package.get('module_checksums') is True
             and package.get('embedded_zip_identical') is True and package.get('overlay_zip_valid') is True):
         raise ValueError('Package verification is incomplete')
     if (package.get('apk_sha256') != manifest['artifacts']['InkControl-v'+version+'.apk']

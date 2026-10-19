@@ -119,7 +119,7 @@ public final class CoreTest {
         Configuration config = new Configuration(); Set<String> ids = new HashSet<>();
         for (FeatureDefinition feature : FeatureCatalog.all()) {
             check(ids.add(feature.id)); check(!config.enabled(feature.id)); check(!config.requested(feature.id));
-            for (String value : feature.values) { if (value.equals(FeatureDefinition.CURVE_TOKEN)) { reject(() -> feature.validate(value)); continue; } feature.validate(value); check(Configuration.parse(config.change(feature.id, true, value).text()).value(feature.id).equals(value)); }
+            for (String value : feature.values) { if (value.equals(FeatureDefinition.CURVE_TOKEN) || value.equals(FeatureDefinition.NUMBER_TOKEN)) { reject(() -> feature.validate(value)); continue; } feature.validate(value); check(Configuration.parse(config.change(feature.id, true, value).text()).value(feature.id).equals(value)); }
             reject(() -> feature.validate("$(id)"));
         }
         check(Configuration.parse(config.text()).text().equals(config.text()));
@@ -130,6 +130,11 @@ public final class CoreTest {
         for (String bad : new String[]{"curve:", "curve:1,2,3", "curve:1,2,3,4,5,6,7,8,9,10", "curve:1,2,3,4,5,6,7,8,2001", "curve:1,2,3,4,5,6,7,8,-1", "curve:1,2,3,4,5,6,7,8,9;id", "curve:1,2,3,4,5,6,7,8,9\n", "curve:1, 2,3,4,5,6,7,8,9"})
             reject(() -> hold.validate(bad));
         reject(() -> FeatureCatalog.get("motion.steps").validate(curve));
+        FeatureDefinition interval = FeatureCatalog.get("refresh.interval");
+        check(interval.acceptsNumber() && !interval.acceptsCurve() && FeatureDefinition.number("3") == 3);
+        interval.validate("3"); check(Configuration.parse(config.change("refresh.interval", true, "3").text()).value("refresh.interval").equals("3"));
+        for (String bad : new String[]{"0", "1000", "abc", "-1", "@number", "", "3.5", " 3", "@curve"}) reject(() -> interval.validate(bad));
+        reject(() -> FeatureCatalog.get("motion.hold").validate("3"));
         reject(() -> Configuration.parse(config.text() + "alien=1\n"));
         reject(() -> Configuration.parse(config.text() + "version=1\n"));
         reject(() -> Configuration.parse(config.text().replace("revision=0", "revision=-1")));

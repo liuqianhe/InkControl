@@ -31,13 +31,27 @@ public final class FeatureDefinition {
     public String defaultValue() { return values.get(0); }
     /** 是否接受按温区自定义的停留曲线（值形如 curve:150,175,...，共 TEMPERATURE_BANDS 段）。 */
     public boolean acceptsCurve() { return values.contains(CURVE_TOKEN); }
+    /** 是否接受手动输入的正整数（如触发次数）。 */
+    public boolean acceptsNumber() { return values.contains(NUMBER_TOKEN); }
     public void validate(String value) {
-        if (CURVE_TOKEN.equals(value) || !values.contains(value) && !(acceptsCurve() && curve(value) != null))
-            throw new IllegalArgumentException("不支持的选项：" + title);
+        if (CURVE_TOKEN.equals(value) || NUMBER_TOKEN.equals(value)) throw new IllegalArgumentException("不支持的选项：" + title);
+        if (values.contains(value)) return;
+        if (acceptsCurve() && curve(value) != null) return;
+        if (acceptsNumber() && number(value) != null) return;
+        throw new IllegalArgumentException("不支持的选项：" + title);
     }
 
     /** 目录里的占位值；本身不是合法配置，只表示允许 curve: 取值。 */
     public static final String CURVE_TOKEN = "@curve";
+    /** 目录里的占位值；本身不是合法配置，只表示允许输入 1–999 的整数。 */
+    public static final String NUMBER_TOKEN = "@number";
+    public static final int NUMBER_MIN = 1, NUMBER_MAX = 999;
+    /** 解析自定义整数；只接受 NUMBER_MIN–NUMBER_MAX 的纯数字，否则返回 null。 */
+    public static Integer number(String value) {
+        if (value == null || !value.matches("[0-9]{1,3}")) return null;
+        int parsed = Integer.parseInt(value);
+        return parsed >= NUMBER_MIN && parsed <= NUMBER_MAX ? parsed : null;
+    }
     /** 温区上界（不含），最后一段为 24°C 及以上；与屏幕波形表的 A2 温区一致。 */
     public static final int[] TEMPERATURE_BOUNDS = {3, 6, 9, 12, 15, 18, 21, 24};
     public static final int TEMPERATURE_BANDS = TEMPERATURE_BOUNDS.length + 1, CURVE_MAX_MS = 2000;

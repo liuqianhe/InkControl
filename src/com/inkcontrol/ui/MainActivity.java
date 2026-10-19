@@ -455,6 +455,7 @@ public final class MainActivity extends Activity {
     private static List<String> realValues(FeatureDefinition f) {
         List<String> result = new ArrayList<>(f.values);
         result.remove(FeatureDefinition.CURVE_TOKEN);
+        result.remove(FeatureDefinition.NUMBER_TOKEN);
         return result;
     }
 
@@ -828,8 +829,52 @@ public final class MainActivity extends Activity {
             });
             list.addView(spaced(card, 10));
         }
+        if (f.acceptsNumber()) list.addView(spaced(customNumberCard(f, requested, current, selected), 10));
         if (!selected.equals(current) || !requested) list.addView(spaced(useButton(f, requested, selected), 14));
         body.addView(spaced(list, 22));
+    }
+
+    /** 手动输入数值的卡片；当前值不在预设档位时高亮显示。 */
+    private View customNumberCard(FeatureDefinition f, boolean requested, String current, String selected) {
+        boolean previewing = FeatureDefinition.number(selected) != null && !f.values.contains(selected);
+        String shown = previewing ? selected : current;
+        boolean highlighted = FeatureDefinition.number(shown) != null && !f.values.contains(shown);
+        LinearLayout card = new LinearLayout(this);
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        card.setPadding(ink.dp(12), ink.dp(12), ink.dp(14), ink.dp(12));
+        card.setBackground(ink.box(Ink.PAPER, Ink.INK, highlighted ? 3 : 1.5f, 12));
+        LinearLayout content = column(ink.text("自定义", 16, highlighted ? Ink.BOLD : Ink.MEDIUM),
+                spaced(paragraph(highlighted ? "当前：" + shown + Guide.numberUnit(f) : "点按后手动输入数值。", 13), 4));
+        if (highlighted) content.addView(spaced(ink.tag(requested ? "✓ 正在使用" : "已选（未开启）", true), 6));
+        card.addView(content, new LinearLayout.LayoutParams(0, -2, 1));
+        card.setContentDescription(ink.t("自定义"));
+        card.setOnClickListener(v -> customNumberDialog(f, requested, highlighted ? shown : ""));
+        return card;
+    }
+
+    private void customNumberDialog(FeatureDefinition f, boolean requested, String initial) {
+        EditText input = new EditText(this);
+        input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        input.setText(initial);
+        input.setHint(ink.t("输入数值"));
+        input.setSelection(input.getText().length());
+        new AlertDialog.Builder(this)
+                .setTitle(ink.t("自定义") + " · " + ink.t(f.title))
+                .setView(input)
+                .setNegativeButton(ink.t("取消"), null)
+                .setPositiveButton(ink.t("使用"), (dialog, which) -> {
+                    String value = input.getText().toString().trim();
+                    if (FeatureDefinition.number(value) == null) {
+                        Toast.makeText(this, ink.t("请输入 1–999 之间的整数"), Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    if (!begin(f.id, true, value)) return;
+                    perform(ink.t("使用"), () -> {
+                        change(f.id, true, value);
+                        return "已保存「" + f.title + "」：" + value + Guide.numberUnit(f);
+                    }, false);
+                    preview = "";
+                }).show();
     }
 
     private View useButton(FeatureDefinition f, boolean requested, String selected) {
