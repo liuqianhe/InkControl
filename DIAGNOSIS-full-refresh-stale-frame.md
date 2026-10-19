@@ -1,8 +1,8 @@
 # 诊断记录：GPU 显示后端「全刷后回到上一页」
 
 - 日期：2026-10-19
-- 分支：`fix/full-refresh-stale-frame`
-- 状态：根因已定位（日志实证），修复实现中
+- 分支：`fix/full-refresh-stale-frame`（本地，未推送）
+- 状态：**已修复，真机验证通过**
 - 关联文档（工作区）：`墨控全刷扫过BUG诊断报告.md`
 
 ## 1. 现象
@@ -119,10 +119,23 @@ GPU 输入前端（`native/service_input.hpp`）维护 `raw / pending / prev` �
 - 在 `hookTranspose` / `hookStore`：**只有确认 SF 出了新帧才轮转/消费该缓冲**；否则复用**上一次已上屏的帧**（记住 `lastConsumed`），使全刷重放当前画面而非旧缓冲；
 - 加 `VLOG`（`FRONT`/新增标记）便于复测核对。
 
-### 5.1 改动点
+### 5.1 改动点（`native/service_input.hpp`）
 
-- `native/service_input.hpp`：`hookTranspose` / `hookStore` 增加新鲜帧判定与 `lastConsumed` 复用。
-- （恢复用）若需回退：`/data/local/tmp/ic_restore/` 内有原始 `libeinkgpu.so.orig` 与 `checksums.sha256.orig`。
+1. 新增状态：`lastConsumed`（上次已上屏的输入缓冲）、`sfPublishSeq` / `consumedSeq`（SF 出帧计数），以及安全开关
+   `frontReuseEnabled()`（读 `debug.eink.front.reuse`，默认开，设 `0` 退回旧行为）。
+2. `importRelease(...,commit=true)`：SF 每出一帧 `++sfPublishSeq`（即 `hookDumpFrameBuffer → StockBridge` 真正发布时）。
+3. `hookTranspose`：`fresh = sfPublishSeq!=consumedSeq`；若**没有新帧**且存在 `lastConsumed`，则 `frontRaw=lastConsumed`
+   （复用屏上那帧）并打印 `FRONT_REUSE`。
+4. `hookStore`：消费后记录 `lastConsumed=frontRaw; consumedSeq=sfPublishSeq;`；仅当 `frontRaw!=prevRaw`（即本轮确实消费了新帧）时才轮转
+   `raw/pending`，复用分支下保持角色不变。（这一行是必需的，否则复用分支会把 `VAR_RAW` 指到 `prevRaw`，导致 SF 覆写上一帧缓冲。）
+
+编译：本地 NDK（`--target=aarch64-linux-android29 -std=c++17 -O2 -fPIC -shared -static-libstdc++ -DEINK_VERBOSE=1`）。
+
+### 5.2 回滚 / 恢复
+
+- 运行时退回旧行为（无需重启）：`su -c 'setprop debug.eink.front.reuse 0'`
+- 完全回到原厂：`/data/local/tmp/ic_restore/` 内有原厂 `libeinkgpu.so.orig` 与 `checksums.sha256.orig`（覆盖回
+  `payload/` + 更新 `checksums.sha256` 后重启）。
 
 ## 6. 复现 / 验证步骤
 
@@ -132,8 +145,22 @@ GPU 输入前端（`native/service_input.hpp`）维护 `raw / pending / prev` �
 4. 复现动作：翻到特征页 → 翻下一页 → 指纹键全刷；观察是否还回到上一页；
 5. 抓 `logcat -s EinkGPU`，核对该 Clear 波的 `FRONT` 的 `input` 是否 = 上一波内容帧（而不是两波前的旧帧）。
 
-## 7. 待办 / 边界
+## 7. 边界
 
-- 需真机确认 `0x9e350` 在 B10 上确实能区分「有没有新帧」（可在修复里先用只读日志验证）。
-- 该改动触及最敏感的取帧链路，需覆盖：翻页、滚动、锁屏/解锁、息屏定时全刷、App 切换等。
+- 新鲜帧判定采用 SF 经 import bridge 的实际发布计数（`sfPublishSeq`），不依赖未公开的原厂标志位，自洽且可回退。
+- 该改动触及最敏感的取帧链路；覆盖范围见 §8，长期稳定（滚动手感、功耗）仍建议继续观察。
 - `display.alg.clear=stock` 等子项与 BUG 的因果关系此前有矛盾，本记录以「GPU 前端取帧」为准。
+
+## 8. 实机验证结果（2026-10-19）
+
+部署：本地编译 → 覆盖 `payload/libeinkgpu.so` → 更新 `checksums.sha256`（`sha256sum -c` 全 OK）→ 完整重启。
+
+| 项 | 结果 |
+| --- | --- |
+| 修复库 sha256 | `9a9ee151fd1a297e7013a4f34e109db499a2aa94e9ac4b292e9062cef14e9777`（3220584 字节） |
+| 加载校验 | `/vendor/lib64/hw/libeinkgpu.so` 哈希 = 上式；composer（pid 3680）已映射；`sys.inkcontrol.ready=1`；无 error |
+| 运行时遥测 | `helper_loaded=true`、`gpu_errors=0`、`cpu_waves=0`、`input_gpu_frames=750` |
+| 修复触发实证 | 开机阶段即出现 `FRONT_REUSE wave=162 raw=0 reused=2` —— 正是「SF 无新帧、raw 指向旧缓冲」的场景 |
+| 用户复现 | 翻页 + 指纹键全刷：**不再回到上一页**；滚动/锁屏等操作画面正常更新 |
+
+结论：根因（全刷波取到轮转出的滞后缓冲）已修复并真机验证通过。
