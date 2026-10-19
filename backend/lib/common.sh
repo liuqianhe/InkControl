@@ -34,8 +34,8 @@ ic_validate() {
       END {
         if(!seen["version"] || !seen["revision"]) bad=1
         for(key in known) {
-          # rc10 配置没有分模式选项；仅允许新增字段整对缺省，其他字段仍严格检查。
-          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video)|hyst\.(fast|extreme|video))$/)
+          # 旧版配置没有分模式选项与自动刷新项；仅允许这些新增字段整对缺省，其他字段仍严格检查。
+          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video)|hyst\.(fast|extreme|video))$/ || key ~ /^refresh\.(master|touch|key|reading|interval|delay|period)$/)
           if(optional && !seen[key] && !seen[key ".value"]) continue
           if(!seen[key] || !seen[key ".value"]) bad=1
         }
@@ -49,7 +49,7 @@ ic_supported() {
 }
 ic_ready() {
     ic_supported && [ -f "$IC_MODULE/module.prop" ] && [ ! -f "$IC_MODULE/disable" ] && [ ! -f "$IC_MODULE/remove" ] &&
-        [ "$(sed -n 's/^version=//p' "$IC_MODULE/module.prop")" = '0.1.0-rc15' ] && [ ! -f "$IC_STATE/error" ] || return 1
+        [ "$(sed -n 's/^version=//p' "$IC_MODULE/module.prop")" = '0.1.0-rc16' ] && [ ! -f "$IC_STATE/error" ] || return 1
     ! ic_module_conflict >/dev/null
 }
 # 同样替换显示库、配置守护或图标覆盖的 Magisk 模块会与墨控争用同一文件；启用时拒绝加载。
@@ -93,6 +93,32 @@ ic_properties() {
         setprop "debug.eink.hyst.$ic_scope" "$ic_hysteresis" || return 1
     done
 }
+# 自动刷新依赖随 App 提供的无障碍服务；只按刷新总开关增删该组件，关闭时不改写系统设置。
+ic_accessibility() {
+    ic_component=com.inkcontrol/.features.refresh.RefreshService
+    ic_component_full=com.inkcontrol/com.inkcontrol.features.refresh.RefreshService
+    ic_current=$(settings get secure enabled_accessibility_services 2>/dev/null)
+    [ "$ic_current" = null ] && ic_current=""
+    case ",$ic_current," in
+        *",$ic_component,"*|*",$ic_component_full,"*) ic_present=1 ;;
+        *) ic_present=0 ;;
+    esac
+    if ic_enabled refresh.master; then
+        [ "$ic_present" = 1 ] && return 0
+        if [ -n "$ic_current" ]; then ic_next="$ic_current:$ic_component"; else ic_next="$ic_component"; fi
+        settings put secure enabled_accessibility_services "$ic_next" || return 1
+        settings put secure accessibility_enabled 1 || return 1
+    else
+        [ "$ic_present" = 0 ] && return 0
+        ic_next=$(printf '%s' "$ic_current" | tr ':' '\n' | grep -vxF "$ic_component" | grep -vxF "$ic_component_full" | paste -sd: -)
+        if [ -n "$ic_next" ]; then
+            settings put secure enabled_accessibility_services "$ic_next" || return 1
+        else
+            settings delete secure enabled_accessibility_services || return 1
+        fi
+    fi
+    return 0
+}
 ic_prepare_restore() {
     STATE=$IC_STATE; CFG=/data/system/epd_mode_cfg.xml
     CS_MODULE=$IC_MODULE; CS_HOOK_DIR=/data/adb/post-fs-data.d; CS_SERVICE_DIR=/data/adb/service.d
@@ -101,6 +127,7 @@ ic_prepare_restore() {
 }
 ic_apply_hot() {
     ic_properties || return 1
+    ic_accessibility || return 1
     ic_prepare_restore
     cs_prepare_hooks || return 1
     if ic_enabled display.dynamic; then

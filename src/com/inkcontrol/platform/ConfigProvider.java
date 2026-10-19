@@ -124,6 +124,11 @@ public final class ConfigProvider extends ContentProvider {
                 result.putLong("sequence", sequence);
                 return result;
             }
+            if ("requestRefresh".equals(method)) {
+                require(self());
+                changed("refresh");
+                return new Bundle();
+            }
             throw new IllegalArgumentException("未知接口");
         } catch (RuntimeException error) { throw error; }
         catch (Exception error) { throw new IllegalStateException("配置读取失败，保留原文件", error); }

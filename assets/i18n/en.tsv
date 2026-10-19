@@ -736,3 +736,65 @@ GPU 记录到执行错误	GPU execution error recorded
 只把桌面主题、图标、字体、壁纸和组件恢复到默认，不改动桌面布局与图标位置。	Restore only the desktop theme, icons, font, wallpaper, and widget to defaults. The launcher layout and icon positions stay unchanged.
 还原桌面设置	Restore desktop settings
 已提交还原；请回到桌面确认。	Restore submitted; check the launcher to confirm.
+自动刷新	Auto refresh
+自动刷新总开关	Auto-refresh master switch
+按点击、按键或阅读界面判断何时刷新	Refresh based on taps, keys, or reading screens
+启用自动刷新	Enable auto refresh
+响应触摸	Respond to touch
+点击或滑动累计到设定次数后刷新	Refresh after a set number of taps or scrolls
+响应点击	Respond to taps
+响应按键	Respond to keys
+按下音量键或翻页键后刷新	Refresh after volume or page keys
+触发次数	Trigger count
+累计多少次操作后刷新一次	Operations required before each refresh
+5次,10次,15次,20次,30次	5,10,15,20,30 times
+刷新前延时	Delay before refresh
+操作停止后再等多久刷新，避免打断连续操作	Wait this long after the last action before refreshing
+立即,300毫秒,500毫秒,1000毫秒	Immediately,300 ms,500 ms,1000 ms
+识别阅读界面	Detect reading screens
+检测到整屏文字时自动刷新，改善翻页残影	Refresh when a full screen of text is detected to reduce ghosting
+周期性刷新	Periodic refresh
+每隔一段时间刷新一次屏幕	Refresh the screen at a fixed interval
+关闭,1分钟,5分钟,10分钟,30分钟	Off,1 minute,5 minutes,10 minutes,30 minutes
+点击、按键或阅读时累计操作，达到设定次数后自动刷新，减少墨水屏残影。	Count taps, keys, and reading actions, then refresh after the set number to reduce ghosting.
+触发方式	Trigger methods
+节奏	Cadence
+点击、按键或阅读时自动刷新，减少残影	Auto refresh on taps, keys, or reading to reduce ghosting
+墨水屏在点击、翻页、按键后若长时间不刷新会积累残影。开启后，墨控统计你的操作次数，达到设定次数时触发一次清晰刷新；触发方式、次数、延时和周期可在下面分别调整。	E-ink accumulates ghosting when taps, page turns, or key presses go long without a refresh. When enabled, InkControl counts your actions and runs a clear refresh once the set number is reached. Configure the trigger methods, count, delay, and interval below.
+每次触发都会完整刷新一次，画面会短暂闪动，耗电略增。本功能依赖墨控自己的后端，需要安装并完整重启。	Each trigger runs a full refresh with a brief flash and slightly higher power use. This feature uses the InkControl backend and requires installation and a full restart.
+点击或滑动后计数	Count after taps or scrolls
+监听屏幕上的点击与滑动手势，累计到设定的触发次数后刷新。	Watch taps and scroll gestures and refresh after the set number is reached.
+音量键、翻页键计数	Count volume and page keys
+按下音量键或方向键等实体按键后计数；电源键、返回键和主页键不计入。	Count hardware keys such as volume or direction keys; the power, back, and home keys are ignored.
+阅读界面自动刷新	Refresh reading screens
+识别到整屏以文字为主的界面（如阅读器）时，把翻页也计入刷新，改善翻页残影。	Detect text-heavy screens such as readers and count page turns to reduce ghosting.
+操作次数达到这个数值时触发一次刷新，然后重新计数。	Refresh once when the count reaches this value, then count again.
+数值越小刷新越频繁，残影越少但闪动越多。	Smaller values refresh more often: less ghosting but more flashing.
+5次	5 times
+10次	10 times
+15次	15 times
+20次	20 times
+30次	30 times
+最频繁，残影最少。	Most frequent; least ghosting.
+默认，平衡。	Default balance.
+较省电。	More energy efficient.
+更省电。	Even more energy efficient.
+最省电。	Most energy efficient.
+最后一次操作后多久刷新	How long after the last action to refresh
+达到触发次数后，等待这段时间再刷新，避免连续操作时打断你。	After the trigger count is reached, wait this long before refreshing to avoid interrupting you.
+立即	Immediately
+300毫秒	300 ms
+500毫秒	500 ms
+1000毫秒	1000 ms
+达到次数后马上刷新。	Refresh immediately at the count.
+稍等片刻。	Wait briefly.
+默认。	Default.
+等操作完全停下。	Wait until actions stop.
+每隔一段时间自动刷新一次	Refresh automatically at a fixed interval
+无论是否操作，每隔这段时间主动刷新一次屏幕，适合长时间静止显示。	Refresh the screen at this interval regardless of activity; suited to long static displays.
+1分钟	1 minute
+5分钟	5 minutes
+10分钟	10 minutes
+30分钟	30 minutes
+不进行周期刷新。	No periodic refresh.
+每分钟刷新一次。	Refresh once per minute.

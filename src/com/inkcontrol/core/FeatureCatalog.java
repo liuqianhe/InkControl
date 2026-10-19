@@ -61,6 +61,13 @@ public final class FeatureCatalog {
         add("fix.google", "系统增强", "Google 设置图标修复", "资源覆盖，重启后生效", "backend", "", REBOOT, false, "default", "黑色图标");
         add("experiment.cache", "实验室", "GPU 参数缓存", "提交阶段局部优化，不承诺整机提速", "backend", "display.gpu", HOT, true, "default", "缓存uniform位置");
         add("experiment.video", "实验室", "视频抖动算法", "关闭时使用 GPU 蓝噪声；可改用原厂误差扩散对比", "backend", "display.gpu", HOT, true, "blue,stock", "蓝噪声与迟滞,原厂误差扩散");
+        add("refresh.master", "自动刷新", "自动刷新总开关", "按点击、按键或阅读界面判断何时刷新", "system", "", HOT, true, "default", "启用自动刷新");
+        add("refresh.touch", "自动刷新", "响应触摸", "点击或滑动累计到设定次数后刷新", "system", "refresh.master", HOT, false, "default", "响应点击");
+        add("refresh.key", "自动刷新", "响应按键", "按下音量键或翻页键后刷新", "system", "refresh.master", HOT, false, "default", "响应按键");
+        add("refresh.interval", "自动刷新", "触发次数", "累计多少次操作后刷新一次", "system", "refresh.master", HOT, false, "5,10,15,20,30", "5次,10次,15次,20次,30次");
+        add("refresh.delay", "自动刷新", "刷新前延时", "操作停止后再等多久刷新，避免打断连续操作", "system", "refresh.master", HOT, false, "0,300,500,1000", "立即,300毫秒,500毫秒,1000毫秒");
+        add("refresh.reading", "自动刷新", "识别阅读界面", "检测到整屏文字时自动刷新，改善翻页残影", "system", "refresh.master", HOT, false, "default", "识别阅读界面");
+        add("refresh.period", "自动刷新", "周期性刷新", "每隔一段时间刷新一次屏幕", "system", "refresh.master", HOT, false, "0,60,300,600,1800", "关闭,1分钟,5分钟,10分钟,30分钟");
     }
 
     private static void add(String id, String group, String title, String description, String role,

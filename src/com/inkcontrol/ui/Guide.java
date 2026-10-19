@@ -89,6 +89,9 @@ final class Guide {
                 {"稳定性", "fix.exceptions", "fix.configlock", "guard.config"}, {"刷新行为", "fix.modes", "fix.video"},
                 {"安全", "fix.permissions"}, {"外观", "fix.google"}});
         cat("实验室", "仍在验证的优化，效果因场景而异。", new String[][]{{"实验项目", "experiment.cache"}});
+        cat("自动刷新", "点击、按键或阅读时累计操作，达到设定次数后自动刷新，减少墨水屏残影。", new String[][]{
+                {"总开关", "refresh.master"}, {"触发方式", "refresh.touch", "refresh.key", "refresh.reading"},
+                {"节奏", "refresh.interval", "refresh.delay", "refresh.period"}});
     }
     private static void cat(String name, String intro, String[][] sections) { CATEGORIES.put(name, new Category(name, intro, sections)); }
 
@@ -280,6 +283,23 @@ final class Guide {
                 .before("不开启时：默认使用蓝噪声与迟滞。").after("选“原厂误差扩散”时：使用与原厂对应的网点算法。当前 GPU 后端也有它的实现，逐行依赖较多，本机视频对照中明显更慢。")
                 .cost("需要 GPU 显示后端。原厂算法只建议短时间对比画质。")
                 .option("blue", "蓝噪声与迟滞", "推荐，也是不开启时的默认。均匀网点，静止区域不闪。").option("stock", "原厂误差扩散", "用于画质对照，速度取决于实际场景。").term("抖动", "GPU 显示后端");
+
+        put("refresh.master").summary("点击、按键或阅读时自动刷新，减少残影").what("墨水屏在点击、翻页、按键后若长时间不刷新会积累残影。开启后，墨控统计你的操作次数，达到设定次数时触发一次清晰刷新；触发方式、次数、延时和周期可在下面分别调整。")
+                .cost("每次触发都会完整刷新一次，画面会短暂闪动，耗电略增。本功能依赖墨控自己的后端，需要安装并完整重启。")
+                .option("default", "启用自动刷新", "").term("残影", "清晰全刷", "完整重启");
+        put("refresh.touch").summary("点击或滑动后计数").what("监听屏幕上的点击与滑动手势，累计到设定的触发次数后刷新。")
+                .option("default", "响应点击", "");
+        put("refresh.key").summary("音量键、翻页键计数").what("按下音量键或方向键等实体按键后计数；电源键、返回键和主页键不计入。")
+                .option("default", "响应按键", "");
+        put("refresh.reading").summary("阅读界面自动刷新").what("识别到整屏以文字为主的界面（如阅读器）时，把翻页也计入刷新，改善翻页残影。")
+                .option("default", "识别阅读界面", "");
+        put("refresh.interval").summary("累计多少次操作后刷新一次").what("操作次数达到这个数值时触发一次刷新，然后重新计数。")
+                .cost("数值越小刷新越频繁，残影越少但闪动越多。")
+                .option("5", "5次", "最频繁，残影最少。").option("10", "10次", "默认，平衡。").option("15", "15次", "较省电。").option("20", "20次", "更省电。").option("30", "30次", "最省电。");
+        put("refresh.delay").summary("最后一次操作后多久刷新").what("达到触发次数后，等待这段时间再刷新，避免连续操作时打断你。")
+                .option("0", "立即", "达到次数后马上刷新。").option("300", "300毫秒", "稍等片刻。").option("500", "500毫秒", "默认。").option("1000", "1000毫秒", "等操作完全停下。");
+        put("refresh.period").summary("每隔一段时间自动刷新一次").what("无论是否操作，每隔这段时间主动刷新一次屏幕，适合长时间静止显示。")
+                .option("0", "关闭", "不进行周期刷新。").option("60", "1分钟", "每分钟刷新一次。").option("300", "5分钟", "默认。").option("600", "10分钟", "").option("1800", "30分钟", "最省电。");
     }
 
     private Guide() {}
