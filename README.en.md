@@ -36,6 +36,8 @@ All **52 enhancements are off by default**. Enable what you need, retain your se
 
 The backend checks `HLTE203T / Android 10 / arm64 / L1732.6.01.02` and exact vendor-input hashes. Without Root you can browse guides, switch languages, preview effects, and export the installer. See [installation and recovery](https://github.com/wzp100/InkControl/wiki/getting-started.en).
 
+> **Verified device and system:** The only model accepted on physical hardware so far is the **Hisense A5 Pro 经典版 `HLTE203T`**, Android 10 (API 29), `arm64-v8a`, system firmware **`L1732.6.14.01.B10`** (`ro.software.version`; `ro.build.display.id` is `QP1A.190711.020`, and `ro.build.fingerprint` still reads `L1732.6.01.02`). InkControl depends on that firmware's stock launcher (`com.hmct.vision`), stock theme, and display-backend internals, so **other models, other system versions, or modified ROMs are likely incompatible** and are not guaranteed to work or be recoverable. Before changing devices or upgrading the system, review the risks below and back up first.
+
 > **Signing migration:** rc13 introduced a fixed new release identity. Back up configuration and uninstall the old signed app before migrating to the new app and matching backend. Subsequent updates retain that identity.
 
 ## A look inside
