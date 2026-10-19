@@ -391,6 +391,9 @@ public final class MainActivity extends Activity {
             body.addView(list);
         }
         if (c.name.equals("动画") || c.name.equals("锁屏")) body.addView(spaced(paragraph("点进每一项可以看到动画演示或效果图。", 13), 16));
+        if (c.name.equals("桌面")) body.addView(spaced(ink.button("还原默认设置", Ink.Kind.SECONDARY,
+                v -> confirm("还原默认设置", "只把桌面主题、图标、字体、壁纸和组件恢复到默认，不改动桌面布局与图标位置。",
+                        () -> perform("还原桌面设置", () -> { services.restoreGroup("桌面"); return "已提交还原；请回到桌面确认。"; }, true))), 20));
     }
 
     private View featureRow(FeatureDefinition feature) {
