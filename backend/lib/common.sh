@@ -31,17 +31,25 @@ ic_validate() {
         if (length(value)>3 || n<1 || n>999) return 0
         return 1
       }
+      function apps(choices, value,   n, parts, i) {
+        if (index("," choices ",", ",@apps,")==0) return 0
+        if (value=="") return 1
+        n=split(value, parts, ",")
+        if (n>200) return 0
+        for (i=1; i<=n; i++) if (parts[i]!~/^[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)*$/ || length(parts[i])>255) return 0
+        return 1
+      }
       NR==FNR {split($0,s,"\t"); choices[s[1]]=s[2]; known[s[1]]=1; n++; next}
       {if (NF!=2 || seen[$1]++) bad=1}
       $1=="version" {if($2!="1") bad=1; next}
       $1=="revision" {if($2!~/^[0-9]+$/ || length($2)>15) bad=1; next}
-      {key=$1; if(sub(/\.value$/,"",key)) {if(!known[key] || $2=="@curve" || $2=="@number" || (index("," choices[key] ",", "," $2 ",")==0 && !curve(choices[key], $2) && !number(choices[key], $2))) bad=1}
+      {key=$1; if(sub(/\.value$/,"",key)) {if(!known[key] || $2=="@curve" || $2=="@number" || $2=="@apps" || (index("," choices[key] ",", "," $2 ",")==0 && !curve(choices[key], $2) && !number(choices[key], $2) && !apps(choices[key], $2))) bad=1}
        else if(!known[key] || ($2!="0" && $2!="1")) bad=1}
       END {
         if(!seen["version"] || !seen["revision"]) bad=1
         for(key in known) {
           # 旧版配置没有分模式选项与自动刷新项；仅允许这些新增字段整对缺省，其他字段仍严格检查。
-          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video)|hyst\.(fast|extreme|video))$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period)$/)
+          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video)|hyst\.(fast|extreme|video))$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|scope|apps)$/)
           if(optional && !seen[key] && !seen[key ".value"]) continue
           if(!seen[key] || !seen[key ".value"]) bad=1
         }

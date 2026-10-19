@@ -69,6 +69,8 @@ public final class FeatureCatalog {
         add("refresh.delay", "自动刷新", "刷新前延时", "操作停止后再等多久刷新，避免打断连续操作", "system", "refresh.master", HOT, false, "0,300,500,1000", "立即,300毫秒,500毫秒,1000毫秒");
         add("refresh.reading", "自动刷新", "识别阅读界面", "检测到整屏文字时自动刷新，改善翻页残影", "system", "refresh.master", HOT, false, "default", "识别阅读界面");
         add("refresh.period", "自动刷新", "周期性刷新", "每隔一段时间刷新一次屏幕", "system", "refresh.master", HOT, false, "0,60,300,600,1800", "关闭,1分钟,5分钟,10分钟,30分钟");
+        add("refresh.scope", "自动刷新", "应用过滤", "只让名单内的应用触发，或跳过名单内的应用", "system", "refresh.master", HOT, false, "whitelist,blacklist", "仅白名单应用,排除黑名单应用");
+        add("refresh.apps", "自动刷新", "名单应用", "在应用选择器中勾选要纳入名单的应用", "system", "", HOT, false, "@apps", "名单应用");
     }
 
     private static void add(String id, String group, String title, String description, String role,

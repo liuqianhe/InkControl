@@ -119,7 +119,7 @@ public final class CoreTest {
         Configuration config = new Configuration(); Set<String> ids = new HashSet<>();
         for (FeatureDefinition feature : FeatureCatalog.all()) {
             check(ids.add(feature.id)); check(!config.enabled(feature.id)); check(!config.requested(feature.id));
-            for (String value : feature.values) { if (value.equals(FeatureDefinition.CURVE_TOKEN) || value.equals(FeatureDefinition.NUMBER_TOKEN)) { reject(() -> feature.validate(value)); continue; } feature.validate(value); check(Configuration.parse(config.change(feature.id, true, value).text()).value(feature.id).equals(value)); }
+            for (String value : feature.values) { if (value.equals(FeatureDefinition.CURVE_TOKEN) || value.equals(FeatureDefinition.NUMBER_TOKEN) || value.equals(FeatureDefinition.APPS_TOKEN)) { reject(() -> feature.validate(value)); continue; } feature.validate(value); check(Configuration.parse(config.change(feature.id, true, value).text()).value(feature.id).equals(value)); }
             reject(() -> feature.validate("$(id)"));
         }
         check(Configuration.parse(config.text()).text().equals(config.text()));
@@ -134,6 +134,14 @@ public final class CoreTest {
         check(interval.acceptsNumber() && !interval.acceptsCurve() && FeatureDefinition.number("3") == 3);
         interval.validate("3"); check(Configuration.parse(config.change("refresh.interval", true, "3").text()).value("refresh.interval").equals("3"));
         for (String bad : new String[]{"0", "1000", "abc", "-1", "@number", "", "3.5", " 3", "@curve"}) reject(() -> interval.validate(bad));
+        FeatureDefinition appList = FeatureCatalog.get("refresh.apps");
+        check(appList.acceptsApps() && !appList.acceptsNumber() && !appList.acceptsCurve() && appList.defaultValue().isEmpty());
+        check(FeatureDefinition.apps("").isEmpty()); check(FeatureDefinition.apps("com.tencent.mm").equals("com.tencent.mm"));
+        check(FeatureDefinition.apps("com.a,android,com.b_c.d1") != null);
+        for (String bad : new String[]{"com.a,", ",com.a", "com a", "com;id", "@apps", "com.a/com.b", "$(id)", "com.a\ncom.b", "com..a", ".com.a", "com.a."})
+            reject(() -> appList.validate(bad));
+        check(Configuration.parse(config.change("refresh.apps", true, "com.tencent.mm,android").text()).value("refresh.apps").equals("com.tencent.mm,android"));
+        check(!FeatureCatalog.get("refresh.scope").acceptsApps() && FeatureCatalog.get("refresh.scope").defaultValue().equals("whitelist"));
         reject(() -> FeatureCatalog.get("motion.hold").validate("3"));
         reject(() -> Configuration.parse(config.text() + "alien=1\n"));
         reject(() -> Configuration.parse(config.text() + "version=1\n"));

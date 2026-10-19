@@ -28,16 +28,20 @@ public final class FeatureDefinition {
         if (values.length == 0 || values.length != labels.length) throw new IllegalArgumentException(id);
     }
 
-    public String defaultValue() { return values.get(0); }
+    /** 首个取值若是占位标记（@ 开头），说明默认值是空串而不是该标记。 */
+    public String defaultValue() { String first = values.get(0); return first.startsWith("@") ? "" : first; }
     /** 是否接受按温区自定义的停留曲线（值形如 curve:150,175,...，共 TEMPERATURE_BANDS 段）。 */
     public boolean acceptsCurve() { return values.contains(CURVE_TOKEN); }
     /** 是否接受手动输入的正整数（如触发次数）。 */
     public boolean acceptsNumber() { return values.contains(NUMBER_TOKEN); }
+    /** 是否接受逗号分隔的应用包名名单。 */
+    public boolean acceptsApps() { return values.contains(APPS_TOKEN); }
     public void validate(String value) {
-        if (CURVE_TOKEN.equals(value) || NUMBER_TOKEN.equals(value)) throw new IllegalArgumentException("不支持的选项：" + title);
+        if (CURVE_TOKEN.equals(value) || NUMBER_TOKEN.equals(value) || APPS_TOKEN.equals(value)) throw new IllegalArgumentException("不支持的选项：" + title);
         if (values.contains(value)) return;
         if (acceptsCurve() && curve(value) != null) return;
         if (acceptsNumber() && number(value) != null) return;
+        if (acceptsApps() && apps(value) != null) return;
         throw new IllegalArgumentException("不支持的选项：" + title);
     }
 
@@ -51,6 +55,30 @@ public final class FeatureDefinition {
         if (value == null || !value.matches("[0-9]{1,3}")) return null;
         int parsed = Integer.parseInt(value);
         return parsed >= NUMBER_MIN && parsed <= NUMBER_MAX ? parsed : null;
+    }
+    /** 目录里的占位值；本身不是合法配置，只表示允许逗号分隔的包名名单。 */
+    public static final String APPS_TOKEN = "@apps";
+    /** 名单最多容纳的包名数量。 */
+    public static final int APPS_MAX = 200;
+    /** 解析应用名单：空串表示空名单；非空时每段必须是合法包名，否则返回 null。 */
+    public static String apps(String value) {
+        if (value == null) return null;
+        if (value.isEmpty()) return "";
+        String[] parts = value.split(",", -1);
+        if (parts.length > APPS_MAX) return null;
+        for (String part : parts) if (!packageName(part)) return null;
+        return value;
+    }
+    private static boolean packageName(String name) {
+        if (name.isEmpty() || name.length() > 255 || name.charAt(0) == '.' || name.charAt(name.length() - 1) == '.') return false;
+        char previous = '.';
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            if (c == '.') { if (previous == '.') return false; }
+            else if (c != '_' && !(c >= 'a' && c <= 'z') && !(c >= 'A' && c <= 'Z') && !(c >= '0' && c <= '9')) return false;
+            previous = c;
+        }
+        return true;
     }
     /** 温区上界（不含），最后一段为 24°C 及以上；与屏幕波形表的 A2 温区一致。 */
     public static final int[] TEMPERATURE_BOUNDS = {3, 6, 9, 12, 15, 18, 21, 24};

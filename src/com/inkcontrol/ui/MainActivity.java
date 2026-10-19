@@ -448,6 +448,7 @@ public final class MainActivity extends Activity {
     /** 列表里显示的当前选择；只有一个选项的功能不显示。 */
     private String valueSummary(FeatureDefinition f, String value, boolean on) {
         if (f.id.equals("motion.hold")) return on ? holdSummary(value) : "温度自适应";
+        if (f.id.equals("refresh.apps")) { int count = appList(value).size(); return count == 0 ? "" : count + " 个应用"; }
         List<String> real = realValues(f);
         if (real.size() <= 1) return "";
         return Guide.optionName(f, value);
@@ -456,6 +457,7 @@ public final class MainActivity extends Activity {
         List<String> result = new ArrayList<>(f.values);
         result.remove(FeatureDefinition.CURVE_TOKEN);
         result.remove(FeatureDefinition.NUMBER_TOKEN);
+        result.remove(FeatureDefinition.APPS_TOKEN);
         return result;
     }
 
@@ -522,6 +524,7 @@ public final class MainActivity extends Activity {
 
         // 2. 说明
         if (!g.what.isEmpty()) body.addView(spaced(section("它做什么", paragraph(g.what, 15)), 20));
+        if (f.id.equals("refresh.apps")) appsEditor(f, current);
         // 3. 演示 / 示意图
         View visual = visual(f, g, selected);
         if (visual != null) {
@@ -888,6 +891,110 @@ public final class MainActivity extends Activity {
             }, false);
             preview = "";
         });
+    }
+
+    // ── 应用名单：黑白名单 ──
+
+    private static List<String> appList(String value) {
+        List<String> result = new ArrayList<>();
+        if (value == null || value.isEmpty()) return result;
+        for (String part : value.split(",")) if (!part.isEmpty()) result.add(part);
+        return result;
+    }
+
+    private void appsEditor(FeatureDefinition f, String current) {
+        List<String> chosen = appList(current);
+        LinearLayout box = column(ink.text("应用名单", 18, Ink.BOLD),
+                spaced(paragraph("白名单模式下只有名单内的应用会触发自动刷新；黑名单模式下名单内的应用会被跳过；未开启过滤时对所有应用生效。", 14), 8),
+                spaced(ink.text(chosen.isEmpty() ? "尚未选择应用" : "已加入 " + chosen.size() + " 个应用", 16, Ink.BOLD), 12),
+                spaced(ink.button("选择应用", Ink.Kind.PRIMARY, v -> appPickerDialog(f, current)), 12));
+        if (!chosen.isEmpty()) box.addView(spaced(ink.button("清空名单", Ink.Kind.SECONDARY, v -> {
+            if (!begin(f.id, false, "")) return;
+            perform("清空名单", () -> {
+                change(f.id, false, "");
+                return "已清空名单应用";
+            }, false);
+        }), 10));
+        body.addView(spaced(box, 22));
+    }
+
+    /** 应用选择器：列出可启动应用，支持搜索与多选，保存为逗号分隔的包名。 */
+    private void appPickerDialog(FeatureDefinition f, String current) {
+        LinkedHashMap<String, String> apps = launcherApps();
+        List<CheckBox> boxes = new ArrayList<>();
+        List<String> packages = new ArrayList<>();
+        Set<String> selected = new LinkedHashSet<>(appList(current));
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        for (Map.Entry<String, String> app : apps.entrySet()) {
+            CheckBox box = new CheckBox(this);
+            box.setText(app.getValue());
+            box.setTextSize(15);
+            box.setChecked(selected.contains(app.getKey()));
+            box.setPadding(ink.dp(10), ink.dp(9), ink.dp(10), ink.dp(9));
+            list.addView(box);
+            boxes.add(box);
+            packages.add(app.getKey());
+        }
+        if (boxes.isEmpty()) list.addView(paragraph("没有可选择的启动器应用。", 14));
+        ScrollView scroller = new ScrollView(this);
+        scroller.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        scroller.addView(list);
+        EditText search = new EditText(this);
+        search.setHint(ink.t("搜索应用"));
+        search.setSingleLine(true);
+        search.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence text, int start, int count, int after) { }
+            @Override public void onTextChanged(CharSequence text, int start, int before, int count) { }
+            @Override public void afterTextChanged(android.text.Editable text) {
+                String query = text.toString().trim().toLowerCase(Locale.ROOT);
+                for (int i = 0; i < boxes.size(); i++) {
+                    boolean match = query.isEmpty() || boxes.get(i).getText().toString().toLowerCase(Locale.ROOT).contains(query)
+                            || packages.get(i).toLowerCase(Locale.ROOT).contains(query);
+                    boxes.get(i).setVisibility(match ? View.VISIBLE : View.GONE);
+                }
+            }
+        });
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(ink.dp(16), ink.dp(4), ink.dp(16), ink.dp(4));
+        content.addView(search);
+        content.addView(scroller, new LinearLayout.LayoutParams(-1, ink.dp(360)));
+        new AlertDialog.Builder(this)
+                .setTitle(ink.t("选择应用") + " · " + ink.t(f.title))
+                .setView(content)
+                .setNegativeButton(ink.t("取消"), null)
+                .setPositiveButton(ink.t("保存"), (dialog, which) -> {
+                    List<String> chosen = new ArrayList<>();
+                    for (int i = 0; i < boxes.size(); i++) if (boxes.get(i).isChecked()) chosen.add(packages.get(i));
+                    String value = String.join(",", chosen);
+                    if (!begin(f.id, true, value)) return;
+                    perform(ink.t("保存"), () -> {
+                        change(f.id, true, value);
+                        return "已保存「" + f.title + "」：" + chosen.size() + " 个应用";
+                    }, false);
+                }).show();
+    }
+
+    private LinkedHashMap<String, String> launcherApps() {
+        List<String[]> items = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        try {
+            android.content.pm.PackageManager manager = getPackageManager();
+            List<android.content.pm.ResolveInfo> resolved = manager.queryIntentActivities(
+                    new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0);
+            for (android.content.pm.ResolveInfo info : resolved) {
+                if (info == null || info.activityInfo == null) continue;
+                String pkg = info.activityInfo.packageName;
+                if (pkg == null || pkg.equals(getPackageName()) || !seen.add(pkg)) continue;
+                CharSequence label = info.loadLabel(manager);
+                items.add(new String[]{label == null || label.length() == 0 ? pkg : label.toString(), pkg});
+            }
+        } catch (RuntimeException error) { /* 读不到应用列表时按空名单处理 */ }
+        Collections.sort(items, (left, right) -> left[0].compareToIgnoreCase(right[0]));
+        LinkedHashMap<String, String> result = new LinkedHashMap<>();
+        for (String[] item : items) result.put(item[1], item[0]);
+        return result;
     }
 
     // ── 关键帧停留：温度曲线 ──

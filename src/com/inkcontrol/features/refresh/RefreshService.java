@@ -32,6 +32,8 @@ public final class RefreshService extends AccessibilityService {
     private Handler handler;
     private AndroidConfigStore store;
     private volatile RefreshConfig config = RefreshConfig.from(new Configuration());
+    /** 最近一次窗口切换的前台包名，用于按键等没有包名的按键事件按应用过滤。 */
+    private volatile String foreground = "";
     private int count;
     private long lastCountTime;
 
@@ -81,12 +83,14 @@ public final class RefreshService extends AccessibilityService {
         RefreshConfig current = config;
         if (!current.enabled) return;
         CharSequence name = event.getPackageName();
-        if (name != null && IGNORE_PACKAGE.contentEquals(name)) return;
+        String pkg = name == null ? "" : name.toString();
+        if (IGNORE_PACKAGE.equals(pkg)) return;
         int type = event.getEventType();
         if (type == AccessibilityEvent.TYPE_VIEW_CLICKED || type == AccessibilityEvent.TYPE_VIEW_SCROLLED) {
-            if (current.touch) countAction();
+            if (current.touch && current.allows(pkg)) countAction();
         } else if (type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            if (current.reading && isReadingScreen()) countAction();
+            if (!pkg.isEmpty()) foreground = pkg;
+            if (current.reading && current.allows(pkg) && isReadingScreen()) countAction();
         }
     }
 
@@ -96,7 +100,7 @@ public final class RefreshService extends AccessibilityService {
         if (code == KeyEvent.KEYCODE_BACK || code == KeyEvent.KEYCODE_HOME || code == KeyEvent.KEYCODE_APP_SWITCH
                 || code == KeyEvent.KEYCODE_MENU || code == KeyEvent.KEYCODE_POWER) return false;
         RefreshConfig current = config;
-        if (current.enabled && current.key) countAction();
+        if (current.enabled && current.key && current.allows(foreground)) countAction();
         return false;
     }
 

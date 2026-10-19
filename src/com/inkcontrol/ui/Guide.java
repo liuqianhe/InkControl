@@ -91,7 +91,8 @@ final class Guide {
         cat("实验室", "仍在验证的优化，效果因场景而异。", new String[][]{{"实验项目", "experiment.cache"}});
         cat("自动刷新", "点击、按键或阅读时累计操作，达到设定次数后自动刷新，减少墨水屏残影。", new String[][]{
                 {"总开关", "refresh.master"}, {"触发方式", "refresh.touch", "refresh.key", "refresh.reading"},
-                {"节奏", "refresh.interval", "refresh.debounce", "refresh.delay", "refresh.period"}});
+                {"节奏", "refresh.interval", "refresh.debounce", "refresh.delay", "refresh.period"},
+                {"应用名单", "refresh.scope", "refresh.apps"}});
     }
     private static void cat(String name, String intro, String[][] sections) { CATEGORIES.put(name, new Category(name, intro, sections)); }
 
@@ -309,6 +310,13 @@ final class Guide {
                 .option(com.inkcontrol.core.FeatureDefinition.NUMBER_TOKEN, "自定义", "手动输入 0–999 毫秒。");
         put("refresh.delay").summary("最后一次操作后多久刷新").what("达到触发次数后，等待这段时间再刷新，避免连续操作时打断你。")
                 .option("0", "立即", "达到次数后马上刷新。").option("300", "300毫秒", "稍等片刻。").option("500", "500毫秒", "默认。").option("1000", "1000毫秒", "等操作完全停下。");
+        put("refresh.scope").summary("只在指定应用里计入刷新").what("开启后按下面的名单过滤：白名单只统计名单内应用的操作，其它应用不计入；黑名单反过来，跳过名单内应用的操作。关闭时对所有应用生效。")
+                .cost("只影响点击、滑动、按键和阅读界面的计数；周期性刷新不受名单限制，仍按设定时间执行。")
+                .option("whitelist", "仅白名单应用", "只有名单内的应用会累计操作次数。")
+                .option("blacklist", "排除黑名单应用", "名单内的应用不会累计操作次数，其余应用照常。");
+        put("refresh.apps").summary("选择名单里包含哪些应用").what("点按下方按钮，在应用选择器中勾选要加入名单的应用；名单含义由上面的「应用过滤」决定。")
+                .cost("名单以包名保存，卸载或停用应用后条目会保留，可再次进入列表取消勾选。")
+                .option(com.inkcontrol.core.FeatureDefinition.APPS_TOKEN, "名单应用", "");
         put("refresh.period").summary("每隔一段时间自动刷新一次").what("无论是否操作，每隔这段时间主动刷新一次屏幕，适合长时间静止显示。")
                 .option("0", "关闭", "不进行周期刷新。").option("60", "1分钟", "每分钟刷新一次。").option("300", "5分钟", "默认。").option("600", "10分钟", "").option("1800", "30分钟", "最省电。");
     }
