@@ -24,6 +24,9 @@ __pycache__/
 *.pyc
 local.properties
 .env
+# IDE
+.idea/
+*.iml
 # 一次路径输入错误产生的空目录；没有源码，不进入归档。
 /02_模块开发/
 # Local historical acceptance reports retain original device evidence and workspace links.
