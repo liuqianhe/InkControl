@@ -68,7 +68,7 @@ public final class FeatureCatalog {
         add("refresh.debounce", "自动刷新", "合并间隔", "短时间内连续操作只算一次，避免滑动被重复计数", "system", "refresh.master", HOT, false, "1000,500,2000,0,@number", "1秒,500毫秒,2秒,关闭,自定义");
         add("refresh.delay", "自动刷新", "刷新前延时", "操作停止后再等多久刷新，避免打断连续操作", "system", "refresh.master", HOT, false, "0,300,500,1000", "立即,300毫秒,500毫秒,1000毫秒");
         add("refresh.reading", "自动刷新", "识别阅读界面", "检测到整屏文字时自动刷新，改善翻页残影", "system", "refresh.master", HOT, false, "default", "识别阅读界面");
-        add("refresh.period", "自动刷新", "周期性刷新", "每隔一段时间刷新一次屏幕", "system", "refresh.master", HOT, false, "0,60,300,600,1800", "关闭,1分钟,5分钟,10分钟,30分钟");
+        add("refresh.period", "自动刷新", "周期性刷新", "每隔一段时间刷新一次屏幕", "system", "refresh.master", HOT, false, "300,60,600,1800", "5分钟,1分钟,10分钟,30分钟");
         add("refresh.apps", "自动刷新", "应用黑白名单", "白名单只统计名单内应用，黑名单跳过名单内应用", "system", "", HOT, false, "@apps", "黑白名单");
     }
 

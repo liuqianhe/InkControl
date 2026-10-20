@@ -133,6 +133,8 @@ public final class CoreTest {
         FeatureDefinition interval = FeatureCatalog.get("refresh.interval");
         check(interval.acceptsNumber() && !interval.acceptsCurve() && FeatureDefinition.number("3") == 3);
         interval.validate("3"); check(Configuration.parse(config.change("refresh.interval", true, "3").text()).value("refresh.interval").equals("3"));
+        Configuration legacyPeriod = Configuration.parse(config.change("refresh.period", true, "300").text().replace("refresh.period.value=300", "refresh.period.value=0"));
+        check(!legacyPeriod.requested("refresh.period") && legacyPeriod.value("refresh.period").equals("300"));
         for (String bad : new String[]{"0", "1000", "abc", "-1", "@number", "", "3.5", " 3", "@curve"}) reject(() -> interval.validate(bad));
         FeatureDefinition appFilter = FeatureCatalog.get("refresh.apps");
         check(appFilter.acceptsApps() && !appFilter.acceptsNumber() && !appFilter.acceptsCurve() && appFilter.defaultValue().isEmpty());

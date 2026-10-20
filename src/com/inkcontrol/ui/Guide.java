@@ -315,7 +315,7 @@ final class Guide {
                 .note("白名单与黑名单各自保存，互不影响。名单以包名保存，卸载或停用应用后条目会保留，可再次进入列表取消勾选。")
                 .option(com.inkcontrol.core.FeatureDefinition.APPS_TOKEN, "黑白名单", "");
         put("refresh.period").summary("每隔一段时间自动刷新一次").what("无论是否操作，每隔这段时间主动刷新一次屏幕，适合长时间静止显示。")
-                .option("0", "关闭", "不进行周期刷新。").option("60", "1分钟", "每分钟刷新一次。").option("300", "5分钟", "默认。").option("600", "10分钟", "").option("1800", "30分钟", "最省电。");
+                .option("300", "5分钟", "默认。").option("60", "1分钟", "每分钟刷新一次。").option("600", "10分钟", "").option("1800", "30分钟", "最省电。");
     }
 
     private Guide() {}

@@ -71,6 +71,10 @@ public final class Configuration {
             if (flag == null) flag = "0";
             if (!"0".equals(flag) && !"1".equals(flag)) throw new IllegalArgumentException("功能开关无效");
             if (value == null) value = feature.defaultValue();
+            if ("refresh.period".equals(feature.id) && "0".equals(value)) {
+                value = feature.defaultValue();
+                flag = "0";
+            }
             feature.validate(value);
             flags.put(feature.id, "1".equals(flag));
             values.put(feature.id, value);

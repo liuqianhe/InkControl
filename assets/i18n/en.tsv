@@ -755,7 +755,7 @@ GPU 记录到执行错误	GPU execution error recorded
 检测到整屏文字时自动刷新，改善翻页残影	Refresh when a full screen of text is detected to reduce ghosting
 周期性刷新	Periodic refresh
 每隔一段时间刷新一次屏幕	Refresh the screen at a fixed interval
-关闭,1分钟,5分钟,10分钟,30分钟	Off,1 minute,5 minutes,10 minutes,30 minutes
+5分钟,1分钟,10分钟,30分钟	5 minutes,1 minute,10 minutes,30 minutes
 点击、按键或阅读时累计操作，达到设定次数后自动刷新，减少墨水屏残影。	Count taps, keys, and reading actions, then refresh after the set number to reduce ghosting.
 触发方式	Trigger methods
 节奏	Cadence

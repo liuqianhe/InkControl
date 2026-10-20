@@ -67,9 +67,11 @@ IC_LIB={shlex.quote(posix(SCHEMA))}
         for bad in ('0','1000','abc','-1','@number','@curve','3.5',' 3'):
             self.config.write_text(original.replace('refresh.interval.value=5','refresh.interval.value='+bad),encoding='utf-8')
             self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
-        for key,value in (('refresh.delay','3'),('motion.hold','3'),('refresh.period','3')):
+        for key,value in (('refresh.delay','3'),('motion.hold','3')):
             self.config.write_text(original.replace(key+'.value=0',key+'.value='+value),encoding='utf-8')
             self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
+        self.config.write_text(original.replace('refresh.period.value=300','refresh.period.value=3'),encoding='utf-8')
+        self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
     def test_refresh_debounce_accepts_custom_number_and_is_optional(self):
         original=self.config.read_text()
         for good in ('1000','500','2000','0','250','999'):
