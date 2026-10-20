@@ -19,12 +19,16 @@ if ic_enabled display.gpu; then
         mkdir -p "$MODDIR/system/vendor/lib64/hw"
         variant=hwcomposer.default.so
         ic_enabled display.idle && variant=hwcomposer.idle10.so
-        cp "$MODDIR/payload/$variant" "$MODDIR/system/vendor/lib64/hw/hwcomposer.ums512.so"
-        cp "$MODDIR/payload/libeinkgpu.so" "$MODDIR/system/vendor/lib64/hw/libeinkgpu.so"
-        chmod 644 "$MODDIR/system/vendor/lib64/hw/"*.so
-        chcon u:object_r:vendor_hal_file:s0 "$MODDIR/system/vendor/lib64/hw"
-        chcon u:object_r:vendor_file:s0 "$MODDIR/system/vendor/lib64/hw/"*.so
-        echo $((pending + 1)) > "$IC_STATE/pending"
+        if ! grep -a -q '/vendor/lib64/hw/libeinkgpu.so' "$MODDIR/payload/$variant" || [ ! -f "$MODDIR/payload/libeinkgpu.so" ]; then
+            echo 'HWC 输入缺少 libeinkgpu 依赖；未挂载显示后端' > "$IC_STATE/error"
+        else
+            cp "$MODDIR/payload/$variant" "$MODDIR/system/vendor/lib64/hw/hwcomposer.ums512.so"
+            cp "$MODDIR/payload/libeinkgpu.so" "$MODDIR/system/vendor/lib64/hw/libeinkgpu.so"
+            chmod 644 "$MODDIR/system/vendor/lib64/hw/"*.so
+            chcon u:object_r:vendor_hal_file:s0 "$MODDIR/system/vendor/lib64/hw"
+            chcon u:object_r:vendor_file:s0 "$MODDIR/system/vendor/lib64/hw/"*.so
+            echo $((pending + 1)) > "$IC_STATE/pending"
+        fi
     fi
 else
     if [ "$(sha256sum "$IC_VENDOR/hwcomposer.ums512.so" | cut -d' ' -f1)" = "$IC_STOCK" ]; then
