@@ -204,17 +204,32 @@ final class LockCanvas extends View {
             text(almanac(), 37, 187, 286);
         }
 
-        font(sSansMedium, 12, 0.04f, INK, true);
-        text("今日天气", 54, 289, 150);
-        font(sSansMedium, 17, 0, INK, true);
-        textRight(dash(data.weather), 304, 291, 115);
-        boolean weatherIcon = WeatherIcon.available(data.weather);
-        if (weatherIcon) WeatherIcon.draw(c, data.weather, 239, 326, 64, INK);
-        font(sSansBold, 58, -0.03f, INK, true);
-        textBase(dash(data.temperature), 52, 386, weatherIcon ? 166 : 248);
-        font(sSans, 13, 0, INK, true);
-        String range = data.low != null && data.high != null ? data.low + " — " + data.high : "气温数据暂无";
-        text(range, 55, 404, 248);
+        if (hasWeather()) {
+            font(sSansMedium, 12, 0.04f, INK, true);
+            text("今日天气", 54, 289, 150);
+            if (data.weather != null) {
+                font(sSansMedium, 17, 0, INK, true);
+                textRight(data.weather, 304, 291, 115);
+            }
+            boolean weatherIcon = WeatherIcon.available(data.weather);
+            if (weatherIcon) WeatherIcon.draw(c, data.weather, 239, 326, 64, INK);
+            font(sSansBold, 58, -0.03f, INK, true);
+            textBase(data.temperature == null ? "—" : data.temperature, 52, 386, weatherIcon ? 166 : 248);
+            if (data.low != null && data.high != null) {
+                font(sSans, 13, 0, INK, true);
+                text(data.low + " — " + data.high, 55, 404, 248);
+            }
+        } else {
+            font(sSansMedium, 12, 0.04f, INK, true);
+            text("电量", 54, 289, 150);
+            font(sSansBold, 58, -0.03f, INK, true);
+            textBase(data.battery < 0 ? "—" : data.battery + "%", 52, 386, 248);
+            font(sSans, 13, 0, INK, true);
+            if (data.charging) text("正在充电", 55, 404, 80);
+            if (data.wechat >= 0) {
+                textRight(data.wechat > 0 ? "微信 " + data.wechat + " 条新消息" : "暂无新消息", 304, 404, 145);
+            }
+        }
 
         font(sSansMedium, 12, 0.04f, INK, true);
         text(data.playing ? "正在播放" : "今日格言", 54, 502, 250);
@@ -233,10 +248,12 @@ final class LockCanvas extends View {
             rect(55, 622, 250 * progress, 2, INK);
         }
 
-        font(sSansMedium, 11, 0, INK, true);
-        text("电量 " + (data.battery < 0 ? "—" : data.battery + "%") + (data.charging ? " · 充电中" : ""), 35, 661, 170);
-        if (data.wechat >= 0) {
-            textRight(data.wechat > 0 ? "微信 " + data.wechat + " 条新消息" : "暂无新消息", 325, 661, 140);
+        if (hasWeather()) {
+            font(sSansMedium, 11, 0, INK, true);
+            text("电量 " + (data.battery < 0 ? "—" : data.battery + "%") + (data.charging ? " · 充电中" : ""), 35, 661, 170);
+            if (data.wechat >= 0) {
+                textRight(data.wechat > 0 ? "微信 " + data.wechat + " 条新消息" : "暂无新消息", 325, 661, 140);
+            }
         }
         font(sSansMedium, 12, .12f, INK, true);
         textCenter("上滑解锁", 180, 691);
@@ -292,6 +309,11 @@ final class LockCanvas extends View {
         return data.battery < 0 ? "—" : String.valueOf(data.battery);
     }
 
+    private boolean hasWeather() {
+        return !TextUtils.isEmpty(data.weather) || !TextUtils.isEmpty(data.temperature)
+                || !TextUtils.isEmpty(data.high) || !TextUtils.isEmpty(data.low);
+    }
+
     // ───────────────────────── A · 编辑排版 ─────────────────────────
 
     private void editorial() {
@@ -318,24 +340,35 @@ final class LockCanvas extends View {
         float sw = Math.min(tp.measureText(sub), CW - 150);
         textBase(sub, R - sw, 252, CW - 150);
 
-        // 三栏：天气 / 气温 / 电量
         float gy = 284;
         rect(L, gy, CW, 1, INK);
         rect(L, gy + 66, CW, 1, INK);
-        rect(L + 104, gy, 1, 66, INK);
-        rect(L + 208, gy, 1, 66, INK);
-        String[] labels = {"天气", "气温", "电量"};
-        for (int i = 0; i < 3; i++) {
-            float x = L + i * 104 + (i == 0 ? 0 : 12);
+        if (hasWeather()) {
+            rect(L + 104, gy, 1, 66, INK);
+            rect(L + 208, gy, 1, 66, INK);
+            String[] labels = {"天气", "气温", "电量"};
+            for (int i = 0; i < 3; i++) {
+                float x = L + i * 104 + (i == 0 ? 0 : 12);
+                font(sSerif, 10, 0.24f, INK, true);
+                text(labels[i], x, gy + 11, 90);
+            }
+            font(sSerif, 18, 0, INK, true);
+            textBase(dash(data.weather), L, gy + 51, 92);
+            font(sSerif, 22, 0, INK, true);
+            String temp = data.high != null ? data.high + " / " + data.low : dash(data.temperature);
+            textBase(temp, L + 116, gy + 52, 88);
+            textBase(data.battery < 0 ? "—" : data.battery + "%", L + 220, gy + 52, 88);
+        } else {
             font(sSerif, 10, 0.24f, INK, true);
-            text(labels[i], x, gy + 11, 90);
+            text("电量", L, gy + 11, 0);
+            font(sSerif, 22, 0, INK, true);
+            String battery = data.battery < 0 ? "—" : data.battery + "%";
+            textBase(battery + (data.charging ? " · 充电中" : ""), L, gy + 52, CW - 150);
+            if (data.wechat > 0) {
+                font(sSerif, 14, 0, INK, true);
+                textRight("微信 " + data.wechat + " 条新消息", R, gy + 52, 160);
+            }
         }
-        font(sSerif, 18, 0, INK, true);
-        textBase(dash(data.weather), L, gy + 51, 92);
-        font(sSerif, 22, 0, INK, true);
-        String temp = data.high != null ? data.high + " / " + data.low : dash(data.temperature);
-        textBase(temp, L + 116, gy + 52, 88);
-        textBase(data.battery < 0 ? "—" : data.battery + "%", L + 220, gy + 52, 88);
 
         // 正在播放 / 今日格言
         float py = 384;
@@ -379,16 +412,17 @@ final class LockCanvas extends View {
     private void swiss() {
         final float L = 20, CW = 320, COL = 74, GAP = 8;
 
-        // 顶部四栏
         String day = fmt("EEE");
+        boolean hasTemp = data.temperature != null;
         String[] top = {day.substring(0, Math.min(2, day.length())), fmt("MM.dd"), fmt("yyyy"),
-                data.temperature == null ? "—" : data.temperature + "C"};
-        if (data.temperature != null && data.temperature.endsWith("F")) top[3] = data.temperature;
-        for (int i = 0; i < 4; i++) {
-            float x = L + i * (COL + GAP);
-            rect(x, 24, COL, 4, INK);
+                hasTemp ? (data.temperature.endsWith("F") ? data.temperature : data.temperature + "C") : null};
+        int columns = hasTemp ? 4 : 3;
+        float col = columns == 4 ? COL : (CW - 2 * GAP) / 3f;
+        for (int i = 0; i < columns; i++) {
+            float x = L + i * (col + GAP);
+            rect(x, 24, col, 4, INK);
             font(sSansBold, 12, 0, INK, true);
-            text(top[i], x, 34, COL);
+            text(top[i], x, 34, col);
         }
 
         // 两行叠放的特大时间
@@ -409,20 +443,22 @@ final class LockCanvas extends View {
             vy += 18.2f;
         }
 
-        // 黑底天气块
         float by = 411;
-        rect(L, by, CW, 84, INK);
-        boolean range = data.high != null;
-        font(sSansBold, 10, 0.12f, PAPER, true);
-        text("WEATHER", L + 16, by + 14, 0);
-        text(range ? "HI / LO" : "TEMP", L + 164, by + 14, 0);
-        font(sSansMedium, 28, 0, PAPER, true);
-        text(dash(data.weather), L + 16, by + 32, 140);
-        font(sHeavy, 28, -0.03f, PAPER, true);
-        text(range ? strip(data.high) + " / " + strip(data.low) : dash(data.temperature), L + 164, by + 32, 140);
-
-        // 正在播放 / 格言
-        float ny = 517;
+        float ny;
+        if (hasWeather()) {
+            rect(L, by, CW, 84, INK);
+            boolean range = data.high != null && data.low != null;
+            font(sSansBold, 10, 0.12f, PAPER, true);
+            text("WEATHER", L + 16, by + 14, 0);
+            text(range ? "HI / LO" : "TEMP", L + 164, by + 14, 0);
+            font(sSansMedium, 28, 0, PAPER, true);
+            text(dash(data.weather), L + 16, by + 32, 140);
+            font(sHeavy, 28, -0.03f, PAPER, true);
+            text(range ? strip(data.high) + " / " + strip(data.low) : dash(data.temperature), L + 164, by + 32, 140);
+            ny = 517;
+        } else {
+            ny = by;
+        }
         rect(L, ny, CW, 1, INK);
         font(sSansBold, 10, 0.12f, INK, true);
         text(data.playing ? "NOW" : "DAILY", L, ny + 9, COL);

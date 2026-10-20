@@ -315,16 +315,28 @@ public final class MainActivity extends Activity {
     private void home() {
         ApplicationServices.Snapshot s = snapshot;
         int on = 0, pending = 0, faults = 0;
+        String firstFault = "";
         for (FeatureDefinition feature : FeatureCatalog.all()) {
             String status = status(feature.id);
             if (s.config.requested(feature.id)) on++;
             if (status.equals("待重启")) pending++;
-            if (status.startsWith("异常")) faults++;
+            if (status.startsWith("异常")) {
+                faults++;
+                if (firstFault.isEmpty()) firstFault = feature.id;
+            }
         }
         LinearLayout stats = new LinearLayout(this);
         stats.addView(stat(String.valueOf(on), "已开启 / " + FeatureCatalog.all().size()), new LinearLayout.LayoutParams(0, -2, 1));
         stats.addView(stat(String.valueOf(pending), "待重启"), new LinearLayout.LayoutParams(0, -2, 1));
-        stats.addView(stat(String.valueOf(faults), "异常"), new LinearLayout.LayoutParams(0, -2, 1));
+        View faultStat = stat(String.valueOf(faults), "异常");
+        if (!firstFault.isEmpty()) {
+            final String target = firstFault;
+            faultStat.setContentDescription(ink.t("打开异常项"));
+            faultStat.setBackground(ink.pressable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT), ink.box(Ink.PAPER, Ink.INK, 1, 10)));
+            faultStat.setPadding(ink.dp(4), ink.dp(4), ink.dp(4), ink.dp(4));
+            faultStat.setOnClickListener(v -> openFeature(target));
+        }
+        stats.addView(faultStat, new LinearLayout.LayoutParams(0, -2, 1));
         LinearLayout overview = column(stats);
         if (!s.ready()) {
             overview.addView(spaced(ink.rule(1), 14));

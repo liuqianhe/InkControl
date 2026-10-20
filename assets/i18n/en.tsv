@@ -25,6 +25,7 @@
 ，当前页	, current page
 待重启	Restart required
 异常	Error
+打开异常项	Open abnormal item
 已开启 / 	enabled / 
 环境未就绪：开启增强前请按「安装」页完成安装并完整重启。	Environment not ready. Complete the installation guide and fully restart before enabling enhancements.
 尚未检查环境。开启任何增强前，先到「安装」完成检查与安装。	Environment not checked. Open Install to check and set up before enabling enhancements.
