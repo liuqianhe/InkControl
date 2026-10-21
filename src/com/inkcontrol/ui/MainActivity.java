@@ -177,6 +177,7 @@ public final class MainActivity extends Activity {
         LinearLayout row = new LinearLayout(this);
         row.setGravity(Gravity.CENTER_VERTICAL);
         String title, subtitle, back = "";
+        boolean isHome = tab.equals(FEATURES) && category.isEmpty() && featureId.isEmpty();
         boolean sub = tab.equals(FEATURES) && !category.isEmpty();
         if (sub && category.equals(TERMS)) { title = "名词解释"; subtitle = "界面里出现的专业词是什么意思。"; back = "功能"; }
         else if (sub && !featureId.isEmpty()) {
@@ -198,28 +199,32 @@ public final class MainActivity extends Activity {
         titles.addView(ink.text(title, sub ? 26 : 30, Ink.BOLD));
         row.addView(titles, new LinearLayout.LayoutParams(0, -2, 1));
 
-        String label;
-        boolean filled = false;
-        if (snapshot == null) label = busy ? "读取中" : "未读取";
-        else if (!snapshot.checked()) label = snapshot.failure.equals("尚未检查环境") ? "未检查" : "环境异常";
-        else if (snapshot.ready()) { label = "● 就绪"; filled = true; }
-        else label = "未就绪";
-        TextView badge = ink.text(label, 13, Ink.MEDIUM);
-        badge.setPadding(ink.dp(12), ink.dp(7), ink.dp(12), ink.dp(7));
-        badge.setBackground(filled ? ink.solid(16) : ink.outline(16));
-        badge.setTextColor(filled ? Ink.PAPER : Ink.INK);
-        badge.setContentDescription(ink.t("环境状态：" + label));
-        badge.setOnClickListener(v -> switchTab(DIAGNOSE));
-        row.addView(badge);
+        if (isHome) {
+            String label;
+            boolean filled = false;
+            if (snapshot == null) label = busy ? "读取中" : "未读取";
+            else if (!snapshot.checked()) label = snapshot.failure.equals("尚未检查环境") ? "未检查" : "环境异常";
+            else if (snapshot.ready()) { label = "● 就绪"; filled = true; }
+            else label = "未就绪";
+            TextView badge = ink.text(label, 13, Ink.MEDIUM);
+            badge.setPadding(ink.dp(12), ink.dp(7), ink.dp(12), ink.dp(7));
+            badge.setBackground(filled ? ink.solid(16) : ink.outline(16));
+            badge.setTextColor(filled ? Ink.PAPER : Ink.INK);
+            badge.setContentDescription(ink.t("环境状态：" + label));
+            badge.setOnClickListener(v -> switchTab(DIAGNOSE));
+            row.addView(badge);
+        }
         box.addView(row);
 
         // Keep the brand/title wide enough on 320dp screens in both languages.
         LinearLayout details = new LinearLayout(this);
         details.setGravity(Gravity.CENTER_VERTICAL);
         details.addView(ink.text(subtitle, 13, Ink.REGULAR), new LinearLayout.LayoutParams(0, -2, 1));
-        TextView language = ink.chip("中 / EN", false, v -> UiLanguage.choose(this));
-        language.setContentDescription(ink.t("语言 / Language"));
-        details.addView(withMargin(language, 6));
+        if (isHome) {
+            TextView language = ink.chip("中 / EN", false, v -> UiLanguage.choose(this));
+            language.setContentDescription(ink.t("语言 / Language"));
+            details.addView(withMargin(language, 6));
+        }
         box.addView(spaced(details, 6));
         return box;
     }

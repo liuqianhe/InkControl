@@ -8,12 +8,12 @@
 
 **InkControl · 墨控** brings display algorithms, transitions, lock-screen controls, and stock-launcher themes to the **Hisense A5 Pro 经典版 (Classic Edition)** with its **monochrome E-ink screen**. One app contains its matching Magisk backend.
 
-All **61 enhancements are off by default**. Enable what you need, retain your selections, and see configuration intent separately from runtime acknowledgement.
+All **62 enhancements are off by default**. Enable what you need, retain your selections, and see configuration intent separately from runtime acknowledgement.
 
 | Display | Motion | Lock screen | Stock launcher |
 | --- | --- | --- | --- |
-| Per-mode algorithms; separate video settings | Effects, previews, temperature timing curves | Weather, lyrics, styles, refresh policy | Three themes; independent icons, fonts, widgets |
-| Grayscale and binary groups; independent hysteresis | Existing display path and mode boundaries | Individual controls and conditional restoration | Original layout and app positions retained |
+| Per-mode algorithms; separate video settings | Effects, previews, temperature timing curves | Weather, lyrics, system/WeChat notification count, four styles, refresh policy | Three themes; independent icons, fonts, widgets |
+| Grayscale and binary groups; independent hysteresis | Existing display path and mode boundaries | Individual controls and conditional restoration; Pixel uses an up-swipe hint; no stock bottom-bar overlay | Original layout and app positions retained |
 
 > **Test devices only recommended: back up important data to a computer or independent storage first. Boot failure, permanent data loss, and unrecoverable device damage are possible. Read [risks and disclaimer](#risks-and-disclaimer) before installation.**
 
@@ -44,11 +44,11 @@ The backend checks `HLTE203T / Android 10 / arm64 / L1732.6.01.02` and exact ven
 
 <table><tr><th>简体中文</th><th>English</th></tr><tr><td><img src="docs/media/ui-zh.png" alt="Chinese features page in the cloud emulator" width="260"></td><td><img src="docs/media/ui-en.png" alt="English features page in the cloud emulator" width="260"></td></tr></table>
 
-Actual rc13 cloud-emulator screenshots; they do not establish physical-panel quality. The app follows the system language by default and supports independent Chinese/English selection.
+Actual rc13 cloud-emulator screenshots; they do not establish physical-panel quality. The current home page shows readiness and the 中 / EN selector, while category and feature pages remain focused. The app follows the system language by default and supports independent Chinese/English selection.
 
 ## Project status
 
-The source targets **0.1.0-rc16**, with per-mode algorithms, independent hysteresis, auto refresh (tap/key/reading counters plus periodic triggering), a bilingual UI, a shared visual identity, and a versioned knowledge base. All compilation and validation runs in the cloud. New versions publish a Release after every check passes; rerunning an existing version never overwrites its Release.
+The source targets **0.1.0-rc16**, with per-mode algorithms, independent hysteresis, auto refresh (tap/key/reading counters plus periodic triggering), lock-screen notification counts (system clearable notifications by default, or WeChat unread), four custom lock-screen styles (Editorial, Swiss grid, Pixel, Liquid glass), a bilingual UI, a shared visual identity, and a versioned knowledge base. All compilation and validation runs in the cloud. New versions publish a Release after every check passes; rerunning an existing version never overwrites its Release.
 
 The recorded device installation as of 2026-10-18 remains **rc10 app + rc10-gpu-fix1 backend**. [rc15 passed cloud signing, regressions, and four bilingual UI configurations](https://github.com/wzp100/InkControl/actions/runs/39098632837). Integrated HWC behavior, panel quality, power, temperature coverage, and long-term stability need separate acceptance. The historical first GPU error remains unexplained; the firmware's Google split-resource icon overlay should stay off. See [evidence boundaries](https://github.com/wzp100/InkControl/wiki/evidence.en).
 
