@@ -631,9 +631,21 @@ GPU 显示后端每帧都要查询 GPU 程序参数的位置，开启后把结�
 关闭动画,半速时长,原时长	Disable animations,Half duration,Original duration
 自定义锁屏	Custom lock screen
 关闭时恢复有效的原厂样式	Restore a valid stock style when disabled
-液态玻璃,编辑排版,瑞士网格,像素	Liquid glass,Editorial,Swiss grid,Pixel
+编辑排版,瑞士网格,像素,液态玻璃	Editorial,Swiss grid,Pixel,Liquid glass
 锁屏天气	Lock-screen weather
 使用原厂已有天气数据	Use existing stock weather data
+锁屏通知来源	Lock-screen notification source
+默认统计系统通知，可切换到微信未读数	Counts system notifications by default; can switch to the WeChat unread count
+系统通知,微信	System notifications,WeChat
+锁屏样式、天气、通知、歌词，以及锁屏时用哪种刷新方式。	Lock-screen style, weather, notifications, lyrics, and refresh mode while locked.
+通知	Notifications
+锁屏显示系统通知数	Show the system notification count on the lock screen
+统计当前可清除的系统通知，不再只显示微信未读。墨水屏通常不安装微信，默认使用系统通知数。	Count clearable system notifications instead of only WeChat unread messages. E-ink devices usually do not install WeChat, so system notifications are the default.
+关闭时仍显示系统通知数；打开后可切换到微信未读数。	System notifications remain visible when disabled; enable this to switch to the WeChat unread count.
+系统通知	System notifications
+统计可清除的系统通知，不依赖微信。	Count clearable system notifications without relying on WeChat.
+微信	WeChat
+只统计微信未读消息，适合安装了微信的设备。	Count only WeChat unread messages, for devices with WeChat installed.
 锁屏歌词	Lock-screen lyrics
 支持现有媒体歌词与 Lyric Getter 广播	Supports media lyrics and Lyric Getter broadcasts
 状态栏歌词	Status-bar lyrics

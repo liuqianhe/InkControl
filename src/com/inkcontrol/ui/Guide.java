@@ -84,8 +84,8 @@ final class Guide {
                 {"总开关", "refresh.master"}, {"触发方式", "refresh.touch", "refresh.key", "refresh.reading"},
                 {"节奏", "refresh.interval", "refresh.debounce", "refresh.delay", "refresh.period"},
                 {"应用名单", "refresh.apps"}});
-        cat("锁屏", "锁屏样式、天气、歌词，以及锁屏时用哪种刷新方式。", new String[][]{
-                {"样式", "lock.style", "lock.weather"}, {"歌词", "lock.lyric", "lock.statusbar", "lock.lyricmode"},
+        cat("锁屏", "锁屏样式、天气、通知、歌词，以及锁屏时用哪种刷新方式。", new String[][]{
+                {"样式", "lock.style", "lock.weather"}, {"通知", "lock.notify"}, {"歌词", "lock.lyric", "lock.statusbar", "lock.lyricmode"},
                 {"锁屏刷新", "lock.first", "lock.update", "lock.delay", "lock.dither"}});
         cat("桌面", "原厂桌面的主题、图标、字体与组件；不改动图标位置和布局。", new String[][]{
                 {"主题", "desktop.theme"}, {"换肤项目", "desktop.icons", "desktop.font", "desktop.wallpaper", "desktop.widget"}});
@@ -236,10 +236,13 @@ final class Guide {
                 .option("0", "关闭动画", "直接显示动画结束的样子，刷新最少。").option("0.5", "半速时长", "保留动画，但时长减半。").option("1", "原时长", "与原厂相同。");
 
         put("lock.style").summary("四套专为墨水屏设计的锁屏").what("替换原厂锁屏画面，显示时间、日期、天气和正在播放的音乐。").cost("关闭后恢复你在系统设置里选的原厂锁屏样式。").visual(Visual.LOCK_STYLE)
-                .option("8", "液态玻璃", "纸纹波浪背景上浮起玻璃质感卡片。").option("5", "编辑排版", "杂志式衬线大字，像一页报纸。")
-                .option("6", "瑞士网格", "严格网格与无衬线粗体，信息清晰。").option("7", "像素", "1-bit 像素字体和像素图标，复古掌机风格。");
+                .option("5", "编辑排版", "杂志式衬线大字，像一页报纸。").option("6", "瑞士网格", "严格网格与无衬线粗体，信息清晰。")
+                .option("7", "像素", "1-bit 像素字体和像素图标，复古掌机风格。").option("8", "液态玻璃", "纸纹波浪背景上浮起玻璃质感卡片。");
         put("lock.weather").summary("在自定义锁屏上显示天气").what("在锁屏卡片上显示当前天气、温度和图标。数据来自原厂桌面已经下载的天气，墨控不额外联网。")
                 .option("default", "天气与图标", "");
+        put("lock.notify").summary("锁屏显示系统通知数").what("统计当前可清除的系统通知，不再只显示微信未读。墨水屏通常不安装微信，默认使用系统通知数。")
+                .cost("关闭时仍显示系统通知数；打开后可切换到微信未读数。").option("system", "系统通知", "统计可清除的系统通知，不依赖微信。")
+                .option("wechat", "微信", "只统计微信未读消息，适合安装了微信的设备。");
         put("lock.lyric").summary("锁屏和息屏画面显示当前一句歌词").what("播放音乐时，在锁屏画面和息屏显示区显示当前这一句歌词，随播放逐句更新。支持在媒体信息里带歌词的播放器，以及 Lyric Getter。")
                 .cost("每换一句歌词都要刷新一次锁屏，刷新方式见“歌词的刷新方式”。").option("default", "显示歌词", "");
         put("lock.statusbar").summary("状态栏左侧滚动显示歌词").what("播放音乐时，在状态栏左侧显示当前歌词。停止播放或关闭本项后，通知图标恢复显示。").option("default", "显示歌词", "");

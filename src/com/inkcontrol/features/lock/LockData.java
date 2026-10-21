@@ -32,8 +32,10 @@ final class LockData {
     String weather, temperature, high, low;
     /** 农历（如“八月三十”）和节日/节气，取不到为 null */
     String lunar, festival;
-    /** 微信未读数；锁屏关闭通知显示时为 -1 */
-    int wechat = -1;
+    /** 锁屏通知数；锁屏关闭通知显示或暂时取不到时为 -1 */
+    int notifications = -1;
+    /** 通知来源名称：系统通知为“通知”，兼容微信来源时为“微信” */
+    String notificationLabel = "通知";
     /** 正在播放：歌词（没有歌词时用曲名），否则是格言 */
     boolean playing;
     String text;
@@ -57,7 +59,14 @@ final class LockData {
         } catch (Throwable ignored) {
         }
         if (Settings.Global.getInt(c.getContentResolver(), "eink_keyguard_notification_on", 1) != 0) {
-            d.wechat = Math.max(0, Settings.System.getInt(c.getContentResolver(), "com_hs_wechat_mini", 0));
+            boolean wechat = RuntimeConfig.enabled("lock.notify")
+                    && "wechat".equals(RuntimeConfig.value("lock.notify"));
+            if (wechat) {
+                d.notifications = Math.max(0, Settings.System.getInt(c.getContentResolver(), "com_hs_wechat_mini", 0));
+                d.notificationLabel = "微信";
+            } else {
+                d.notifications = LockNotifications.count();
+            }
         }
         if (RuntimeConfig.enabled("lock.weather")) readWeather(d, controller);
         readLunar(d, controller);
@@ -172,7 +181,7 @@ final class LockData {
         d.high = "18°";
         d.low = "12°";
         d.lunar = "九月初一";
-        d.wechat = 3;
+        d.notifications = 3;
         d.playing = true;
         d.text = "把今天折好，放进明天的口袋。";
         d.track = "曲名 · 歌手";

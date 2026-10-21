@@ -143,6 +143,11 @@ public class Hook implements IXposedHookLoadPackage {
         } catch (Throwable t) {
             XposedBridge.log(TAG + "lock style hook failed: " + t);
         }
+        try {
+            LockNotifications.hook(cl);
+        } catch (Throwable t) {
+            XposedBridge.log(TAG + "notification hook failed: " + t);
+        }
         XposedBridge.log(TAG + "hooked SystemUI");
     }
 

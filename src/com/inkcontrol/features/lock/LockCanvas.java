@@ -226,8 +226,8 @@ final class LockCanvas extends View {
             textBase(data.battery < 0 ? "—" : data.battery + "%", 52, 386, 248);
             font(sSans, 13, 0, INK, true);
             if (data.charging) text("正在充电", 55, 404, 80);
-            if (data.wechat >= 0) {
-                textRight(data.wechat > 0 ? "微信 " + data.wechat + " 条新消息" : "暂无新消息", 304, 404, 145);
+            if (data.notifications >= 0) {
+                textRight(notificationText(), 304, 404, 145);
             }
         }
 
@@ -251,8 +251,8 @@ final class LockCanvas extends View {
         if (hasWeather()) {
             font(sSansMedium, 11, 0, INK, true);
             text("电量 " + (data.battery < 0 ? "—" : data.battery + "%") + (data.charging ? " · 充电中" : ""), 35, 661, 170);
-            if (data.wechat >= 0) {
-                textRight(data.wechat > 0 ? "微信 " + data.wechat + " 条新消息" : "暂无新消息", 325, 661, 140);
+            if (data.notifications >= 0) {
+                textRight(notificationText(), 325, 661, 140);
             }
         }
         font(sSansMedium, 12, .12f, INK, true);
@@ -307,6 +307,11 @@ final class LockCanvas extends View {
 
     private String batteryText() {
         return data.battery < 0 ? "—" : String.valueOf(data.battery);
+    }
+
+    private String notificationText() {
+        return data.notifications < 0 ? "—" : data.notifications > 0
+                ? data.notificationLabel + " " + data.notifications + " 条" : "暂无通知";
     }
 
     private boolean hasWeather() {
@@ -364,9 +369,9 @@ final class LockCanvas extends View {
             font(sSerif, 22, 0, INK, true);
             String battery = data.battery < 0 ? "—" : data.battery + "%";
             textBase(battery + (data.charging ? " · 充电中" : ""), L, gy + 52, CW - 150);
-            if (data.wechat > 0) {
+            if (data.notifications > 0) {
                 font(sSerif, 14, 0, INK, true);
-                textRight("微信 " + data.wechat + " 条新消息", R, gy + 52, 160);
+                textRight(notificationText(), R, gy + 52, 160);
             }
         }
 
@@ -389,15 +394,15 @@ final class LockCanvas extends View {
             paragraph(data.subText, L, py + 50 + ph + 8, CW, 1.5f, 3);
         }
 
-        // 底部：微信提醒条 + 上滑解锁
+        // 底部：通知提醒条 + 上滑解锁
         float hintTop = 671;
-        if (data.wechat > 0) {
+        if (data.notifications > 0) {
             rect(L, 613, CW, 42, INK);
             font(sSerifBold, 14, 0, PAPER, true);
-            float w = textBase("微信", L + 14, 639, 0);
+            float w = textBase(data.notificationLabel, L + 14, 639, 0);
             font(sSerif, 14, 0, PAPER, true);
-            textBase("　" + data.wechat + " 条新消息", L + 14 + w, 639, CW - 40);
-        } else if (data.wechat == 0) {
+            textBase("　" + data.notifications + " 条", L + 14 + w, 639, CW - 40);
+        } else if (data.notifications == 0) {
             frame(L, 613, CW, 42, 1);
             font(sSerif, 14, 0, INK, true);
             textBase("暂无新消息", L + 14, 639, 0);
@@ -446,14 +451,13 @@ final class LockCanvas extends View {
         float by = 411;
         float ny;
         if (hasWeather()) {
-            rect(L, by, CW, 84, INK);
             boolean range = data.high != null && data.low != null;
-            font(sSansBold, 10, 0.12f, PAPER, true);
+            font(sSansBold, 10, 0.12f, INK, true);
             text("WEATHER", L + 16, by + 14, 0);
             text(range ? "HI / LO" : "TEMP", L + 164, by + 14, 0);
-            font(sSansMedium, 28, 0, PAPER, true);
+            font(sSansMedium, 28, 0, INK, true);
             text(dash(data.weather), L + 16, by + 32, 140);
-            font(sHeavy, 28, -0.03f, PAPER, true);
+            font(sHeavy, 28, -0.03f, INK, true);
             text(range ? strip(data.high) + " / " + strip(data.low) : dash(data.temperature), L + 164, by + 32, 140);
             ny = 517;
         } else {
@@ -480,9 +484,9 @@ final class LockCanvas extends View {
         // 底部数据行
         float fy = 640;
         rect(L, fy, CW, 4, INK);
-        String[] nums = {batteryText(), data.wechat < 0 ? "—" : String.valueOf(data.wechat),
+        String[] nums = {batteryText(), data.notifications < 0 ? "—" : String.valueOf(data.notifications),
                 String.valueOf(data.now.get(Calendar.WEEK_OF_YEAR))};
-        String[] labels = {"电量 %", "微信", "第几周"};
+        String[] labels = {"电量 %", data.notificationLabel, "第几周"};
         for (int i = 0; i < 3; i++) {
             float x = L + i * (COL + GAP);
             font(sHeavy, 30, -0.04f, INK, true);
@@ -570,7 +574,7 @@ final class LockCanvas extends View {
             }
         }
 
-        // 窗口 3：电量 / 微信
+        // 窗口 3：电量 / 通知
         float y3 = y2 + h2 + 22;
         window(X, y3, WW, 48, null);
         icon(ICON_BATTERY, IN - 2, y3 + 12, 1.5f, INK);
@@ -581,14 +585,14 @@ final class LockCanvas extends View {
             rect(IN - 2 + 3 * 1.5f, y3 + 12 + 6 * 1.5f, Math.round(inner / 1.5f) * 1.5f, 4 * 1.5f, INK);
         }
         pixText(batteryText() + "%", IN + 26, y3 + 19, 1.5f);
-        if (data.wechat >= 0) {
-            String n = String.valueOf(data.wechat);
+        if (data.notifications >= 0) {
+            String n = String.valueOf(data.notifications);
             float nw = pixWidth(n, 1.5f);
             pixText(n, IN + IW - nw, y3 + 19, 1.5f);
             font(sSans, 16, 0, INK, false);
-            float lw = tp.measureText("微信");
-            text("微信", IN + IW - nw - 6 - lw, y3 + 15, 0);
-            icon(ICON_WECHAT, IN + IW - nw - 6 - lw - 30, y3 + 12, 1.5f, INK);
+            float lw = tp.measureText(data.notificationLabel);
+            text(data.notificationLabel, IN + IW - nw - 6 - lw, y3 + 15, 0);
+            icon(ICON_NOTIFY, IN + IW - nw - 6 - lw - 30, y3 + 12, 1.5f, INK);
         }
 
         // 底部：滑动解锁
@@ -730,8 +734,8 @@ final class LockCanvas extends View {
     private static final String ICON_NOTE = "M6 2h8v2H6zM6 4h2v6H6zM12 4h2v4h-2zM3 10h5v4H3zM9 8h5v4H9z";
     private static final String ICON_QUOTE = "M2 4h5v5H5v3H2zM9 4h5v5h-2v3H9z";
     private static final String ICON_BATTERY = "M1 4h12v8H1zM2 5h10v6H2zM13 6h2v4h-2z";
-    private static final String ICON_WECHAT = "M1 1h9v6H4v1H3v1H2V7H1zM3 3h1v1H3zM7 3h1v1H7z"
-            + "M8 8h7v5h-1v2h-1v-1h-1v-1h-1v-1H8zM10 10h1v1h-1zM12 10h1v1h-1z";
+    private static final String ICON_NOTIFY = "M6 3h4v1h2v1h1v1h1v5h1v1H2v-1h1V6h1V5h1V4h2z"
+            + "M7 13h2v1H7z";
 
     private void icon(String d, float x, float y, float scale, int color) {
         Path path = parse(d);
