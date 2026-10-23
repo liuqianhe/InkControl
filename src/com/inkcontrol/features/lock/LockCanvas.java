@@ -22,13 +22,20 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * 墨水屏锁屏（编辑排版 / 瑞士网格 / 1-bit 像素 / 液态玻璃）的绘制器。
- * 按样张的 360 × 720 逻辑坐标作画，整体放大到实际尺寸（A5 为 720 × 1440，正好 2 倍）。
+ * 墨水屏锁屏（编辑排版 / 编辑排版-横 / 瑞士网格 / 1-bit 像素 / 液态玻璃）的绘制器。
+ * 竖版样式按样张的 360 × 720 逻辑坐标作画，整体放大到实际尺寸（A5 为 720 × 1440，正好 2 倍）。
+ * 「编辑排版-横」按 720 × 360 横版逻辑坐标作画，绘制时整体旋转 90° 铺满竖屏面板：
+ * 锁屏图本身就是横版画面（样张的「左大时间、右信息栏」构图，横转手机阅读）；
+ * 天气只占位不取数——无数据显示「天气占位」，原厂控件有数据时换为真实天气与气温。
  * 前三种以黑白图形为主；玻璃用 16 级灰阶材质，配合清晰全刷保留明暗层次。
  */
 final class LockCanvas extends View {
     static final int W = 360, H = 720;
+    /** 横版样式的逻辑画布：旋转 90° 后正好铺满 720×1440 竖屏面板 */
+    static final int LAND_W = 720, LAND_H = 360;
     private static final int INK = Color.BLACK, PAPER = Color.WHITE;
+    /** 次级文字（英文格言等）用的中灰，墨水屏 16 级灰阶下清晰可辨 */
+    private static final int GREY = Color.rgb(0x59, 0x59, 0x59);
 
     private static Typeface sSerif, sSerifBold, sSans, sSansMedium, sSansBold, sHeavy;
 
@@ -79,16 +86,28 @@ final class LockCanvas extends View {
 
     private void paint(Canvas canvas, int width, int height) {
         if (data == null || width <= 0 || height <= 0) return;
-        float s = Math.min(width / (float) W, height / (float) H);
+        boolean land = style == LockStyle.EDITORIAL_LAND;
+        float s = land ? Math.min(width / (float) LAND_H, height / (float) LAND_W)
+                : Math.min(width / (float) W, height / (float) H);
         canvas.drawColor(PAPER);
         canvas.save();
-        canvas.translate((width - W * s) / 2f, (height - H * s) / 2f);
-        canvas.scale(s, s);
+        if (land) {
+            // 横版画布旋转 90° 铺满竖屏面板：画布左沿（大时间）落到面板顶边，画布顶沿落到面板右边。
+            // 竖屏面板上即得样张的横版构图；阅读时把手机逆时针横转（或头偏向右侧）。
+            canvas.translate(width, 0);
+            canvas.rotate(90);
+            canvas.scale(s, s);
+            canvas.translate((height - LAND_W * s) / (2f * s), (width - LAND_H * s) / (2f * s));
+        } else {
+            canvas.translate((width - W * s) / 2f, (height - H * s) / 2f);
+            canvas.scale(s, s);
+        }
         c = canvas;
         try {
             if (style == LockStyle.GLASS) glass();
             else if (style == LockStyle.SWISS) swiss();
             else if (style == LockStyle.PIXEL) pixel();
+            else if (land) editorialLand();
             else editorial();
         } finally {
             c = null;
@@ -408,6 +427,104 @@ final class LockCanvas extends View {
         rect(L, hintTop, CW, 1, INK);
         font(sSerif, 11, 0.6f, INK, true);
         textCenter("上滑解锁", W / 2f, hintTop + 10);
+    }
+
+    // ───────────────────────── A' · 编辑排版-横（横版构图） ─────────────────────────
+
+    /**
+     * 编辑排版的横版：按 720×360 横版逻辑画布作画，paint() 里整体旋转 90° 铺满竖屏面板。
+     * 构图参照样张：左栏英文日期表头 / 中文日期 / 大号衬线时间 / 分隔线 / 中英格言，
+     * 右栏星期·节气 / 电池 / 天气 / 通知；右缘竖排「上滑解锁」提示。
+     * 天气只占位不取数：无数据时该区域留空，原厂控件有数据时显示天气与气温。
+     */
+    private void editorialLand() {
+        final float LX = 40, LW = 420;              // 左栏：日期表头 / 中文日期 / 大号时间 / 格言
+        final float RX = 496, RW = 204;             // 右栏：星期·节气 / 电池 / 天气 / 通知
+        final float R = RX + RW;                    // 右栏右沿 700
+
+        // ── 左栏顶：英文日期表头 + 第 X 日（日期相关全部归左栏）──
+        font(sSerif, 12, 0.14f, INK, true);
+        text(fmt("EEE · dd MMM yyyy").toUpperCase(Locale.US), LX, 30, LW - 76);
+        textRight("第 " + data.now.get(Calendar.DAY_OF_YEAR) + " 日", LX + LW, 30, RW);
+
+        // ── 左栏：中文日期 ──
+        font(sSerifBold, 36, 0, INK, true);
+        textBase(chineseDate(), LX, 84, LW);
+
+        // ── 左栏：大号时间（衬线体横向收窄铺满左栏，接近样张的瘦长比例）──
+        font(sSerif, 152, -0.03f, INK, true);
+        float tw = tp.measureText(time());
+        tp.setTextScaleX(Math.max(0.6f, Math.min(1f, LW / tw)));
+        c.drawText(time(), LX, 232, tp);
+        tp.setTextScaleX(1f);
+
+        // ── 左栏：时间下方分隔线 + 中英格言（左栏宽，格言不再挤在右栏）──
+        rect(LX, 254, LW, 1, INK);
+        float my = 278;
+        if (data.text != null) {
+            font(sSerifBold, 14, 0, INK, true);
+            my += paragraph(data.text, LX, my, LW, 1.5f, 2) + 6;
+        }
+        if (data.track != null) {
+            font(sSerif, 10, 0.04f, INK, true);
+            text("— " + data.track, LX, my, LW);
+        } else if (data.subText != null) {
+            font(sSerif, 9.5f, 0, GREY, true);
+            paragraph(data.subText, LX, my, LW, 1.35f, 2);
+        }
+
+        // ── 右栏顶：星期·节气 + 分隔线 ──
+        String sub = weekCn() + (almanac() == null ? "" : " · " + almanac());
+        font(sSerif, 15, 0, INK, true);
+        textBase(sub, RX, 32, RW);
+        rect(RX, 46, RW, 1, INK);
+
+        // ── 右栏：电池（一行式：标签左、数值右；标签放大到与数值相称）──
+        font(sSerif, 15, 0.2f, INK, true);
+        text("电池" + (data.charging ? " · 充电中" : ""), RX, 78, RW);
+        font(sSerifBold, 26, -0.02f, INK, true);
+        textRight(data.battery < 0 ? "—" : data.battery + "%", R, 82, RW);
+
+        // ── 右栏：天气（无数据时留空不显示；原厂控件有数据时显示天气与气温）──
+        if (hasWeather()) {
+            font(sSerif, 11, 0.2f, INK, true);
+            text("天气", RX, 118, RW);
+            font(sSerif, 16, 0, INK, true);
+            textBase(dash(data.weather), RX, 140, RW);
+            font(sSerif, 11, 0.2f, INK, true);
+            text("气温", RX, 164, RW);
+            font(sSerif, 16, 0, INK, true);
+            String temp = data.high != null ? data.high + " / " + data.low : dash(data.temperature);
+            textBase(temp, RX, 186, RW);
+        }
+
+        // ── 右栏底：通知框（白底细框黑字，不用黑底反白）──
+        final float boxY = 296;
+        if (data.notifications > 0) {
+            frame(RX, boxY, RW, 36, 1);
+            font(sSerifBold, 13, 0, INK, true);
+            float w = textBase(data.notificationLabel, RX + 14, boxY + 24, 0);
+            font(sSerif, 13, 0, INK, true);
+            textBase("　" + data.notifications + " 条", RX + 14 + w, boxY + 24, RW - 28);
+        } else if (data.notifications == 0) {
+            frame(RX, boxY, RW, 36, 1);
+            font(sSerif, 13, 0, INK, true);
+            textBase("暂无新消息", RX + 14, boxY + 24, 0);
+        }
+
+        // ── 右缘：竖排「上滑解锁」提示（横握设备时从屏幕长边滑动解锁）──
+        final float VX = 698;
+        font(sSerif, 13, 0, INK, true);
+        text("\u2190", VX, 136f, 0f);       // ←
+        textVertical("上滑解锁", VX, 160, 17);
+        text("\u2190", VX, 236f, 0f);       // ←
+    }
+
+    /** 竖排文字：逐字自上而下绘制。 */
+    private void textVertical(String s, float x, float top, float step) {
+        for (int i = 0; i < s.length(); i++) {
+            c.drawText(s, i, i + 1, x, top + i * step, tp);
+        }
     }
 
     // ───────────────────────── B · 瑞士网格 ─────────────────────────

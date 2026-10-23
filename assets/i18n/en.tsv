@@ -443,11 +443,13 @@ GPU 显示后端	GPU display backend
 保留动画，但时长减半。	Keep animations with half the duration.
 原时长	Original duration
 与原厂相同。	Same as stock.
-四套专为墨水屏设计的锁屏	Four lock-screen styles designed for e-ink
+五套专为墨水屏设计的锁屏	Five lock-screen styles designed for e-ink
 替换原厂锁屏画面，显示时间、日期、天气和正在播放的音乐。	Replace the stock lock screen with time, date, weather, and currently playing music.
 关闭后恢复你在系统设置里选的原厂锁屏样式。	Disabling restores the stock style selected in system settings.
 液态玻璃	Liquid glass
 纸纹波浪背景上浮起玻璃质感卡片。	Glass-like cards over a textured paper wave background.
+编辑排版-横	Editorial Landscape
+样张同款横版构图：左栏日期、大号时间与格言，右栏星期/电池/天气/通知，横转手机即可阅读。天气位置已预留，原厂有天气数据时自动显示。	Landscape layout from the reference: date, large time and quote on the left; weekday / battery / weather / notifications on the right; turn the phone sideways to read it. The weather area is reserved and shows real data when the stock widget has it.
 编辑排版	Editorial
 杂志式衬线大字，像一页报纸。	Large serif type in a magazine-like layout.
 瑞士网格	Swiss grid
@@ -631,7 +633,7 @@ GPU 显示后端每帧都要查询 GPU 程序参数的位置，开启后把结�
 关闭动画,半速时长,原时长	Disable animations,Half duration,Original duration
 自定义锁屏	Custom lock screen
 关闭时恢复有效的原厂样式	Restore a valid stock style when disabled
-编辑排版,瑞士网格,像素,液态玻璃	Editorial,Swiss grid,Pixel,Liquid glass
+编辑排版,瑞士网格,像素,液态玻璃,编辑排版-横	Editorial,Swiss grid,Pixel,Liquid glass,Editorial Landscape
 锁屏天气	Lock-screen weather
 使用原厂已有天气数据	Use existing stock weather data
 锁屏通知来源	Lock-screen notification source

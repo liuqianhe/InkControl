@@ -181,7 +181,7 @@ final class SystemLockStyles {
                 int style = intent.getIntExtra("style", -1);
                 boolean sample = intent.getBooleanExtra("sample", false);
                 int[] styles = style >= 0 ? new int[]{style}
-                        : new int[]{LockStyle.EDITORIAL, LockStyle.SWISS, LockStyle.PIXEL, LockStyle.GLASS};
+                        : new int[]{LockStyle.EDITORIAL, LockStyle.SWISS, LockStyle.PIXEL, LockStyle.GLASS, LockStyle.EDITORIAL_LAND};
                 for (int s : styles) {
                     try {
                         LockData data = sample ? LockData.sample() : LockData.live(context, controller);

@@ -60,6 +60,10 @@ public class Hook implements IXposedHookLoadPackage {
     private static boolean sHadVisual;
 
     private static int getSetting(String key, int def) {
+        // 调试开关不在功能配置里，直接读 Settings.Global（settings put global einklyric_debug_capture 1）
+        if ("einklyric_debug_capture".equals(key)) {
+            return sContext == null ? def : Settings.Global.getInt(sContext.getContentResolver(), key, def);
+        }
         return LockSettings.read(key, def);
     }
 

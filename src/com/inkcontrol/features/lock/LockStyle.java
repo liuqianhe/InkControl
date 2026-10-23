@@ -10,15 +10,15 @@ import android.provider.Settings;
  */
 final class LockStyle {
     static final String KEY = "eink_keyguard_style";
-    static final int EDITORIAL = 5, SWISS = 6, PIXEL = 7, GLASS = 8;
+    static final int EDITORIAL = 5, SWISS = 6, PIXEL = 7, GLASS = 8, EDITORIAL_LAND = 9;
     static final String[] NAMES = {"壁纸", "艺术", "单词", "诗词", "大字时钟",
-            "编辑排版", "瑞士网格", "1-bit 像素", "液态玻璃"};
+            "编辑排版", "瑞士网格", "1-bit 像素", "液态玻璃", "编辑排版-横"};
 
     static int read(Context context) {
         return Settings.Global.getInt(context.getContentResolver(), KEY, 0);
     }
 
     static boolean custom(int style) {
-        return RuntimeConfig.enabled("lock.style") && style >= EDITORIAL && style <= GLASS;
+        return RuntimeConfig.enabled("lock.style") && style >= EDITORIAL && style <= EDITORIAL_LAND;
     }
 }
