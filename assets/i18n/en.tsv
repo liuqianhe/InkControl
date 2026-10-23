@@ -449,7 +449,7 @@ GPU 显示后端	GPU display backend
 液态玻璃	Liquid glass
 纸纹波浪背景上浮起玻璃质感卡片。	Glass-like cards over a textured paper wave background.
 编辑排版-横	Editorial Landscape
-样张同款横版构图：左栏日期、大号时间与格言，右栏星期/电池/天气/通知，横转手机即可阅读。天气位置已预留，原厂有天气数据时自动显示。	Landscape layout from the reference: date, large time and quote on the left; weekday / battery / weather / notifications on the right; turn the phone sideways to read it. The weather area is reserved and shows real data when the stock widget has it.
+样张同款横版构图：顶部「第 N 日｜中文日期·星期｜农历｜农历日期」表头，左上电池（天气占位在其下方），中右大号时间与等长下划线，左下格言与右下通知；横转手机阅读。天气有数据时自动显示。	Landscape layout from the reference: header with day-of-year / Chinese date·weekday / lunar / lunar date on top, battery top-left (weather slot below it), large time display center-right with a matching underline, quote bottom-left and notifications bottom-right; turn the phone sideways to read it. Weather appears automatically when data is available.
 编辑排版	Editorial
 杂志式衬线大字，像一页报纸。	Large serif type in a magazine-like layout.
 瑞士网格	Swiss grid

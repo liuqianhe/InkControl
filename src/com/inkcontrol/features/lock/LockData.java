@@ -34,6 +34,9 @@ final class LockData {
     String lunar, festival;
     /** 锁屏通知数；锁屏关闭通知显示或暂时取不到时为 -1 */
     int notifications = -1;
+    /** 倒数日目标日期（"yyyy-MM-dd"）；未设置时为 null，锁屏不显示倒数日。
+     *  预留字段：后期在「锁屏自定义」中加入开关与日期设置方法后写入。 */
+    String countdownDate;
     /** 通知来源名称：系统通知为“通知”，兼容微信来源时为“微信” */
     String notificationLabel = "通知";
     /** 正在播放：歌词（没有歌词时用曲名），否则是格言 */
@@ -181,6 +184,7 @@ final class LockData {
         d.high = "18°";
         d.low = "12°";
         d.lunar = "九月初一";
+        d.countdownDate = "2026-10-31";   // 样张预览：倒数日占位（实机 live() 不设置，留待后期开关）
         d.notifications = 3;
         d.playing = true;
         d.text = "把今天折好，放进明天的口袋。";
