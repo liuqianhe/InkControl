@@ -1,5 +1,6 @@
 package com.inkcontrol.features.lock;
 
+import com.inkcontrol.core.FeatureDefinition;
 import com.inkcontrol.shared.WeatherIcon;
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -25,8 +26,9 @@ import java.util.Map;
  * 墨水屏锁屏（编辑排版 / 编辑排版-横 / 瑞士网格 / 1-bit 像素 / 液态玻璃）的绘制器。
  * 竖版样式按样张的 360 × 720 逻辑坐标作画，整体放大到实际尺寸（A5 为 720 × 1440，正好 2 倍）。
  * 「编辑排版-横」按 720 × 360 横版逻辑坐标作画，绘制时整体旋转 90° 铺满竖屏面板：
- * 锁屏图本身就是横版画面（样张的「左大时间、右信息栏」构图，横转手机阅读）；
- * 天气只占位不取数——无数据显示「天气占位」，原厂控件有数据时换为真实天气与气温。
+ * 锁屏图本身就是横版画面（顶部合并日期表头 / 左上电池与天气位 / 左下格言与通知 /
+ * 最右侧大号时间，横转手机阅读）；
+ * 天气只占位不取数——无数据时该区域留空，原厂控件有数据时换为真实天气与气温。
  * 前三种以黑白图形为主；玻璃用 16 级灰阶材质，配合清晰全刷保留明暗层次。
  */
 final class LockCanvas extends View {
@@ -179,6 +181,18 @@ final class LockCanvas extends View {
         // 字间距会在末尾多留一个间距，居中时扣掉
         float w = tp.measureText(s) - tp.getLetterSpacing() * tp.getTextSize();
         text(s, cx - w / 2f, top, 0);
+    }
+
+    /** 居中绘制，超宽时按 maxW 等比压缩（倒数日长事项名自适应框宽）。top 为字身顶（与 text 一致）。 */
+    private void textCenterFit(String s, float cx, float top, float maxW) {
+        if (s == null || s.isEmpty()) return;
+        float w = tp.measureText(s) - tp.getLetterSpacing() * tp.getTextSize();
+        if (maxW > 0 && w > maxW) {
+            tp.setTextScaleX(maxW / w);
+            w = maxW;
+        }
+        c.drawText(s, cx - w / 2f, top - tp.ascent(), tp);
+        tp.setTextScaleX(1f);
     }
 
     /** 多行段落，lineHeight 为 CSS 式的行高（倍数）。返回高度 */
@@ -433,97 +447,163 @@ final class LockCanvas extends View {
 
     /**
      * 编辑排版的横版：按 720×360 横版逻辑画布作画，paint() 里整体旋转 90° 铺满竖屏面板。
-     * 构图参照样张：左栏英文日期表头 / 中文日期 / 大号衬线时间 / 分隔线 / 中英格言，
-     * 右栏星期·节气 / 电池 / 天气 / 通知；右缘竖排「上滑解锁」提示。
-     * 天气只占位不取数：无数据时该区域留空，原厂控件有数据时显示天气与气温。
+     * 构图（2026-10-24 三次样张重排）：顶部表头「第N日 | 中文日期·星期 | 农历 | 农历日期」+
+     * 上划线；左上电池，天气占位在电池正下方（只占位不取数）；中右大号横版时间（不旋转，
+     * 基线 y=250、不贴上划线）+ 等长下划线；时间右侧倒数日框（横排标签在框子上方，事项+日期
+     * 最多 3 组，整体按框 Y 中心居中，框收窄）；格言（中英加粗）与通知框（外框收窄）整体
+     * 下沉至下划线下方；右缘竖排「上滑解锁」（整体居 Y 中心 180，表针 ← 朝左、加粗；指示
+     * 物理底边滑动区）。
+     * 天气/倒数日只占位不取数：无数据时区域留空不绘制任何文字。
      */
     private void editorialLand() {
-        final float LX = 40, LW = 420;              // 左栏：日期表头 / 中文日期 / 大号时间 / 格言
-        final float RX = 496, RW = 204;             // 右栏：星期·节气 / 电池 / 天气 / 通知
-        final float R = RX + RW;                    // 右栏右沿 700
+        final float LX = 40;                      // 左栏左沿（表头 / 电池 / 格言均锚定此列）
+        final float QW = 380;                     // 格言栏宽（x 40-420）
+        final float BX = 430;                        // 通知框左沿（右下，与格言栏右端 420 错开）
 
-        // ── 左栏顶：英文日期表头 + 第 X 日（日期相关全部归左栏）──
-        font(sSerif, 12, 0.14f, INK, true);
-        text(fmt("EEE · dd MMM yyyy").toUpperCase(Locale.US), LX, 30, LW - 76);
-        textRight("第 " + data.now.get(Calendar.DAY_OF_YEAR) + " 日", LX + LW, 30, RW);
+        // ── 顶部：合并表头（第N日 | 中文日期·星期 | 农历 | 农历日期；y 参考样张 ≈60）──
+        // 「|」小间隔分隔；农历日期缺失时只保留「第 N 日 | 中文日期·星期」。
+        String head = "第" + data.now.get(Calendar.DAY_OF_YEAR) + "日 | " + chineseDate() + "·" + weekCn();
+        if (almanac() != null) head += " | 农历 | " + almanac();
+        font(sSerif, 26, 0.04f, INK, true);
+        float hw = textBase(head, LX, 60, 640);
+        rect(LX, 70, hw, 1, INK);
 
-        // ── 左栏：中文日期 ──
-        font(sSerifBold, 36, 0, INK, true);
-        textBase(chineseDate(), LX, 84, LW);
-
-        // ── 左栏：大号时间（衬线体横向收窄铺满左栏，接近样张的瘦长比例）──
-        font(sSerif, 152, -0.03f, INK, true);
-        float tw = tp.measureText(time());
-        tp.setTextScaleX(Math.max(0.6f, Math.min(1f, LW / tw)));
-        c.drawText(time(), LX, 232, tp);
-        tp.setTextScaleX(1f);
-
-        // ── 左栏：时间下方分隔线 + 中英格言（左栏宽，格言不再挤在右栏）──
-        rect(LX, 254, LW, 1, INK);
-        float my = 278;
-        if (data.text != null) {
-            font(sSerifBold, 14, 0, INK, true);
-            my += paragraph(data.text, LX, my, LW, 1.5f, 2) + 6;
-        }
-        if (data.track != null) {
-            font(sSerif, 10, 0.04f, INK, true);
-            text("— " + data.track, LX, my, LW);
-        } else if (data.subText != null) {
-            font(sSerif, 9.5f, 0, GREY, true);
-            paragraph(data.subText, LX, my, LW, 1.35f, 2);
-        }
-
-        // ── 右栏顶：星期·节气 + 分隔线 ──
-        String sub = weekCn() + (almanac() == null ? "" : " · " + almanac());
-        font(sSerif, 15, 0, INK, true);
-        textBase(sub, RX, 32, RW);
-        rect(RX, 46, RW, 1, INK);
-
-        // ── 右栏：电池（一行式：标签左、数值右；标签放大到与数值相称）──
-        font(sSerif, 15, 0.2f, INK, true);
-        text("电池" + (data.charging ? " · 充电中" : ""), RX, 78, RW);
+        // ── 左上：电池（y 参考样张 ≈96；标签与数值同字号同基线，间距压到 1/3）──
+        // 注意：textBase 的 y 是基线；标签锚定左栏左沿 LX，数值随标签近距排布；
+        // 充电中等长文案放不下时压缩标签，保证数值不越过天气区起点（BATT_R）。
+        String label = "电池" + (data.charging ? " · 充电中" : "");
+        String val = data.battery < 0 ? "—" : data.battery + "%";
+        final float BATT_R = 240f;                 // 电池行右界（天气区起点前）
         font(sSerifBold, 26, -0.02f, INK, true);
-        textRight(data.battery < 0 ? "—" : data.battery + "%", R, 82, RW);
+        float vw = tp.measureText(val);
+        font(sSerif, 26, 0.1f, INK, true);
+        float labelW = tp.measureText(label);
+        float gap = Math.max(6f, (BATT_R - vw - (LX + labelW)) / 3f);
+        float labelMax = BATT_R - vw - gap - LX;
+        textBase(label, LX, 96, labelW > labelMax ? labelMax : 0);
+        font(sSerifBold, 26, -0.02f, INK, true);
+        textBase(val, LX + Math.min(labelW, labelMax) + gap, 96, 0);
 
-        // ── 右栏：天气（无数据时留空不显示；原厂控件有数据时显示天气与气温）──
+        // ── 电池正下方：天气位（只占位不取数；无数据时不绘制任何文字）──
+        // 与电池左对齐（x=LX）垂直堆叠，右侧让位给大号时间区（x≥200）。
         if (hasWeather()) {
             font(sSerif, 11, 0.2f, INK, true);
-            text("天气", RX, 118, RW);
+            text("天气", LX, 116, 120);
             font(sSerif, 16, 0, INK, true);
-            textBase(dash(data.weather), RX, 140, RW);
+            textBase(dash(data.weather), LX, 140, 120);
             font(sSerif, 11, 0.2f, INK, true);
-            text("气温", RX, 164, RW);
+            text("气温", LX, 162, 120);
             font(sSerif, 16, 0, INK, true);
             String temp = data.high != null ? data.high + " / " + data.low : dash(data.temperature);
-            textBase(temp, RX, 186, RW);
+            textBase(temp, LX, 186, 120);
         }
 
-        // ── 右栏底：通知框（白底细框黑字，不用黑底反白）──
-        final float boxY = 296;
+        // ── 左下：中英格言（整体下沉；中文加粗，英文同电池数据加黑加粗）──
+        float my = 282;
+        if (data.text != null) {
+            font(sSerifBold, 16, 0, INK, true);
+            my += paragraph(data.text, LX, my, QW, 1.5f, 2) + 6;
+        }
+        if (data.track != null) {
+            font(sSerifBold, 12, 0.04f, INK, true);
+            text("— " + data.track, LX, my, QW);
+        } else if (data.subText != null) {
+            font(sSerifBold, 10.5f, 0, INK, true);
+            paragraph(data.subText, LX, my, QW, 1.35f, 2);
+        }
+
+        // ── 通知框（外框收窄；随格言下沉；顶框与格言文字顶齐平；白底细框黑字）──
+        final float BH = 40;
+        final float BW = 118;                          // 外框收窄（原 130）
+        final float boxY = 285;                        // 格言首行墨迹顶≈285（块顶 282+3，再下沉）
         if (data.notifications > 0) {
-            frame(RX, boxY, RW, 36, 1);
-            font(sSerifBold, 13, 0, INK, true);
-            float w = textBase(data.notificationLabel, RX + 14, boxY + 24, 0);
-            font(sSerif, 13, 0, INK, true);
-            textBase("　" + data.notifications + " 条", RX + 14 + w, boxY + 24, RW - 28);
+            frame(BX, boxY, BW, BH, 1);
+            font(sSerifBold, 17, 0, INK, true);
+            float w = textBase(data.notificationLabel, BX + 14, boxY + 26, 0);
+            font(sSerif, 17, 0, INK, true);
+            textBase("　" + data.notifications + " 条", BX + 14 + w, boxY + 26, BW - 28);
         } else if (data.notifications == 0) {
-            frame(RX, boxY, RW, 36, 1);
-            font(sSerif, 13, 0, INK, true);
-            textBase("暂无新消息", RX + 14, boxY + 24, 0);
+            frame(BX, boxY, BW, BH, 1);
+            font(sSerif, 17, 0, INK, true);
+            textBase("暂无新消息", BX + 14, boxY + 26, 0);
         }
 
-        // ── 右缘：竖排「上滑解锁」提示（横握设备时从屏幕长边滑动解锁）──
-        final float VX = 698;
-        font(sSerif, 13, 0, INK, true);
-        text("\u2190", VX, 136f, 0f);       // ←
-        textVertical("上滑解锁", VX, 160, 17);
-        text("\u2190", VX, 236f, 0f);       // ←
+        // ── 中右部：大号时间（三次样张：整体下沉，不贴上划线）──
+        // 样张构图：时间居中偏右（x 200-550）、基线 y=250；字号 220 时字形带 y≈105-250，
+        // 与表头上划线（y=70）保持约 35px 间距，不顶线；右缘 694 留给解锁提示。
+        final float TX0 = 200, TW = 350;           // 时间区 x 200-550
+        final float TBASE = 250f;                   // 基线（样张时间基线，下沉后）
+        font(sSerif, 220, -0.03f, INK, true);
+        String t = time();
+        float tAdv = tp.measureText(t);
+        float tScale = Math.max(0.55f, Math.min(1f, TW / tAdv));
+        tp.setTextScaleX(tScale);
+        c.drawText(t, TX0, TBASE, tp);
+        tp.setTextScaleX(1f);
+        // 时间下方下划线：与时间同长（同起点、同宽）
+        rect(TX0, 260, tAdv * tScale, 1, INK);
+
+        // ── 时间右侧：倒数日框（事项+日期，最多 3 组；框收窄）──
+        // 横排「倒数日」标签置于框子上方（居中于框 X 中心）；框内每组两行（事项名 / 剩 N 日），
+        // 事项为空只画天数行；整体按框 Y 轴中心居中：1 组居中，2/3 组以固定组间距排布后整体居中。
+        if (data.countdowns != null && !data.countdowns.isEmpty()) {
+            final float FX = 580, FW = 84;            // 框 x 580-664（收窄）
+            final float FY = 112, FH = 144;           // 框 y 112-256
+            frame(FX, FY, FW, FH, 1);
+            float cx = FX + FW / 2f;
+            font(sSerifBold, 15, 0, INK, true);
+            textCenter("倒数日", cx, 86);              // 横排标签在框子上方
+            int n = Math.min(data.countdowns.size(), FeatureDefinition.COUNTDOWNS_MAX);
+            final float lineH = 17, gapIn = 3;        // 组内行高、行距
+            final float pairH = lineH * 2 + gapIn;    // 一组（两行）的高度
+            final float gapGroup = n >= 3 ? 10 : 16;  // 组间距
+            float top = FY + (FH - (n * pairH + (n - 1) * gapGroup)) / 2f;   // 整体垂直居中
+            for (int i = 0; i < n; i++) {
+                String item = data.countdowns.get(i)[0];
+                String date = data.countdowns.get(i)[1];
+                long days = daysUntil(date);
+                String left = (days >= 0 ? "剩 " : "过 ") + Math.abs(days) + " 日";
+                if (!item.isEmpty()) {
+                    font(sSerifBold, 15, 0, INK, true);
+                    textCenterFit(item, cx, top, FW - 10);
+                    font(sSerif, 13, 0, INK, true);
+                    textCenterFit(left, cx, top + lineH + gapIn, FW - 10);
+                } else {
+                    font(sSerif, 13, 0, INK, true);
+                    textCenterFit(left, cx, top + (lineH - 13) / 2f + 2, FW - 10);
+                }
+                top += pairH + gapGroup;
+            }
+        }
+
+        // ── 右缘：竖排「上滑解锁」提示（整体居于横版画布 Y 中心 180；表针 ← 朝左，与文字同向加粗）──
+        // 实测墨迹带 y≈133-227，中心 180（箭头字形在字身框内居中，故比字顶参数低约 6px）
+        final float VX = 694;
+        font(sSerifBold, 16, 0, INK, true);
+        text("\u2190", VX, 123f, 0f);       // ←（上表针）
+        textVertical("上滑解锁", VX, 141, 18);
+        text("\u2190", VX, 213f, 0f);       // ←（下表针）
     }
 
-    /** 竖排文字：逐字自上而下绘制。 */
+    /**
+     * 倒数日天数差：距目标阳历日（yyyy-MM-dd）还有几天，负值表示已过。
+     * 农历倒数计时扩展点：先把农历目标日换算为当年阳历日期，再走同一套差值计算。
+     */
+    private long daysUntil(String iso) {
+        Calendar target = FeatureDefinition.parseDate(iso);
+        if (target == null) return 0;
+        Calendar today = (Calendar) data.now.clone();
+        today.set(Calendar.HOUR_OF_DAY, 0);
+        today.set(Calendar.MINUTE, 0);
+        today.set(Calendar.SECOND, 0);
+        today.set(Calendar.MILLISECOND, 0);
+        return (target.getTimeInMillis() - today.getTimeInMillis()) / 86400000L;
+    }
+
+    /** 竖排文字：逐字自上而下绘制。top 为字身顶端（与 text() 一致，避免与箭头混用时间距不均）。 */
     private void textVertical(String s, float x, float top, float step) {
         for (int i = 0; i < s.length(); i++) {
-            c.drawText(s, i, i + 1, x, top + i * step, tp);
+            c.drawText(s, i, i + 1, x, top + i * step - tp.ascent(), tp);
         }
     }
 

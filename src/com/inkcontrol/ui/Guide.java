@@ -85,8 +85,10 @@ final class Guide {
                 {"总开关", "refresh.master"}, {"触发方式", "refresh.touch", "refresh.key", "refresh.reading"},
                 {"节奏", "refresh.interval", "refresh.debounce", "refresh.delay", "refresh.period"},
                 {"应用名单", "refresh.apps"}});
-        cat("锁屏", "锁屏样式、天气、通知、歌词，以及锁屏时用哪种刷新方式。", new String[][]{
-                {"样式", "lock.style", "lock.weather"}, {"通知", "lock.notify"}, {"歌词", "lock.lyric", "lock.statusbar", "lock.lyricmode"},
+        cat("锁屏", "锁屏样式、天气、通知、倒数日、歌词，以及锁屏时用哪种刷新方式。", new String[][]{
+                {"样式", "lock.style", "lock.weather"}, {"通知", "lock.notify"},
+                {"倒数日", "lock.countdown", "lock.countdowns"},
+                {"歌词", "lock.lyric", "lock.statusbar", "lock.lyricmode"},
                 {"锁屏刷新", "lock.first", "lock.update", "lock.delay", "lock.dither"}});
         cat("体感", "用手掌或物体遮挡屏幕顶部的近距离传感器，锁屏下自动息屏；移开后唤醒并尝试退出锁屏。需要系统无障碍中启用「墨控体感」服务。", new String[][]{
                 {"总开关", "wave.master"},
@@ -129,7 +131,9 @@ final class Guide {
 
     /** 自定义数值的单位：合并间隔按毫秒，其余（触发次数）按次。 */
     static String numberUnit(com.inkcontrol.core.FeatureDefinition f) {
-        return f.id.equals("refresh.debounce") ? " 毫秒" : " 次";
+        if (f.id.equals("refresh.debounce")) return " 毫秒";
+        if (f.id.equals("refresh.period")) return " 分钟";
+        return " 次";
     }
 
     private static final String SCENE_COMMON = "选「瞬间切换」以外的效果后，这个场景就不再是原厂的直接跳变。波形类效果（墨迹、网点、扫描线、百叶窗）需要先开启 GPU 显示后端。";
@@ -242,12 +246,16 @@ final class Guide {
 
         put("lock.style").summary("五套专为墨水屏设计的锁屏").what("替换原厂锁屏画面，显示时间、日期、天气和正在播放的音乐。").cost("关闭后恢复你在系统设置里选的原厂锁屏样式。").visual(Visual.LOCK_STYLE)
                 .option("5", "编辑排版", "杂志式衬线大字，像一页报纸。").option("6", "瑞士网格", "严格网格与无衬线粗体，信息清晰。")
-                .option("7", "像素", "1-bit 像素字体和像素图标，复古掌机风格。").option("8", "液态玻璃", "纸纹波浪背景上浮起玻璃质感卡片。").option("9", "编辑排版-横", "样张同款横版构图：左栏日期、大号时间与格言，右栏星期/电池/天气/通知，横转手机即可阅读。天气位置已预留，原厂有天气数据时自动显示。");
+                .option("7", "像素", "1-bit 像素字体和像素图标，复古掌机风格。").option("8", "液态玻璃", "纸纹波浪背景上浮起玻璃质感卡片。").option("9", "编辑排版-横", "样张同款横版构图：顶部「第 N 日｜中文日期·星期｜农历｜农历日期」表头，左上电池（天气占位在其下方），中右大号时间与等长下划线，时间右侧倒数日框（事项倒数，最多三组），左下格言与右下通知；横转手机阅读。天气有数据时自动显示。");
         put("lock.weather").summary("在自定义锁屏上显示天气").what("在锁屏卡片上显示当前天气、温度和图标。数据来自原厂桌面已经下载的天气，墨控不额外联网。")
                 .option("default", "天气与图标", "");
         put("lock.notify").summary("锁屏显示系统通知数").what("统计当前可清除的系统通知，不再只显示微信未读。墨水屏通常不安装微信，默认使用系统通知数。")
                 .cost("关闭时仍显示系统通知数；打开后可切换到微信未读数。").option("system", "系统通知", "统计可清除的系统通知，不依赖微信。")
                 .option("wechat", "微信", "只统计微信未读消息，适合安装了微信的设备。");
+        put("lock.countdown").summary("锁屏显示事项倒数日").what("在自定义锁屏时间右侧的框里显示倒数日：最多三个，每组一个事项和日期。事项名可留空；日期为空该组停用。多个按日期先后排列，整体在框里垂直居中。")
+                .cost("关闭后不显示倒数日框；已保存的事项和日期仍保留。").option("default", "显示倒数日", "");
+        put("lock.countdowns").summary("编辑倒数日的事项和日期").what("最多三个倒数日。事项名可留空；日期为空该组停用。日期使用公历，暂不支持农历倒数。")
+                .option("@countdowns", "编辑事项", "每组一个事项和日期，点按上方编辑器修改。");
         put("lock.lyric").summary("锁屏和息屏画面显示当前一句歌词").what("播放音乐时，在锁屏画面和息屏显示区显示当前这一句歌词，随播放逐句更新。支持在媒体信息里带歌词的播放器，以及 Lyric Getter。")
                 .cost("每换一句歌词都要刷新一次锁屏，刷新方式见“歌词的刷新方式”。").option("default", "显示歌词", "");
         put("lock.statusbar").summary("状态栏左侧滚动显示歌词").what("播放音乐时，在状态栏左侧显示当前歌词。停止播放或关闭本项后，通知图标恢复显示。").option("default", "显示歌词", "");
@@ -323,7 +331,9 @@ final class Guide {
                 .note("白名单与黑名单各自保存，互不影响。名单以包名保存，卸载或停用应用后条目会保留，可再次进入列表取消勾选。")
                 .option(com.inkcontrol.core.FeatureDefinition.APPS_TOKEN, "黑白名单", "");
         put("refresh.period").summary("每隔一段时间自动刷新一次").what("无论是否操作，每隔这段时间主动刷新一次屏幕，适合长时间静止显示。")
-                .option("300", "5分钟", "默认。").option("60", "1分钟", "每分钟刷新一次。").option("600", "10分钟", "").option("1800", "30分钟", "最省电。");
+                .cost("关闭独立开关后不再周期刷新。")
+                .option("60", "1分钟", "默认。").option("300", "5分钟", "").option("600", "10分钟", "").option("1800", "30分钟", "最省电。")
+                .option(com.inkcontrol.core.FeatureDefinition.NUMBER_TOKEN, "自定义", "手动输入 1–999 之间的分钟数。");
 
         put("wave.master").summary("遮挡传感器息屏、移开唤醒").what("海信 A5 Pro 官方没有这个功能。开启后，墨控在系统无障碍中监听近距离（覆盖）传感器：屏幕被手掌或物体持续遮挡时锁定并关闭屏幕；遮挡结束（移出口袋、移开手掌）后点亮屏幕并尝试退出锁屏。")
                 .cost("需要系统无障碍中启用「墨控体感」服务；安全锁屏（PIN、图案、密码）无法在无 root、无设备管理员的情况下绕过，只能亮屏、不能自动退锁屏。").option("default", "启用体感", "").term("近距离传感器");

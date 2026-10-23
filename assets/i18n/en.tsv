@@ -449,7 +449,7 @@ GPU 显示后端	GPU display backend
 液态玻璃	Liquid glass
 纸纹波浪背景上浮起玻璃质感卡片。	Glass-like cards over a textured paper wave background.
 编辑排版-横	Editorial Landscape
-样张同款横版构图：左栏日期、大号时间与格言，右栏星期/电池/天气/通知，横转手机即可阅读。天气位置已预留，原厂有天气数据时自动显示。	Landscape layout from the reference: date, large time and quote on the left; weekday / battery / weather / notifications on the right; turn the phone sideways to read it. The weather area is reserved and shows real data when the stock widget has it.
+样张同款横版构图：顶部「第 N 日｜中文日期·星期｜农历｜农历日期」表头，左上电池（天气占位在其下方），中右大号时间与等长下划线，时间右侧倒数日框（事项倒数，最多三组），左下格言与右下通知；横转手机阅读。天气有数据时自动显示。	Landscape layout from the reference: header with day-of-year / Chinese date·weekday / lunar / lunar date on top, battery top-left (weather slot below it), large time display center-right with a matching underline, countdown box right of the time (up to three items), quote bottom-left and notifications bottom-right; turn the phone sideways to read it. Weather appears automatically when data is available.
 编辑排版	Editorial
 杂志式衬线大字，像一页报纸。	Large serif type in a magazine-like layout.
 瑞士网格	Swiss grid
@@ -640,7 +640,25 @@ GPU 显示后端每帧都要查询 GPU 程序参数的位置，开启后把结�
 默认统计系统通知，可切换到微信未读数	Counts system notifications by default; can switch to the WeChat unread count
 系统通知,微信	System notifications,WeChat
 锁屏样式、天气、通知、歌词，以及锁屏时用哪种刷新方式。	Lock-screen style, weather, notifications, lyrics, and refresh mode while locked.
+锁屏样式、天气、通知、倒数日、歌词，以及锁屏时用哪种刷新方式。	Lock-screen style, weather, notifications, countdowns, lyrics, and refresh mode while locked.
 通知	Notifications
+倒数日	Countdowns
+锁屏倒数日	Lock-screen countdown
+锁屏右侧显示事项倒数，最多三个，事项名可留空	Show item countdowns on the lock screen: up to three, item names optional
+倒数日事项	Countdown items
+每组一个事项和日期；日期为空则该组停用	One item and one date per group; an empty date disables that group
+锁屏显示事项倒数日	Show item countdowns on the lock screen
+在自定义锁屏时间右侧的框里显示倒数日：最多三个，每组一个事项和日期。事项名可留空；日期为空该组停用。多个按日期先后排列，整体在框里垂直居中。	Show countdowns in a box to the right of the time on a custom lock screen: up to three, one item and date each. Item names are optional; an empty date disables that group. Multiple entries are ordered by date and vertically centered in the box.
+关闭后不显示倒数日框；已保存的事项和日期仍保留。	The countdown box is hidden when disabled; saved items and dates are kept.
+显示倒数日	Show countdowns
+编辑倒数日的事项和日期	Edit countdown items and dates
+最多三个倒数日。事项名可留空；日期为空该组停用。日期使用公历，暂不支持农历倒数。	Up to three countdowns. Item names are optional; an empty date disables that group. Dates use the Gregorian calendar; lunar countdowns are not supported yet.
+编辑事项	Edit items
+每组一个事项和日期，点按上方编辑器修改。	One item and one date per group; use the editor above to change them.
+最多三个，按日期先后显示。事项名可留空；日期为空该组停用。	Up to three, shown in date order. Item names are optional; an empty date disables that group.
+事项（可空）	Item (optional)
+选日期	Pick a date
+日期格式不正确	Invalid date format
 锁屏显示系统通知数	Show the system notification count on the lock screen
 统计当前可清除的系统通知，不再只显示微信未读。墨水屏通常不安装微信，默认使用系统通知数。	Count clearable system notifications instead of only WeChat unread messages. E-ink devices usually do not install WeChat, so system notifications are the default.
 关闭时仍显示系统通知数；打开后可切换到微信未读数。	System notifications remain visible when disabled; enable this to switch to the WeChat unread count.
@@ -770,7 +788,7 @@ GPU 记录到执行错误	GPU execution error recorded
 检测到整屏文字时自动刷新，改善翻页残影	Refresh when a full screen of text is detected to reduce ghosting
 周期性刷新	Periodic refresh
 每隔一段时间刷新一次屏幕	Refresh the screen at a fixed interval
-5分钟,1分钟,10分钟,30分钟	5 minutes,1 minute,10 minutes,30 minutes
+1分钟,5分钟,10分钟,30分钟,自定义	1 minute,5 minutes,10 minutes,30 minutes,Custom
 点击、按键或阅读时累计操作，达到设定次数后自动刷新，减少墨水屏残影。	Count taps, keys, and reading actions, then refresh after the set number to reduce ghosting.
 触发方式	Trigger methods
 节奏	Cadence
@@ -815,8 +833,11 @@ GPU 记录到执行错误	GPU execution error recorded
 每分钟刷新一次。	Refresh once per minute.
 自定义	Custom
  次	 times
+ 分钟	 minutes
 当前：	Current: 
 手动输入 1–999 之间的次数。	Enter a number between 1 and 999.
+手动输入 1–999 之间的分钟数。	Enter a number of minutes between 1 and 999.
+关闭独立开关后不再周期刷新。	No periodic refresh while the independent switch is off.
 输入数值	Enter a value
 使用	Use
 请输入 1–999 之间的整数	Enter a whole number between 1 and 999

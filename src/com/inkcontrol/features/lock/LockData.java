@@ -1,5 +1,6 @@
 package com.inkcontrol.features.lock;
 
+import com.inkcontrol.core.FeatureDefinition;
 import com.inkcontrol.platform.RuntimeConfig;
 import android.content.Context;
 import android.content.Intent;
@@ -19,6 +20,7 @@ import android.widget.TextView;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
@@ -34,6 +36,8 @@ final class LockData {
     String lunar, festival;
     /** 锁屏通知数；锁屏关闭通知显示或暂时取不到时为 -1 */
     int notifications = -1;
+    /** 有效倒数日组（{事项, 日期}，事项可能为空串），按日期升序，最多 3 组；未启用或未设置为 null */
+    List<String[]> countdowns;
     /** 通知来源名称：系统通知为“通知”，兼容微信来源时为“微信” */
     String notificationLabel = "通知";
     /** 正在播放：歌词（没有歌词时用曲名），否则是格言 */
@@ -70,6 +74,16 @@ final class LockData {
         }
         if (RuntimeConfig.enabled("lock.weather")) readWeather(d, controller);
         readLunar(d, controller);
+        if (RuntimeConfig.enabled("lock.countdown"))
+            d.countdowns = FeatureDefinition.countdownList(RuntimeConfig.value("lock.countdowns"));
+        // 测试期：配置未设置倒数日时先用 3 组硬编码值（含一个空事项组）验证布局；
+        // App「锁屏自定义 → 倒数日事项」编辑器可用后，用户设置即覆盖此测试值。
+        if (d.countdowns == null || d.countdowns.isEmpty()) {
+            d.countdowns = new ArrayList<>();
+            d.countdowns.add(new String[]{"考试", "2026-11-27"});
+            d.countdowns.add(new String[]{"生日", "2026-12-20"});
+            d.countdowns.add(new String[]{"", "2026-12-31"});
+        }
 
         String lyric = RuntimeConfig.enabled("lock.lyric") ? Hook.activeLyric() : null;
         if (lyric != null) {
@@ -181,6 +195,9 @@ final class LockData {
         d.high = "18°";
         d.low = "12°";
         d.lunar = "九月初一";
+        d.countdowns = new ArrayList<>();
+        d.countdowns.add(new String[]{"考试", "2026-11-27"});
+        d.countdowns.add(new String[]{"生日", "2026-12-20"});
         d.notifications = 3;
         d.playing = true;
         d.text = "把今天折好，放进明天的口袋。";

@@ -1,6 +1,8 @@
 package com.inkcontrol.core;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 
@@ -37,11 +39,13 @@ public final class FeatureDefinition {
     /** 是否接受逗号分隔的应用包名名单。 */
     public boolean acceptsApps() { return values.contains(APPS_TOKEN); }
     public void validate(String value) {
-        if (CURVE_TOKEN.equals(value) || NUMBER_TOKEN.equals(value) || APPS_TOKEN.equals(value)) throw new IllegalArgumentException("不支持的选项：" + title);
+        if (CURVE_TOKEN.equals(value) || NUMBER_TOKEN.equals(value) || APPS_TOKEN.equals(value)
+                || COUNTDOWNS_TOKEN.equals(value)) throw new IllegalArgumentException("不支持的选项：" + title);
         if (values.contains(value)) return;
         if (acceptsCurve() && curve(value) != null) return;
         if (acceptsNumber() && number(value) != null) return;
         if (acceptsApps() && appFilter(value) != null) return;
+        if (acceptsCountdowns() && countdowns(value) != null) return;
         throw new IllegalArgumentException("不支持的选项：" + title);
     }
 
@@ -58,6 +62,57 @@ public final class FeatureDefinition {
     }
     /** 目录里的占位值；本身不是合法配置，只表示允许逗号分隔的包名名单。 */
     public static final String APPS_TOKEN = "@apps";
+    /** 目录里的占位值；本身不是合法配置，只表示允许最多 COUNTDOWNS_MAX 组「事项;日期」倒数日清单。 */
+    public static final String COUNTDOWNS_TOKEN = "@countdowns";
+    /** 倒数日最多组数。 */
+    public static final int COUNTDOWNS_MAX = 3;
+    /** 倒数日事项名最长字符数。 */
+    public static final int COUNTDOWN_ITEM_MAX = 12;
+    /** 是否接受「事项;日期」清单（最多 3 组，事项可空，日期为空则该组停用）。 */
+    public boolean acceptsCountdowns() { return values.contains(COUNTDOWNS_TOKEN); }
+    /** 解析倒数日清单值：空串（无事项）或 COUNTDOWNS_MAX*2 段「事项;日期」；日期须为真实阳历日。 */
+    public static String countdowns(String value) {
+        if (value == null) return null;
+        if (value.isEmpty()) return "";
+        String[] parts = value.split(";", -1);
+        if (parts.length != COUNTDOWNS_MAX * 2) return null;
+        for (int i = 0; i < parts.length; i += 2) {
+            String item = parts[i].trim();
+            // 事项名不得含 '='：会破坏配置的 key=value 行格式（后端 ic_validate 同样拒绝）
+            if (item.length() > COUNTDOWN_ITEM_MAX || item.indexOf('=') >= 0) return null;
+            String date = parts[i + 1].trim();
+            if (!date.isEmpty() && parseDate(date) == null) return null;
+        }
+        return value;
+    }
+    /** 有效倒数日组（日期非空且合法），按日期升序；每项为 {事项, 日期}，事项可能为空串。 */
+    public static List<String[]> countdownList(String value) {
+        List<String[]> result = new ArrayList<>();
+        if (value == null || value.isEmpty()) return result;
+        String[] parts = value.split(";", -1);
+        if (parts.length != COUNTDOWNS_MAX * 2) return result;
+        for (int i = 0; i < parts.length; i += 2) {
+            String date = parts[i + 1].trim();
+            if (!date.isEmpty() && parseDate(date) != null) result.add(new String[]{parts[i].trim(), date});
+        }
+        result.sort((a, b) -> a[1].compareTo(b[1]));   // yyyy-MM-dd 字典序即时间序
+        return result;
+    }
+    /** 把 yyyy-MM-dd 解析为当天 00:00 的 Calendar；不是真实日期返回 null。 */
+    public static Calendar parseDate(String value) {
+        if (value == null || !value.matches("\\d{4}-\\d{2}-\\d{2}")) return null;
+        try {
+            java.text.SimpleDateFormat format = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US);
+            format.setLenient(false);
+            java.util.Date parsed = format.parse(value);
+            if (parsed == null) return null;
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(parsed);
+            return calendar;
+        } catch (java.text.ParseException error) {
+            return null;
+        }
+    }
     /** 名单最多容纳的包名数量。 */
     public static final int APPS_MAX = 200;
     /** 解析应用名单：空串表示空名单；非空时每段必须是合法包名，否则返回 null。 */

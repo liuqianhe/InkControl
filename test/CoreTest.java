@@ -119,7 +119,7 @@ public final class CoreTest {
         Configuration config = new Configuration(); Set<String> ids = new HashSet<>();
         for (FeatureDefinition feature : FeatureCatalog.all()) {
             check(ids.add(feature.id)); check(!config.enabled(feature.id)); check(!config.requested(feature.id));
-            for (String value : feature.values) { if (value.equals(FeatureDefinition.CURVE_TOKEN) || value.equals(FeatureDefinition.NUMBER_TOKEN) || value.equals(FeatureDefinition.APPS_TOKEN)) { reject(() -> feature.validate(value)); continue; } feature.validate(value); check(Configuration.parse(config.change(feature.id, true, value).text()).value(feature.id).equals(value)); }
+            for (String value : feature.values) { if (value.equals(FeatureDefinition.CURVE_TOKEN) || value.equals(FeatureDefinition.NUMBER_TOKEN) || value.equals(FeatureDefinition.APPS_TOKEN) || value.equals(FeatureDefinition.COUNTDOWNS_TOKEN)) { reject(() -> feature.validate(value)); continue; } feature.validate(value); check(Configuration.parse(config.change(feature.id, true, value).text()).value(feature.id).equals(value)); }
             reject(() -> feature.validate("$(id)"));
         }
         check(Configuration.parse(config.text()).text().equals(config.text()));
@@ -134,8 +134,23 @@ public final class CoreTest {
         check(interval.acceptsNumber() && !interval.acceptsCurve() && FeatureDefinition.number("3") == 3);
         interval.validate("3"); check(Configuration.parse(config.change("refresh.interval", true, "3").text()).value("refresh.interval").equals("3"));
         Configuration legacyPeriod = Configuration.parse(config.change("refresh.period", true, "300").text().replace("refresh.period.value=300", "refresh.period.value=0"));
-        check(!legacyPeriod.requested("refresh.period") && legacyPeriod.value("refresh.period").equals("300"));
+        check(!legacyPeriod.requested("refresh.period") && legacyPeriod.value("refresh.period").equals("60"));   // 旧值 0 → 默认档（1 分钟）
         for (String bad : new String[]{"0", "1000", "abc", "-1", "@number", "", "3.5", " 3", "@curve"}) reject(() -> interval.validate(bad));
+        // 倒数日清单：最多 3 组「事项;日期」共 6 段，事项可空，日期为空该组停用
+        FeatureDefinition countdowns = FeatureCatalog.get("lock.countdowns");
+        check(countdowns.acceptsCountdowns() && countdowns.defaultValue().isEmpty());
+        countdowns.validate(""); check(FeatureDefinition.countdowns("").isEmpty());
+        String two = "考试;2026-11-27;;;生日;2026-12-20";   // 组1 考试、组2 全空停用、组3 生日
+        countdowns.validate(two);
+        check(FeatureDefinition.countdownList(two).size() == 2);
+        check(FeatureDefinition.countdownList(two).get(0)[0].equals("考试") && FeatureDefinition.countdownList(two).get(0)[1].equals("2026-11-27"));
+        check(FeatureDefinition.countdownList(two).get(1)[0].equals("生日"));
+        check(FeatureDefinition.countdownList(";2026-11-27;;;;").size() == 1);   // 事项为空只用日期
+        check(FeatureDefinition.countdownList(";2026-11-27;;;;2027-01-01").size() == 2);   // 按日期升序
+        check(FeatureDefinition.parseDate("2026-11-27") != null && FeatureDefinition.parseDate("2028-02-29") != null);
+        check(FeatureDefinition.parseDate("2026-02-29") == null && FeatureDefinition.parseDate("2026-13-01") == null && FeatureDefinition.parseDate("2026-11-31") == null);
+        for (String bad : new String[]{"a;2026-11-27", ";;2026-11-27;;2027-01-01", ";2026-13-01;;;;", ";2026-02-30;;;;", ";not-a-date;;;;", "事项名特别长超过十二个字符;2026-11-27;;;;", "a=b;2026-11-27;;;;", "a;2026-11-27;;;b;2026-12-20;c;2027-01-01"})
+            reject(() -> countdowns.validate(bad));
         FeatureDefinition appFilter = FeatureCatalog.get("refresh.apps");
         check(appFilter.acceptsApps() && !appFilter.acceptsNumber() && !appFilter.acceptsCurve() && appFilter.defaultValue().isEmpty());
         check(FeatureDefinition.apps("").isEmpty()); check(FeatureDefinition.apps("com.tencent.mm").equals("com.tencent.mm"));

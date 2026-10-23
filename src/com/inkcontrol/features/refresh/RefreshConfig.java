@@ -35,7 +35,8 @@ final class RefreshConfig {
                 number(config.value("refresh.interval"), 10),
                 number(config.value("refresh.debounce"), 1000),
                 number(config.value("refresh.delay"), 500),
-                number(config.value("refresh.period"), 300),
+                // 周期性刷新必须同时看独立开关：关闭时 period=0，服务据此撤销定时刷新
+                config.enabled("refresh.period") ? number(config.value("refresh.period"), 300) : 0,
                 Collections.unmodifiableSet(apps));
     }
     /** 事件计数是否计入该前台应用：未启用过滤时一律计入，白名单只放行名单内应用，黑名单相反。 */

@@ -2,6 +2,7 @@ package com.inkcontrol.ui;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Configuration;
@@ -545,6 +546,8 @@ public final class MainActivity extends Activity {
 
         // 2. 名单编辑器（模式 + 应用），放在说明之前
         if (f.id.equals("refresh.apps")) appsFilterEditor(f, requested, current);
+        // 2b. 倒数日事项编辑器（最多 3 组「事项;日期」）
+        if (f.id.equals("lock.countdowns")) countdownEditor(f, requested, current);
         // 3. 说明
         if (!g.what.isEmpty()) body.addView(spaced(section("它做什么", paragraph(g.what, 15)), 20));
         // 4. 演示 / 示意图
@@ -1022,6 +1025,73 @@ public final class MainActivity extends Activity {
                         return "已保存「" + f.title + "」：" + chosen.size() + " 个应用";
                     }, false);
                 }).show();
+    }
+
+    // ── 倒数日事项：最多 3 组「事项;日期」，事项可空，日期为空该组停用 ──
+
+    private void countdownEditor(FeatureDefinition f, boolean requested, String current) {
+        final String[] dates = new String[FeatureDefinition.COUNTDOWNS_MAX];
+        String[] parts = current == null ? new String[0] : current.split(";", -1);
+        LinearLayout box = column(ink.text("倒数日事项", 18, Ink.BOLD),
+                spaced(paragraph("最多三个，按日期先后显示。事项名可留空；日期为空该组停用。", 13), 12));
+        final TextView[] dateButtons = new TextView[FeatureDefinition.COUNTDOWNS_MAX];
+        final EditText[] itemFields = new EditText[FeatureDefinition.COUNTDOWNS_MAX];
+        for (int i = 0; i < FeatureDefinition.COUNTDOWNS_MAX; i++) {
+            final int index = i;
+            int base = i * 2;
+            dates[i] = base + 1 < parts.length ? parts[base + 1].trim() : "";
+            LinearLayout row = new LinearLayout(this);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            EditText item = new EditText(this);
+            item.setHint(ink.t("事项（可空）"));
+            item.setText(base < parts.length ? parts[base].trim() : "");
+            item.setSingleLine(true);
+            item.setFilters(new android.text.InputFilter[]{
+                    new android.text.InputFilter.LengthFilter(FeatureDefinition.COUNTDOWN_ITEM_MAX),
+                    (source, start, end, dest, dstart, dend) -> {
+                        // 事项名不得含 ; 与 =：会破坏「事项;日期」序列化与 key=value 配置行
+                        StringBuilder out = new StringBuilder();
+                        for (int k = start; k < end; k++) {
+                            char ch = source.charAt(k);
+                            if (ch != ';' && ch != '=' && ch != '\n') out.append(ch);
+                        }
+                        return out.length() == end - start ? null : out.toString();
+                    }});
+            item.setBackground(ink.box(Ink.PAPER, Ink.INK, 1.5f, 8));
+            item.setPadding(ink.dp(10), ink.dp(8), ink.dp(10), ink.dp(8));
+            itemFields[i] = item;
+            row.addView(item, new LinearLayout.LayoutParams(0, -2, 1));
+            TextView date = ink.button(dates[i].isEmpty() ? "选日期" : dates[i], Ink.Kind.SECONDARY, v -> {
+                Calendar initial = FeatureDefinition.parseDate(dates[index]);
+                if (initial == null) initial = Calendar.getInstance();
+                new DatePickerDialog(this, (view, year, month, day) -> {
+                    dates[index] = String.format(Locale.ROOT, "%04d-%02d-%02d", year, month + 1, day);
+                    dateButtons[index].setText(dates[index]);
+                }, initial.get(Calendar.YEAR), initial.get(Calendar.MONTH), initial.get(Calendar.DAY_OF_MONTH)).show();
+            });
+            dateButtons[i] = date;
+            LinearLayout.LayoutParams dateParams = new LinearLayout.LayoutParams(-2, -2);
+            dateParams.leftMargin = ink.dp(8);
+            row.addView(date, dateParams);
+            box.addView(spaced(row, 10));
+        }
+        box.addView(spaced(ink.button("保存", Ink.Kind.PRIMARY, v -> {
+            StringBuilder value = new StringBuilder();
+            for (int i = 0; i < FeatureDefinition.COUNTDOWNS_MAX; i++) {
+                if (i > 0) value.append(';');
+                value.append(itemFields[i].getText().toString().trim()).append(';').append(dates[i]);
+            }
+            if (FeatureDefinition.countdowns(value.toString()) == null) {
+                Toast.makeText(this, ink.t("日期格式不正确"), Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (!begin(f.id, requested, value.toString())) return;
+            perform(ink.t("保存"), () -> {
+                change(f.id, requested, value.toString());
+                return "已保存「" + f.title + "」";
+            }, false);
+        }), 14));
+        body.addView(spaced(box, 16));
     }
 
     private LinkedHashMap<String, String> launcherApps() {

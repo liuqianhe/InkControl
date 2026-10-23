@@ -41,6 +41,8 @@ public final class FeatureCatalog {
         add("lock.style", "锁屏", "自定义锁屏", "关闭时恢复有效的原厂样式", "systemui", "", HOT, false, "5,6,7,8,9", "编辑排版,瑞士网格,像素,液态玻璃,编辑排版-横");
         add("lock.weather", "锁屏", "锁屏天气", "使用原厂已有天气数据", "systemui", "lock.style", HOT, false, "default", "天气与图标");
         add("lock.notify", "锁屏", "锁屏通知来源", "默认统计系统通知，可切换到微信未读数", "systemui", "lock.style", HOT, false, "system,wechat", "系统通知,微信");
+        add("lock.countdown", "锁屏", "锁屏倒数日", "锁屏右侧显示事项倒数，最多三个，事项名可留空", "systemui", "lock.style", HOT, false, "default", "显示倒数日");
+        add("lock.countdowns", "锁屏", "倒数日事项", "每组一个事项和日期；日期为空则该组停用", "systemui", "lock.countdown", HOT, false, "@countdowns", "编辑事项");
         add("lock.lyric", "锁屏", "锁屏歌词", "支持现有媒体歌词与 Lyric Getter 广播", "systemui", "", HOT, false, "default", "显示歌词");
         add("lock.statusbar", "锁屏", "状态栏歌词", "停止或关闭后恢复通知图标", "systemui", "", HOT, false, "default", "显示歌词");
         add("lock.first", "锁屏", "锁屏瞬间的刷新方式", "阅读模式曾改善空白，残影需观察", "systemui", "", HOT, true, "3,2", "阅读模式3,清晰全刷2");
@@ -73,7 +75,7 @@ public final class FeatureCatalog {
         add("refresh.debounce", "自动刷新", "合并间隔", "短时间内连续操作只算一次，避免滑动被重复计数", "system", "refresh.master", HOT, false, "1000,500,2000,0,@number", "1秒,500毫秒,2秒,关闭,自定义");
         add("refresh.delay", "自动刷新", "刷新前延时", "操作停止后再等多久刷新，避免打断连续操作", "system", "refresh.master", HOT, false, "0,300,500,1000", "立即,300毫秒,500毫秒,1000毫秒");
         add("refresh.reading", "自动刷新", "识别阅读界面", "检测到整屏文字时自动刷新，改善翻页残影", "system", "refresh.master", HOT, false, "default", "识别阅读界面");
-        add("refresh.period", "自动刷新", "周期性刷新", "每隔一段时间刷新一次屏幕", "system", "refresh.master", HOT, false, "300,60,600,1800", "5分钟,1分钟,10分钟,30分钟");
+        add("refresh.period", "自动刷新", "周期性刷新", "每隔一段时间刷新一次屏幕", "system", "refresh.master", HOT, false, "60,300,600,1800,@number", "1分钟,5分钟,10分钟,30分钟,自定义");
         add("refresh.apps", "自动刷新", "应用黑白名单", "白名单只统计名单内应用，黑名单跳过名单内应用", "system", "", HOT, false, "@apps", "黑白名单");
     }
 

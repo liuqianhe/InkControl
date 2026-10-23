@@ -61,11 +61,29 @@ ic_validate() {
         black=substr(value, second+1)
         return pkglist(white) && pkglist(black)
       }
+      function countdowns(choices, value,   n, parts, i, d, y, m, dd, dim) {
+        if (index("," choices ",", ",@countdowns,")==0) return 0
+        if (value=="") return 1
+        n=split(value, parts, ";")
+        if (n!=6) return 0
+        for (i=1; i<=n; i+=2) {
+          if (length(parts[i])>48) return 0
+          d=parts[i+1]
+          if (d!="") {
+            if (d !~ /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/) return 0
+            y=substr(d,1,4)+0; m=substr(d,6,2)+0; dd=substr(d,9,2)+0
+            if (m<1 || m>12 || dd<1) return 0
+            dim=(m==4||m==6||m==9||m==11)?30:(m==2?((y%4==0&&(y%100!=0||y%400==0))?29:28):31)
+            if (dd>dim) return 0
+          }
+        }
+        return 1
+      }
       NR==FNR {split($0,s,"\t"); choices[s[1]]=s[2]; known[s[1]]=1; n++; next}
       {if (NF!=2 || seen[$1]++) bad=1}
       $1=="version" {if($2!="1") bad=1; next}
       $1=="revision" {if($2!~/^[0-9]+$/ || length($2)>15) bad=1; next}
-      {key=$1; if(sub(/\.value$/,"",key)) {if(!known[key] || $2=="@curve" || $2=="@number" || $2=="@apps" || (index("," choices[key] ",", "," $2 ",")==0 && !curve(choices[key], $2) && !number(choices[key], $2) && !apps(choices[key], $2))) bad=1}
+      {key=$1; if(sub(/\.value$/,"",key)) {if(!known[key] || $2=="@curve" || $2=="@number" || $2=="@apps" || $2=="@countdowns" || (index("," choices[key] ",", "," $2 ",")==0 && !curve(choices[key], $2) && !number(choices[key], $2) && !apps(choices[key], $2) && !countdowns(choices[key], $2))) bad=1}
        else if(!known[key] || ($2!="0" && $2!="1")) bad=1}
       END {
         if(!seen["version"] || !seen["revision"]) bad=1
