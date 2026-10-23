@@ -66,6 +66,7 @@ final class Guide {
         TERMS.put("迟滞", "利用上一帧的黑白结果，让亮度只有小变化的像素保持原状态，减少静止区域闪点。可能增加拖尾。独立开关仅适用于 Bayer、蓝噪声和固定阈值；原厂误差扩散自带历史处理，不由此开关控制。");
         TERMS.put("完整重启", "关机再开机（不是只锁屏）。替换系统文件的功能要在开机过程中才能装载。");
         TERMS.put("作用域", "框架（如 Vector/LSPosed）里给模块勾选的、允许它进入的系统进程。墨控需要：系统框架、系统界面、桌面。");
+        TERMS.put("近距离传感器", "屏幕顶部的一个小传感器，检测正前方是否有物体靠近。手或布料遮住它时，手机判断“被覆盖”。");
     }
 
     static final Map<String, Category> CATEGORIES = new LinkedHashMap<>();
@@ -87,6 +88,10 @@ final class Guide {
         cat("锁屏", "锁屏样式、天气、通知、歌词，以及锁屏时用哪种刷新方式。", new String[][]{
                 {"样式", "lock.style", "lock.weather"}, {"通知", "lock.notify"}, {"歌词", "lock.lyric", "lock.statusbar", "lock.lyricmode"},
                 {"锁屏刷新", "lock.first", "lock.update", "lock.delay", "lock.dither"}});
+        cat("体感", "用手掌或物体遮挡屏幕顶部的近距离传感器，锁屏下自动息屏；移开后唤醒并尝试退出锁屏。需要系统无障碍中启用「墨控体感」服务。", new String[][]{
+                {"总开关", "wave.master"},
+                {"行为", "wave.lock", "wave.wake"},
+                {"遮挡延时", "wave.coverDelay"}});
         cat("桌面", "原厂桌面的主题、图标、字体与组件；不改动图标位置和布局。", new String[][]{
                 {"主题", "desktop.theme"}, {"换肤项目", "desktop.icons", "desktop.font", "desktop.wallpaper", "desktop.widget"}});
         cat("系统增强", "修复原厂墨水屏服务的几个问题：偶发重启、卡开机、多余刷新。", new String[][]{
@@ -319,6 +324,15 @@ final class Guide {
                 .option(com.inkcontrol.core.FeatureDefinition.APPS_TOKEN, "黑白名单", "");
         put("refresh.period").summary("每隔一段时间自动刷新一次").what("无论是否操作，每隔这段时间主动刷新一次屏幕，适合长时间静止显示。")
                 .option("300", "5分钟", "默认。").option("60", "1分钟", "每分钟刷新一次。").option("600", "10分钟", "").option("1800", "30分钟", "最省电。");
+
+        put("wave.master").summary("遮挡传感器息屏、移开唤醒").what("海信 A5 Pro 官方没有这个功能。开启后，墨控在系统无障碍中监听近距离（覆盖）传感器：屏幕被手掌或物体持续遮挡时锁定并关闭屏幕；遮挡结束（移出口袋、移开手掌）后点亮屏幕并尝试退出锁屏。")
+                .cost("需要系统无障碍中启用「墨控体感」服务；安全锁屏（PIN、图案、密码）无法在无 root、无设备管理员的情况下绕过，只能亮屏、不能自动退锁屏。").option("default", "启用体感", "").term("近距离传感器");
+        put("wave.lock").summary("遮挡一段时间后息屏").what("近距离传感器被持续遮挡达到设定的延时后，主动锁定并关闭屏幕。适合放进裤袋、盖上衣物时避免误触。").option("default", "遮挡息屏", "");
+        put("wave.wake").summary("移开遮挡后唤醒").what("遮挡结束（移出口袋、移开手掌）后点亮屏幕。若未设置安全锁屏，会进一步尝试退出锁屏；若有安全锁屏，则只亮屏。").option("default", "移开唤醒", "");
+        put("wave.coverDelay").summary("遮挡持续多久才息屏").what("传感器短暂被碰一下不会立刻息屏，只有持续遮挡超过这个时间才锁定屏幕，避免误触。")
+                .cost("数值越小越灵敏，越大越不容易误触。")
+                .option("1000", "1 秒", "默认，平衡灵敏与误触。").option("500", "500 毫秒", "更灵敏，适合稳定遮挡场景。")
+                .option("2000", "2 秒", "较迟钝，明显减少误触。").option("3000", "3 秒", "最迟钝，仅在明确遮挡时息屏。");
     }
 
     private Guide() {}

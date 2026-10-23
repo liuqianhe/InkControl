@@ -48,6 +48,10 @@ public final class FeatureCatalog {
         add("lock.lyricmode", "锁屏", "歌词的刷新方式", "关闭时沿用系统模式", "systemui", "lock.lyric", HOT, true, "3,2,9", "阅读模式3,清晰全刷2,极速模式9");
         add("lock.delay", "锁屏", "锁屏画面出现时机", "最低300ms，避免过早送图", "systemui", "", HOT, false, "300,400,500", "300ms,400ms,500ms");
         add("lock.dither", "锁屏", "消除锁屏细线", "使用点量化，字体灰阶需实屏观察", "backend", "display.gpu", HOT, true, "nearest", "点量化");
+        add("wave.master", "体感", "体感息屏唤醒", "遮挡近距离传感器息屏、移开唤醒；需在系统无障碍中启用「墨控体感」服务", "system", "", HOT, true, "default", "启用体感");
+        add("wave.lock", "体感", "遮挡息屏", "近距离传感器被持续遮挡一段时间后锁定并关闭屏幕", "system", "wave.master", HOT, false, "default", "遮挡息屏");
+        add("wave.wake", "体感", "移开唤醒", "遮挡结束（移出口袋/移开手掌）后点亮屏幕并尝试退出锁屏", "system", "wave.master", HOT, false, "default", "移开唤醒");
+        add("wave.coverDelay", "体感", "遮挡延时", "遮挡持续多久才息屏，避免误触", "system", "wave.lock", HOT, false, "1000,500,2000,3000", "1秒,500毫秒,2秒,3秒");
         add("desktop.theme", "桌面", "桌面主题", "保留原厂桌面位置与布局", "launcher", "", HOT, false, "glass,paper,ink", "流光玻璃,纸间,墨构");
         add("desktop.icons", "桌面", "图标换肤", "独立恢复原厂图标", "launcher", "desktop.theme", HOT, false, "default", "主题图标");
         add("desktop.font", "桌面", "字体换肤", "独立恢复原厂字体", "launcher", "desktop.theme", HOT, false, "default", "主题字体");

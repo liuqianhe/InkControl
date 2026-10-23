@@ -853,3 +853,35 @@ GPU 记录到执行错误	GPU execution error recorded
 已清空名单应用	App list cleared
 搜索应用	Search apps
 没有可选择的启动器应用。	No launcher apps available.
+体感息屏唤醒	Proximity sleep & wake
+遮挡近距离传感器息屏、移开唤醒；需在系统无障碍中启用「墨控体感」服务	Turn the screen off when the proximity sensor is covered and wake it when uncovered; enable the InkControl gestures accessibility service.
+启用体感	Enable gestures
+遮挡息屏	Sleep on cover
+近距离传感器被持续遮挡一段时间后锁定并关闭屏幕	Lock and turn off the screen after the sensor stays covered for a while
+移开唤醒	Wake on uncover
+遮挡结束（移出口袋/移开手掌）后点亮屏幕并尝试退出锁屏	Light the screen and try to exit the lock screen after the cover is removed (taken out of a pocket or off the hand)
+遮挡延时	Cover delay
+遮挡持续多久才息屏，避免误触	How long the sensor must stay covered before the screen turns off, to avoid misfires
+1秒,500毫秒,2秒,3秒	1s, 500ms, 2s, 3s
+近距离传感器	Proximity sensor
+屏幕顶部的一个小传感器，检测正前方是否有物体靠近。手或布料遮住它时，手机判断“被覆盖”。	A small sensor at the top of the screen that detects whether an object is near. When a hand or cloth covers it, the phone treats itself as covered.
+体感	Proximity
+用手掌或物体遮挡屏幕顶部的近距离传感器，锁屏下自动息屏；移开后唤醒并尝试退出锁屏。需要系统无障碍中启用「墨控体感」服务。	Cover the top proximity sensor with your hand or an object to turn off the screen while locked; uncover to wake and try to exit the lock screen. Requires enabling the InkControl gestures accessibility service.
+行为	Behavior
+遮挡传感器息屏、移开唤醒	Sleep on cover, wake on uncover
+海信 A5 Pro 官方没有这个功能。开启后，墨控在系统无障碍中监听近距离（覆盖）传感器：屏幕被手掌或物体持续遮挡时锁定并关闭屏幕；遮挡结束（移出口袋、移开手掌）后点亮屏幕并尝试退出锁屏。	Hisense A5 Pro has no such feature officially. Once enabled, InkControl listens to the proximity (cover) sensor through the accessibility service: it locks and turns off the screen while covered by a hand or object, and lights the screen and tries to exit the lock screen once the cover ends (taken out of a pocket or off the hand).
+需要系统无障碍中启用「墨控体感」服务；安全锁屏（PIN、图案、密码）无法在无 root、无设备管理员的情况下绕过，只能亮屏、不能自动退锁屏。	Requires enabling the InkControl gestures accessibility service. A secure lock screen (PIN, pattern, password) cannot be bypassed without root or device admin; it can only light the screen, not auto-unlock.
+遮挡一段时间后息屏	Sleep after being covered for a while
+近距离传感器被持续遮挡达到设定的延时后，主动锁定并关闭屏幕。适合放进裤袋、盖上衣物时避免误触。	Lock and turn off the screen once the sensor stays covered past the set delay. Good for avoiding misfires when in a pocket or under clothing.
+移开遮挡后唤醒	Wake after the cover is removed
+遮挡结束（移出口袋、移开手掌）后点亮屏幕。若未设置安全锁屏，会进一步尝试退出锁屏；若有安全锁屏，则只亮屏。	Light the screen after the cover ends (taken out of a pocket or off the hand). If no secure lock screen is set, it also tries to exit the lock screen; with a secure lock screen it only lights the screen.
+遮挡持续多久才息屏	How long covered before sleep
+传感器短暂被碰一下不会立刻息屏，只有持续遮挡超过这个时间才锁定屏幕，避免误触。	A brief touch will not turn off the screen immediately; only a sustained cover longer than this delay locks it, avoiding misfires.
+数值越小越灵敏，越大越不容易误触。	Smaller values are more sensitive; larger values are less prone to misfires.
+1 秒	1 second
+默认，平衡灵敏与误触。	Default; balances sensitivity and misfires.
+更灵敏，适合稳定遮挡场景。	More sensitive; for steady covering.
+2 秒	2 seconds
+较迟钝，明显减少误触。	Less sensitive; noticeably fewer misfires.
+3 秒	3 seconds
+最迟钝，仅在明确遮挡时息屏。	Least sensitive; only sleeps on clear covering.
