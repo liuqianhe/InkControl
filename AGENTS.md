@@ -1,7 +1,7 @@
 # 墨控仓库 / InkControl repository
 
 - Target device: **Hisense A5 Pro 经典版 (Classic Edition), monochrome E-ink**. Use this name in current product documentation.
-- Start with [Agent handbook](docs/wiki/agent-handbook.md), [evidence](docs/wiki/evidence.md), and [knowledge index](docs/wiki/knowledge-index.json). Keep both Wiki languages and source references current. Run `python tools/check_docs.py` after documentation edits.
+- Documentation is maintained in **Chinese only** (since 2026-10-23): the English `README.en.md` and other English docs are **no longer updated or maintained**; `README.md` (Chinese) is the primary document. Keep the Chinese Wiki and source references current. Run `python tools/check_docs.py` after Chinese documentation edits.
 - Signed builds on main publish a versioned Release only after all checks pass. Increment app/backend/build versions together for behavior or asset changes; never overwrite an existing published version.
 - 面向用户的回复用中文；文件统一 UTF-8。PowerShell `Get-Content` 必须显式 `-Encoding utf8`，不得用 `-Raw`。
 - All compilation and build validation runs in GitHub-hosted Actions. Do not compile APKs, native libraries or Java locally. Local text edits and static checks are allowed.

@@ -3,13 +3,11 @@ package com.inkcontrol.features.lock;
 import com.inkcontrol.shared.WeatherIcon;
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapShader;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
-import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.text.Layout;
 import android.text.StaticLayout;
@@ -500,20 +498,9 @@ final class LockCanvas extends View {
 
     // ───────────────────────── C · 1-bit 像素 ─────────────────────────
 
-    private static Bitmap sDots;
-
     private void pixel() {
-        // 桌面点阵：每 3×3 逻辑像素一个点
-        if (sDots == null) {
-            sDots = Bitmap.createBitmap(3, 3, Bitmap.Config.ARGB_8888);
-            sDots.eraseColor(PAPER);
-            sDots.setPixel(0, 0, INK);
-        }
-        Paint dots = new Paint();
-        dots.setAntiAlias(false);
-        dots.setFilterBitmap(false);
-        dots.setShader(new BitmapShader(sDots, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT));
-        c.drawRect(0, 0, W, H, dots);
+        // 纯白背景：原 3×3 点阵纹理按用户要求移除（2026-10-23）
+        rect(0, 0, W, H, PAPER);
 
         final float X = 18, WW = 324, IN = X + 16, IW = WW - 32;
 
