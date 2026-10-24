@@ -1,6 +1,7 @@
 package com.inkcontrol.features.lock;
 
 import com.inkcontrol.core.FeatureDefinition;
+import com.inkcontrol.platform.RuntimeConfig;
 import com.inkcontrol.shared.WeatherIcon;
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -25,11 +26,11 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * 墨水屏锁屏（编辑排版 / 编辑排版-横 / 瑞士网格 / 1-bit 像素 / 液态玻璃）的绘制器。
+ * 墨水屏锁屏（编辑排版 / 编辑排版-横 / 编辑排版-横-逆 / 瑞士网格 / 1-bit 像素 / 液态玻璃）的绘制器。
  * 竖版样式按样张的 360 × 720 逻辑坐标作画，整体放大到实际尺寸（A5 为 720 × 1440，正好 2 倍）。
  * 「编辑排版-横」按 720 × 360 横版逻辑坐标作画，绘制时整体旋转 90° 铺满竖屏面板：
  * 锁屏图本身就是横版画面（顶部合并日期表头 / 左上电池与天气位 / 左下格言与通知 /
- * 最右侧大号时间，横转手机阅读）；
+ * 最右侧大号时间，横转手机阅读）；「编辑排版-横-逆」在此基础上再旋转 180°，用于反向横转阅读。
  * 天气区仅在有真实数据时绘制（lock.weather 开关默认关，故默认不显示）；无数据时留空。
  * 前三种以黑白图形为主；玻璃用 16 级灰阶材质，配合清晰全刷保留明暗层次。
  */
@@ -90,16 +91,23 @@ final class LockCanvas extends View {
 
     private void paint(Canvas canvas, int width, int height) {
         if (data == null || width <= 0 || height <= 0) return;
-        boolean land = style == LockStyle.EDITORIAL_LAND;
+        boolean land = style == LockStyle.EDITORIAL_LAND || style == LockStyle.EDITORIAL_LAND_R;
+        boolean reverse = land && reverseLand();
         float s = land ? Math.min(width / (float) LAND_H, height / (float) LAND_W)
                 : Math.min(width / (float) W, height / (float) H);
         canvas.drawColor(PAPER);
         canvas.save();
         if (land) {
-            // 横版画布旋转 90° 铺满竖屏面板：画布左沿（大时间）落到面板顶边，画布顶沿落到面板右边。
-            // 竖屏面板上即得样张的横版构图；阅读时把手机逆时针横转（或头偏向右侧）。
-            canvas.translate(width, 0);
-            canvas.rotate(90);
+            if (reverse) {
+                // 逆：整体旋转 270°（= -90°），相对正版相差 180°，用于手机反向横转阅读。
+                canvas.translate(0, height);
+                canvas.rotate(-90);
+            } else {
+                // 正版：横版画布旋转 90° 铺满竖屏面板：画布左沿（大时间）落到面板顶边，画布顶沿落到面板右边。
+                // 竖屏面板上即得样张的横版构图；阅读时把手机逆时针横转（或头偏向右侧）。
+                canvas.translate(width, 0);
+                canvas.rotate(90);
+            }
             canvas.scale(s, s);
             canvas.translate((height - LAND_W * s) / (2f * s), (width - LAND_H * s) / (2f * s));
         } else {
@@ -117,6 +125,18 @@ final class LockCanvas extends View {
             c = null;
             canvas.restore();
         }
+    }
+
+    /**
+     * 横版样式是否反向（旋转 180°）。设备实机下「编辑排版-横」与「编辑排版-横-逆」
+     * 共用物理样式 9（原厂只接受 0–9 的 eink_keyguard_style），「逆」在配置里以逻辑值 10 表示；
+     * 调试出图可直接传入物理样式 10。
+     */
+    private boolean reverseLand() {
+        if (style == LockStyle.EDITORIAL_LAND_R) return true;
+        if (style != LockStyle.EDITORIAL_LAND) return false;
+        try { return "10".equals(RuntimeConfig.value("lock.style")); }
+        catch (RuntimeException ignored) { return false; }
     }
 
     // ───────────────────────── 基础绘制 ─────────────────────────
@@ -449,17 +469,18 @@ final class LockCanvas extends View {
 
     /**
      * 编辑排版的横版：按 720×360 横版逻辑画布作画，paint() 里整体旋转 90° 铺满竖屏面板。
-     * 构图（2026-10-24 四次样张重排）：顶部表头「第N日 | 中文日期·星期 | 农历 | 农历日期」+
-     * 上划线；左上电池，天气位在电池正下方（仅原厂控件有真实天气数据时绘制，左沿与电池对齐，
-     * 无数据留空不显示占位）；中左大号横版时间 + 细方框（方框宽贴合时间实际宽度）；时间右侧
-     * 倒数日框（横排标签在框子上方，事项+日期最多 3 组，框高与时间方框一致）；格言（中英加粗）
-     * 与通知框整体下沉至下划线下方、与电池同水平带；右缘竖排「上滑解锁」（整体居 Y 中心 180）。
+     * 构图（2026-10-24 五次样张重排）：左缘竖排「上滑解锁」（整体居 Y 中心 180，箭头随样式翻转）；
+     * 表头「第N日 | 中文日期·星期 | 农历 | 农历日期」+ 上划线自 x=42 起（为左缘提示列让位）；
+     * 大号横版时间 + 细方框（方框宽贴合时间实际宽度）同列 x=40；时间右侧倒数日框（横排标签在框子上方，
+     * 事项+日期最多 3 组，框高与时间方框一致）；格言（中英加粗）与通知框整体下沉至下划线下方、
+     * 与电池同水平带；电池在右下、天气位在电池正下方（仅原厂控件有真实天气数据时绘制，
+     * 左沿与电池对齐，无数据留空不显示占位）。
      * 天气仅在有真实数据时绘制；倒数日只占位不取数：无数据显示的组不绘制。
      */
     private void editorialLand() {
-        final float LX = 12;                      // 左栏左沿（样张：表头/方框/格言均锚定此列）
-        final float QW = 430;                     // 格言栏宽（x 12-442，让开右下方电池区）
-        final float BX = 590;                     // 通知框左沿（右下角，与格言栏右端 442 错开）
+        final float LX = 42;                      // 左栏左沿（样张：表头/方框/格言均锚定此列；左缘让给解锁提示列）
+        final float QW = 390;                     // 格言栏宽（x 42-432，让开右下方电池区）
+        final float BX = 605;                     // 通知框左沿（右下角，与格言栏右端 432 错开）
 
         // ── 顶部：合并表头（第N日 | 中文日期·星期 | 农历 | 农历日期；y 参考样张 ≈60）──
         // 「|」小间隔分隔；农历日期缺失时只保留「第 N 日 | 中文日期·星期」。
@@ -473,8 +494,8 @@ final class LockCanvas extends View {
         // 电池标签与数值同字号同基线近距排布；数值加粗（与表头数据同风格）。
         // 充电时标签改短词「充电中」；整行右界 BATT_R2（通知框左缘前留 5px），
         // 超宽时压缩标签，保证数值不越过右界。
-        final float BATT_X = 435f;                 // 电池行左缘（整体左移 25，仍略让开格言栏右端 442）
-        final float BATT_R2 = 560f;                // 电池行右界（通知框 BX=565 前留 5px）
+        final float BATT_X = 435f;                 // 电池行左缘（略让开格言栏右端 432）
+        final float BATT_R2 = 600f;                // 电池行右界（通知框 BX=605 前留 5px）
         String label = data.charging ? "充电中" : "电池";
         String val = data.battery < 0 ? "—" : data.battery + "%";
         font(sSerif, 24, 0.1f, INK, true);
@@ -513,7 +534,7 @@ final class LockCanvas extends View {
 
         // ── 通知框（样张：右下角细框，整体左移与电池成组；白底细框黑字）──
         final float BH = 40;
-        final float BW = 105;                          // 外框宽（x 565-670，整体左移 25）
+        final float BW = 95;                          // 外框宽（x 605-700，右缘与倒数日框对齐）
         final float boxY = 280;                        // 框顶（垂直居中对齐电池/格言带）
         if (data.notifications > 0) {
             frame(BX, boxY, BW, BH, 1);
@@ -535,10 +556,10 @@ final class LockCanvas extends View {
         // 紧贴时间本身；仅当时间过宽超过最大框宽（T_MAXW）时才等比缩字号兜底封顶。
         // 逐字符绘制：HH:mm 是「两两成对」结构，对内（HH 之间、MM 之间）加宽 pairGap，
         // 避免 44/11 等相同数字相邻时字形相近显得重合；冒号两侧留 colonGap。
-        final float T_FX = 10;                       // 方框左沿
+        final float T_FX = 40;                       // 方框左沿（右移 30，给左缘解锁提示列让位）
         final float T_FY = 90, T_FH = 155;           // 方框 y 90-245（加高，吃掉时间下方空当）
         final float T_PAD = 10;                       // 框内边距
-        final float T_MAXW = 565;                     // 方框最大宽（右缘 575，给倒数日框留 20px）
+        final float T_MAXW = 565;                     // 方框最大宽（右缘 605，给倒数日框留 20px）
         final float pairGap = 16f;                    // 对内间隔（HH 两数字间、MM 两数字间）
         final float colonGap = 10f;                   // 冒号两侧间隔
         String t = time();                            // "HH:mm"（12 小时制同为两位）
@@ -573,7 +594,7 @@ final class LockCanvas extends View {
             for (FeatureDefinition.CountdownItem it : data.countdowns)
                 if (it.shown) shown.add(it);
         if (!shown.isEmpty()) {
-            final float FX = 595, FW = 75;            // 框 x 595-670（与时间方框右缘 575 错开 20）
+            final float FX = 625, FW = 75;            // 框 x 625-700（与时间方框右缘 605 错开 20）
             final float FY = 90, FH = 155;            // 框 y 90-245（拉高至与时间方框同高）
             frame(FX, FY, FW, FH, 1);
             float cx = FX + FW / 2f;
@@ -602,13 +623,20 @@ final class LockCanvas extends View {
             }
         }
 
-        // ── 右缘：竖排「上滑解锁」提示（整体居于横版画布 Y 中心 180；表针 ← 朝左，与文字同向加粗）──
+        // ── 左缘：竖排「上滑解锁」提示（移到横版画布最左；表头/时间/倒数日整体右移 30 让位）──
         // 实测墨迹带 y≈133-227，中心 180（箭头字形在字身框内居中，故比字顶参数低约 6px）
-        final float VX = 694;
+        // 箭头方向随样式翻转：正版 ←，逆版 →。
+        // 面板映射（竖屏 720×1440）：正版横版画布左沿落在面板顶边，画布内 ← 在面板上呈 ↑，
+        // 即真实的解锁手势方向；逆版整幅相对正版旋转 180°，← 会变成 ↓（方向错、与实际解锁相反），
+        // 故改为 →，面板上仍呈 ↑，横转阅读时箭头也仍指向滑动的一侧。
+        // 文字保持正立、自上而下：整块再旋转 180° 虽能让面板画面与正版完全一致，
+        // 但横转阅读时文字会上下颠倒，反而不可读，故只翻转箭头。
+        final float VX = 12;
         font(sSerifBold, 16, 0, INK, true);
-        text("\u2190", VX, 123f, 0f);       // ←（上表针）
+        String arrow = reverseLand() ? "\u2192" : "\u2190";
+        text(arrow, VX, 123f, 0f);       // 上表针
         textVertical("上滑解锁", VX, 141, 18);
-        text("\u2190", VX, 213f, 0f);       // ←（下表针）
+        text(arrow, VX, 213f, 0f);       // 下表针
     }
 
     /**

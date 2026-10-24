@@ -908,3 +908,9 @@ GPU 记录到执行错误	GPU execution error recorded
 较迟钝，明显减少误触。	Less sensitive; noticeably fewer misfires.
 3 秒	3 seconds
 最迟钝，仅在明确遮挡时息屏。	Least sensitive; only sleeps on clear covering.
+提示时长	Notice duration
+修改设置后的结果提示会在页面上停留一段时间后自动消失；选「不显示」则不再占用页面空间。失败提示不会自动消失。	The result notice stays on screen for a while and then disappears by itself. Choose "Not shown" to free the space. Failure notices never auto-dismiss.
+不显示	Not shown
+5 秒	5 seconds
+30 秒	30 seconds
+60 秒	60 seconds

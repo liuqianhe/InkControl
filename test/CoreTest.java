@@ -236,6 +236,11 @@ public final class CoreTest {
         check(!RuntimeIdentity.matches(123, "", "rc1", 4, "123", "", "rc1", 4));
         check(ConditionalRestore.owns("8", "8")); check(!ConditionalRestore.owns("2", "8")); check(!ConditionalRestore.owns("8", null));
         for (int style = -2; style <= 10; style++) check(ConditionalRestore.stockLockStyle(style) == (style >= 0 && style <= 4 ? style : 0));
+        // 自定义锁屏样式 choices 含新增的「编辑排版-横-逆」（10），且值与名称数量对齐。
+        FeatureDefinition lockStyle = FeatureCatalog.get("lock.style");
+        check(lockStyle.values.contains("10"));
+        check(lockStyle.values.size() == lockStyle.labels.size());
+        check(lockStyle.labels.get(lockStyle.values.indexOf("10")).equals("编辑排版-横-逆"));
         check(CallerPolicy.read(10100, 10100, 10139, 10063)); check(CallerPolicy.read(1000, 10100, 10139, 10063));
         check(CallerPolicy.read(10139, 10100, 10139, 10063)); check(CallerPolicy.read(10063, 10100, 10139, 10063));
         check(!CallerPolicy.read(10199, 10100, 10139, 10063)); check(!CallerPolicy.read(0, 10100, -1, -1));

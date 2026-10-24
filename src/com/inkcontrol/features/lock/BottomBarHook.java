@@ -42,11 +42,11 @@ final class BottomBarHook {
                                     sStyle = style;
                                 }
                             }
-                            // 锁屏样式键是当前实时读取的 eink_keyguard_style（5–8 即墨控自定义样式）。
+                            // 锁屏样式键是当前实时读取的 eink_keyguard_style（5–10 即墨控自定义样式）。
                             // 这里不能用 RuntimeConfig.enabled：system_server 的快照是开机时的旧配置，
                             // 用户后来在 App 开启 lock.style 后不会重新加载，导致误判未启用而叠加原厂图标条。
-                            // 样式本身在 5–8 区间就代表已选用墨控锁屏，直接跳过原厂 bottom bar。
-                            if (style >= LockStyle.EDITORIAL && style <= LockStyle.EDITORIAL_LAND) {
+                            // 样式本身在 5–10 区间就代表已选用墨控锁屏，直接跳过原厂 bottom bar。
+                            if (style >= LockStyle.EDITORIAL && style <= LockStyle.EDITORIAL_LAND_R) {
                                 XposedBridge.log(TAG + "skip stock bottom bar; status=" + status + " style=" + style);
                                 param.setResult(param.args[0]);
                             }

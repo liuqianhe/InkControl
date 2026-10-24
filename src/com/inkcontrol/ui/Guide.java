@@ -76,6 +76,11 @@ final class Guide {
                 {"原厂四模式 · 算法", "display.alg.clear", "display.alg.reading", "display.alg.fast", "display.alg.extreme"},
                 {"独立视频场景", "display.alg.video"},
                 {"触摸与响应", "display.sampling", "display.idle"}, {"系统刷新设置", "display.dynamic", "display.apps"}});
+        cat("锁屏", "锁屏样式、天气、通知、倒数日与锁屏刷新，以及歌词相关设置。", new String[][]{
+                {"样式", "lock.style", "lock.weather"}, {"通知", "lock.notify"},
+                {"倒数日", "lock.countdown", "lock.countdowns"},
+                {"锁屏刷新", "lock.first", "lock.update", "lock.delay", "lock.dither"},
+                {"歌词", "lock.lyric", "lock.statusbar", "lock.lyricmode"}});
         cat("动画", "打开应用、返回、弹窗和锁屏时的过渡效果，专为墨水屏设计。", new String[][]{
                 {"总开关", "motion.master"},
                 {"各场景用什么动画", "motion.app_open", "motion.app_close", "motion.in_app_forward", "motion.in_app_back", "motion.dialog", "motion.lock", "motion.unlock", "motion.gc_clear"},
@@ -85,11 +90,6 @@ final class Guide {
                 {"总开关", "refresh.master"}, {"触发方式", "refresh.touch", "refresh.key", "refresh.reading"},
                 {"节奏", "refresh.interval", "refresh.debounce", "refresh.delay", "refresh.period"},
                 {"应用名单", "refresh.apps"}});
-        cat("锁屏", "锁屏样式、天气、通知、倒数日与锁屏刷新，以及歌词相关设置。", new String[][]{
-                {"样式", "lock.style", "lock.weather"}, {"通知", "lock.notify"},
-                {"倒数日", "lock.countdown", "lock.countdowns"},
-                {"锁屏刷新", "lock.first", "lock.update", "lock.delay", "lock.dither"},
-                {"歌词", "lock.lyric", "lock.statusbar", "lock.lyricmode"}});
         cat("体感", "用手掌或物体遮挡屏幕顶部的近距离传感器，锁屏下自动息屏；移开后唤醒并尝试退出锁屏。需要系统无障碍中启用「墨控体感」服务。", new String[][]{
                 {"总开关", "wave.master"},
                 {"行为", "wave.lock", "wave.wake"},
@@ -246,7 +246,7 @@ final class Guide {
 
         put("lock.style").summary("五套专为墨水屏设计的锁屏").what("替换原厂锁屏画面，显示时间、日期、天气和正在播放的音乐。").cost("关闭后恢复你在系统设置里选的原厂锁屏样式。").visual(Visual.LOCK_STYLE)
                 .option("5", "编辑排版", "杂志式衬线大字，像一页报纸。").option("6", "瑞士网格", "严格网格与无衬线粗体，信息清晰。")
-                .option("7", "像素", "1-bit 像素字体和像素图标，复古掌机风格。").option("8", "液态玻璃", "纸纹波浪背景上浮起玻璃质感卡片。").option("9", "编辑排版-横", "横版构图，横转手机阅读：顶部日期表头，左侧大号时间加方框，时间右侧是倒数日框（最多三组）；电池、天气与通知在右下，左下是格言。天气仅开启「锁屏天气」且有数据时显示。");
+                .option("7", "像素", "1-bit 像素字体和像素图标，复古掌机风格。").option("8", "液态玻璃", "纸纹波浪背景上浮起玻璃质感卡片。").option("9", "编辑排版-横", "横版构图，横转手机阅读：大号时间加方框，右侧倒数日框，右下电池与通知，左下格言。").option("10", "编辑排版-横-逆", "编辑排版-横 旋转 180°，适合手机反向横转阅读。");
         put("lock.weather").summary("在自定义锁屏上显示天气").what("在锁屏卡片上显示当前天气、温度和图标。数据来自原厂桌面已经下载的天气，墨控不额外联网。")
                 .option("default", "天气与图标", "");
         put("lock.notify").summary("锁屏显示系统通知数").what("统计当前可清除的系统通知，不再只显示微信未读。墨水屏通常不安装微信，默认使用系统通知数。")

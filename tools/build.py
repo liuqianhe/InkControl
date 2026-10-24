@@ -9,9 +9,9 @@ import subprocess
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '0.1.0-rc16'
+VERSION = '0.1.1-rc17'
 INPUTS = {
-    'hwcomposer.stock.so': 'd1ba01bf135151580c41dc7de13dd1c80876094c8022f58fe9ceecd0c9fb0988',
+    'hwcomposer.stock.so': 'a95b9f92df5c4c37633fae5e15aa216359d314f58a214375a07a5a83e26e6502',
     'hwcomposer.motion.so': 'adbdf9aeb1868e1fb9bf01394a8f67942adb9b3c97a93d6ec2d168f83e60a675',
 }
 
@@ -88,7 +88,7 @@ def main():
     else:
         run(java, '-jar', bt/'lib/apksigner.jar', 'sign', '--ks', args.keystore, '--ks-key-alias', args.key_alias, '--ks-pass', 'env:INKCONTROL_STORE_PASSWORD', '--key-pass', 'env:INKCONTROL_KEY_PASSWORD', '--out', overlay, out/'overlay-aligned.apk')
         run(java, '-jar', bt/'lib/apksigner.jar', 'verify', '--verbose', overlay)
-    (module/'module.prop').write_text('id=inkcontrol_backend\nname=墨控显示后端\nversion='+VERSION+'\nversionCode=16\nauthor=InkControl contributors\ndescription=墨控统一后端；增强默认关闭，通过App逐项开启。\n', encoding='utf-8', newline='\n')
+    (module/'module.prop').write_text('id=inkcontrol_backend\nname=墨控显示后端\nversion='+VERSION+'\nversionCode=17\nauthor=InkControl contributors\ndescription=墨控统一后端；增强默认关闭，通过App逐项开启。\n', encoding='utf-8', newline='\n')
     (module/'checksums.sha256').write_text(''.join(sha(p)+'  '+p.relative_to(module).as_posix()+'\n' for p in sorted(module.rglob('*')) if p.is_file() and p.name != 'customize.sh' and 'META-INF' not in p.parts), encoding='utf-8', newline='\n')
     assert b'\r' not in (module/'module.prop').read_bytes() + (module/'checksums.sha256').read_bytes()
     suffix = '-unsigned' if args.unsigned else ''

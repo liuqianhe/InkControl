@@ -34,9 +34,9 @@ import java.util.concurrent.Executors;
  */
 public final class MainActivity extends Activity {
     private static final ExecutorService WORKER = Executors.newSingleThreadExecutor();
-    private static final String FEATURES = "功能", INSTALL = "安装", DIAGNOSE = "诊断", TERMS = "__terms";
-    private static final String[] TABS = {FEATURES, INSTALL, DIAGNOSE};
-    private static final int[] TAB_GLYPHS = {Ink.Glyph.FEATURES, Ink.Glyph.INSTALL, Ink.Glyph.DIAGNOSE};
+    private static final String FEATURES = "功能", MODULE = "模块设置", INSTALL = "安装", DIAGNOSE = "诊断", TERMS = "__terms";
+    private static final String[] TABS = {FEATURES, MODULE};
+    private static final int[] TAB_GLYPHS = {Ink.Glyph.FEATURES, Ink.Glyph.INSTALL};
     private static final int EXPORT_REQUEST = 100;
 
     private ApplicationServices services;
@@ -44,6 +44,8 @@ public final class MainActivity extends Activity {
     private ApplicationServices.Snapshot snapshot;
     private String loadError = "";
     private String tab = FEATURES, category = "", featureId = "", message = "", output = "";
+    /** 「模块设置」内的子页：空=入口页，否则为「安装」/「诊断」。 */
+    private String modulePage = "";
     private boolean busy, messageFailed, outputExpanded;
     /** 正在提交的单项更改；执行期间按目标值显示，结束后以新快照为准。 */
     private String pendingId = "", pendingValue = "";
@@ -54,6 +56,11 @@ public final class MainActivity extends Activity {
     /** 停留曲线编辑中的草稿。 */
     private String holdMode = "";
     private int[] holdDraft;
+    /** 操作结果提示条的自动消失计时；结果条默认停留 30 秒，可在「模块设置」调整。 */
+    private final android.os.Handler noticeHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private int noticeSeq;
+    /** 缓存「提示时长」偏好，避免每次绘制都同步读一遍存储。 */
+    private int noticeSeconds = UiNotice.DEFAULT;
     private final Map<String, Integer> scrollPositions = new HashMap<>();
     private ScrollView scroll;
     private LinearLayout body;
@@ -70,9 +77,12 @@ public final class MainActivity extends Activity {
         super.onCreate(state);
         services = new ApplicationServices(this);
         ink = new Ink(this);
+        noticeSeconds = UiNotice.seconds(this);
         if (state != null) {
             tab = state.getString("tab", FEATURES);
             if (!Arrays.asList(TABS).contains(tab)) tab = FEATURES;
+            modulePage = state.getString("module", "");
+            if (!modulePage.isEmpty() && !modulePage.equals(INSTALL) && !modulePage.equals(DIAGNOSE)) modulePage = "";
             category = state.getString("category", ""); featureId = state.getString("feature", "");
             if (!featureId.isEmpty()) {
                 featureId = Guide.destination(featureId);
@@ -85,11 +95,19 @@ public final class MainActivity extends Activity {
     @Override protected void onSaveInstanceState(Bundle state) {
         super.onSaveInstanceState(state);
         state.putString("tab", tab); state.putString("category", category); state.putString("feature", featureId);
+        state.putString("module", modulePage);
     }
     @Override public void onConfigurationChanged(Configuration configuration) { super.onConfigurationChanged(configuration); render(); }
+    @Override protected void onDestroy() { dismissNotice(); super.onDestroy(); }
     @Override public void onBackPressed() {
         if (!featureId.isEmpty()) navigate(category, "");
-        else if (!category.isEmpty()) navigate("", "");
+        else if (!category.isEmpty()) {
+            // 实验室 / 名词解释 从「模块设置」进入，返回时回到模块设置入口。
+            if (category.equals("实验室") || category.equals(TERMS)) {
+                tab = MODULE; category = ""; featureId = ""; modulePage = ""; render();
+            } else navigate("", "");
+        }
+        else if (tab.equals(MODULE) && !modulePage.isEmpty()) { modulePage = ""; render(); }
         else if (!tab.equals(FEATURES)) switchTab(FEATURES);
         else super.onBackPressed();
     }
@@ -145,8 +163,11 @@ public final class MainActivity extends Activity {
 
         if (snapshot == null && loadError.isEmpty()) body.addView(note("正在读取配置…"));
         else if (!loadError.isEmpty()) body.addView(card(column(heading("配置读取失败", 18), paragraph("原文件已保留，未做任何修改。\n" + loadError, 14))));
-        else if (tab.equals(INSTALL)) installation();
-        else if (tab.equals(DIAGNOSE)) diagnostics();
+        else if (tab.equals(MODULE)) {
+            if (modulePage.equals(INSTALL)) installation();
+            else if (modulePage.equals(DIAGNOSE)) diagnostics();
+            else moduleSettings();
+        }
         else if (category.equals(TERMS)) glossary();
         else if (!featureId.isEmpty()) featurePage(FeatureCatalog.get(featureId));
         else if (!category.isEmpty()) categoryPage(Guide.CATEGORIES.get(category));
@@ -180,12 +201,12 @@ public final class MainActivity extends Activity {
         String title, subtitle, back = "";
         boolean isHome = tab.equals(FEATURES) && category.isEmpty() && featureId.isEmpty();
         boolean sub = tab.equals(FEATURES) && !category.isEmpty();
-        if (sub && category.equals(TERMS)) { title = "名词解释"; subtitle = "界面里出现的专业词是什么意思。"; back = "功能"; }
+        if (sub && category.equals(TERMS)) { title = "名词解释"; subtitle = "界面里出现的专业词是什么意思。"; back = "模块设置"; }
         else if (sub && !featureId.isEmpty()) {
             FeatureDefinition f = FeatureCatalog.get(featureId);
             title = f.title; subtitle = Guide.get(f.id).summary.isEmpty() ? f.description : Guide.get(f.id).summary; back = category;
-        } else if (sub) { title = category; subtitle = Guide.CATEGORIES.get(category).intro; back = "功能"; }
-        else { title = "墨控"; subtitle = "v" + BuildInfo.VERSION + " · 墨水屏增强 · 全部默认关闭"; }
+        } else if (sub) { title = category; subtitle = Guide.CATEGORIES.get(category).intro; back = category.equals("实验室") ? "模块设置" : "功能"; }
+        else { title = "墨控"; subtitle = ""; }
 
         LinearLayout titles = new LinearLayout(this);
         titles.setOrientation(LinearLayout.VERTICAL);
@@ -197,7 +218,20 @@ public final class MainActivity extends Activity {
             backView.setOnClickListener(v -> onBackPressed());
             titles.addView(backView);
         }
-        titles.addView(ink.text(title, sub ? 26 : 30, Ink.BOLD));
+        if (isHome) {
+            // 标题「墨控」右侧隔开一段距离显示版本号（原来在副标题里，附带的
+            // 「墨水屏增强 · 全部默认关闭」说明已删除——62 项默认关闭写入 README 即可）。
+            LinearLayout brand = new LinearLayout(this);
+            brand.setGravity(Gravity.CENTER_VERTICAL);
+            brand.addView(ink.text(title, 30, Ink.BOLD));
+            TextView version = ink.text("v" + BuildInfo.VERSION, 13, Ink.REGULAR);
+            version.setPadding(ink.dp(12), ink.dp(2), 0, 0);
+            version.setContentDescription(ink.t("版本 " + BuildInfo.VERSION));
+            brand.addView(version);
+            titles.addView(brand);
+        } else {
+            titles.addView(ink.text(title, sub ? 26 : 30, Ink.BOLD));
+        }
         row.addView(titles, new LinearLayout.LayoutParams(0, -2, 1));
 
         if (isHome) {
@@ -212,27 +246,74 @@ public final class MainActivity extends Activity {
             badge.setBackground(filled ? ink.solid(16) : ink.outline(16));
             badge.setTextColor(filled ? Ink.PAPER : Ink.INK);
             badge.setContentDescription(ink.t("环境状态：" + label));
-            badge.setOnClickListener(v -> switchTab(DIAGNOSE));
+            badge.setOnClickListener(v -> openModule(DIAGNOSE));
             row.addView(badge);
         }
         box.addView(row);
 
-        // Keep the brand/title wide enough on 320dp screens in both languages.
-        LinearLayout details = new LinearLayout(this);
-        details.setGravity(Gravity.CENTER_VERTICAL);
-        details.addView(ink.text(subtitle, 13, Ink.REGULAR), new LinearLayout.LayoutParams(0, -2, 1));
         if (isHome) {
-            TextView language = ink.chip("中 / EN", false, v -> UiLanguage.choose(this));
-            language.setContentDescription(ink.t("语言 / Language"));
-            details.addView(withMargin(language, 6));
+            // 状态概览：合并为一行放在标题正下方，缩小占位（原为大号数字卡片）。
+            // 「待重启」「异常」为 0 时不显示，给小屏省出空间。
+            View stats = headerStats();
+            if (stats != null) box.addView(spaced(stats, 8));
+        } else if (!subtitle.isEmpty()) {
+            // Keep the brand/title wide enough on 320dp screens in both languages.
+            LinearLayout details = new LinearLayout(this);
+            details.setGravity(Gravity.CENTER_VERTICAL);
+            details.addView(ink.text(subtitle, 13, Ink.REGULAR), new LinearLayout.LayoutParams(0, -2, 1));
+            box.addView(spaced(details, 6));
         }
-        box.addView(spaced(details, 6));
+        return box;
+    }
+
+    /** 标题下方的单行状态：N 已开启 / 总数，待重启与异常仅在非 0 时出现；异常项可点击跳转。 */
+    private View headerStats() {
+        if (snapshot == null) return null;
+        int on = 0, pending = 0, faults = 0;
+        String firstFault = "";
+        for (FeatureDefinition feature : FeatureCatalog.all()) {
+            String status = status(feature.id);
+            if (snapshot.config.requested(feature.id)) on++;
+            if (status.equals("待重启")) pending++;
+            if (status.startsWith("异常")) {
+                faults++;
+                if (firstFault.isEmpty()) firstFault = feature.id;
+            }
+        }
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.addView(statInline(String.valueOf(on), "已开启 / " + FeatureCatalog.all().size()));
+        if (pending > 0) row.addView(statInline(String.valueOf(pending), "待重启"));
+        if (faults > 0) {
+            View fault = statInline(String.valueOf(faults), "异常");
+            final String target = firstFault;
+            fault.setContentDescription(ink.t("打开异常项"));
+            fault.setBackground(ink.pressable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT),
+                    ink.box(Ink.PAPER, Ink.INK, 1, 10)));
+            fault.setPadding(ink.dp(4), ink.dp(2), ink.dp(4), ink.dp(2));
+            fault.setOnClickListener(v -> openFeature(target));
+            row.addView(fault);
+        }
+        return row;
+    }
+
+    /** 单个状态项：数字与标签同行，比原 stat() 卡片紧凑。 */
+    private View statInline(String number, String label) {
+        LinearLayout box = new LinearLayout(this);
+        box.setGravity(Gravity.CENTER_VERTICAL);
+        box.setPadding(0, 0, ink.dp(20), 0);
+        box.addView(ink.text(number, 18, Ink.BOLD));
+        TextView text = ink.text(label, 12, Ink.REGULAR);
+        text.setPadding(ink.dp(5), 0, 0, 0);
+        box.addView(text);
         return box;
     }
 
     /** 最近一次操作的结果；不再每次弹窗，失败和页面级操作才弹出完整内容。 */
     private View messageBar() {
         if (message.isEmpty() && !busy) return null;
+        // 「不显示」时不占用界面空间，直接不画这条提示。
+        if (!busy && noticeSeconds <= 0) return null;
         LinearLayout bar = new LinearLayout(this);
         bar.setGravity(Gravity.CENTER_VERTICAL);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
@@ -253,12 +334,36 @@ public final class MainActivity extends Activity {
             close.setTextColor(inverted ? Ink.PAPER : Ink.INK);
             close.setGravity(Gravity.CENTER);
             close.setContentDescription(ink.t("关闭提示"));
-            close.setOnClickListener(v -> { message = ""; render(); });
+            close.setOnClickListener(v -> { dismissNotice(); message = ""; render(); });
             bar.addView(close, new LinearLayout.LayoutParams(ink.dp(40), ink.dp(36)));
             String full = message;
             bar.setOnClickListener(v -> showText(messageFailed ? "未完成" : "操作结果", full));
         }
         return bar;
+    }
+
+    /**
+     * 结果提示条到期后自动消失。失败提示必须一直留着由用户手动关闭，
+     * 所以失败时不启动计时；「不显示」时同样不计时。
+     */
+    private void scheduleNoticeDismiss() {
+        noticeHandler.removeCallbacksAndMessages(null);
+        noticeSeq++;
+        if (messageFailed || busy) return;
+        int seconds = noticeSeconds;
+        if (seconds <= 0) return;
+        final int token = noticeSeq;
+        noticeHandler.postDelayed(() -> {
+            if (token != noticeSeq) return;   // 期间又有了新的操作结果，不清空
+            message = "";
+            render();
+        }, seconds * 1000L);
+    }
+
+    /** 立刻清掉待触发的自动消失计时（关闭按钮、页面切换时用）。 */
+    private void dismissNotice() {
+        noticeHandler.removeCallbacksAndMessages(null);
+        noticeSeq++;
     }
 
     private View navigation() {
@@ -292,8 +397,9 @@ public final class MainActivity extends Activity {
 
     private void switchTab(String next) {
         if (next.equals(tab)) {
-            // 再点一次「功能」回到分类首页。
+            // 再点一次「功能」回到分类首页；「模块设置」回到它的入口页。
             if (next.equals(FEATURES) && !category.isEmpty()) navigate("", "");
+            else if (next.equals(MODULE) && !modulePage.isEmpty()) { modulePage = ""; render(); }
             else if (scroll != null) scroll.scrollTo(0, 0);
             return;
         }
@@ -301,6 +407,13 @@ public final class MainActivity extends Activity {
         tab = next;
         scroll = null;
         render();
+    }
+
+    /** 从功能页跳进「模块设置」的指定子页（安装/诊断）。 */
+    private void openModule(String page) {
+        modulePage = page;
+        if (tab.equals(MODULE)) render();
+        else switchTab(MODULE);
     }
     private void navigate(String nextCategory, String nextFeature) {
         if (scroll != null) scrollPositions.put(pageKey(), scroll.getScrollY());
@@ -318,57 +431,72 @@ public final class MainActivity extends Activity {
 
     // ───────────────────────── 功能：分类首页 ─────────────────────────
 
+    /** 供同包的 UiLanguage / UiNotice 在改完偏好后刷新当前页面。 */
+    void refreshUi() {
+        noticeSeconds = UiNotice.seconds(this);
+        // 改时长本身是一次新动作：把上一条结果清掉，免得旧提示又冒出来。
+        if (!busy) { dismissNotice(); message = ""; }
+        render();
+    }
+
     private void home() {
         ApplicationServices.Snapshot s = snapshot;
-        int on = 0, pending = 0, faults = 0;
-        String firstFault = "";
-        for (FeatureDefinition feature : FeatureCatalog.all()) {
-            String status = status(feature.id);
-            if (s.config.requested(feature.id)) on++;
-            if (status.equals("待重启")) pending++;
-            if (status.startsWith("异常")) {
-                faults++;
-                if (firstFault.isEmpty()) firstFault = feature.id;
-            }
-        }
-        LinearLayout stats = new LinearLayout(this);
-        stats.addView(stat(String.valueOf(on), "已开启 / " + FeatureCatalog.all().size()), new LinearLayout.LayoutParams(0, -2, 1));
-        stats.addView(stat(String.valueOf(pending), "待重启"), new LinearLayout.LayoutParams(0, -2, 1));
-        View faultStat = stat(String.valueOf(faults), "异常");
-        if (!firstFault.isEmpty()) {
-            final String target = firstFault;
-            faultStat.setContentDescription(ink.t("打开异常项"));
-            faultStat.setBackground(ink.pressable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT), ink.box(Ink.PAPER, Ink.INK, 1, 10)));
-            faultStat.setPadding(ink.dp(4), ink.dp(4), ink.dp(4), ink.dp(4));
-            faultStat.setOnClickListener(v -> openFeature(target));
-        }
-        stats.addView(faultStat, new LinearLayout.LayoutParams(0, -2, 1));
-        LinearLayout overview = column(stats);
+        // 状态概览（已开启/待重启/异常）已合并到标题下方的一行（headerStats）。
         if (!s.ready()) {
-            overview.addView(spaced(ink.rule(1), 14));
-            String hint = s.checked() ? "环境未就绪：开启增强前请按「安装」页完成安装并完整重启。"
-                    : s.failure.equals("尚未检查环境") ? "尚未检查环境。开启任何增强前，先到「安装」完成检查与安装。"
-                    : "环境检查未完成：" + s.failure + "。开启增强前请先到「安装」处理。";
+            LinearLayout overview = column(spaced(ink.rule(1), 14));
+            String hint = s.checked() ? "环境未就绪：开启增强前请按「模块设置 → 安装」完成安装并完整重启。"
+                    : s.failure.equals("尚未检查环境") ? "尚未检查环境。开启任何增强前，先到「模块设置 → 安装」完成检查与安装。"
+                    : "环境检查未完成：" + s.failure + "。开启增强前请先到「模块设置 → 安装」处理。";
             overview.addView(spaced(paragraph(hint, 14), 12));
-            overview.addView(spaced(ink.button("前往安装向导", Ink.Kind.SECONDARY, v -> switchTab(INSTALL)), 12));
+            overview.addView(spaced(ink.button("前往安装向导", Ink.Kind.SECONDARY, v -> openModule(INSTALL)), 12));
+            body.addView(card(overview));
         }
-        body.addView(card(overview));
 
         for (Guide.Category c : Guide.CATEGORIES.values()) {
+            if (c.name.equals("实验室")) continue;   // 实验室入口移到「模块设置」
             int total = 0, enabled = 0, bad = 0;
             for (String[] section : c.sections) for (int i = 1; i < section.length; i++) {
                 total++;
                 if (s.config.requested(section[i])) enabled++;
                 if (status(section[i]).startsWith("异常")) bad++;
             }
-            String meta = (enabled == 0 ? total + " 项" : enabled + " / " + total + " 已开启") + (bad > 0 ? " · " + bad + " 项异常" : "");
-            body.addView(spaced(navCard(c.name, c.intro, meta, enabled > 0, "分类 " + c.name, v -> navigate(c.name, "")), 12));
+            body.addView(spaced(categoryCard(c, enabled, total, bad, v -> navigate(c.name, "")), 12));
         }
-        body.addView(spaced(navCard("名词解释", "刷新方式、残影、关键帧、波形动画……这些词是什么意思。", "", false, "名词解释", v -> navigate(TERMS, "")), 12));
 
         body.addView(spaced(ink.button("检查当前生效状态", Ink.Kind.PRIMARY, v -> perform("检查生效状态", () -> services.inspect(), false)), 28));
         body.addView(spaced(ink.button("关闭全部增强", Ink.Kind.DANGER, v -> confirm("关闭全部增强", "保留各项选择，并恢复墨控接管的行为。启动期覆盖需完整重启后才完全恢复。",
                 () -> perform("关闭全部增强", () -> { services.disableAll(); return "已提交关闭；请完整重启并检查。"; }, true))), 12));
+    }
+
+    /**
+     * 分类入口卡：把「(已开启/总数)」并进标题行右侧，省掉单独一行的统计文字，
+     * 让整张卡更矮；分类简介仍单独一行，异常项数跟在统计后面。
+     */
+    private View categoryCard(Guide.Category c, int enabled, int total, int bad, View.OnClickListener click) {
+        LinearLayout card = new LinearLayout(this);
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        card.setPadding(ink.dp(18), ink.dp(16), ink.dp(14), ink.dp(16));
+        card.setBackground(ink.pressable(ink.outline(14), ink.box(Ink.PAPER, Ink.INK, 3, 14)));
+        LinearLayout content = column();
+        // 标题行：分类名 + 「| (5/10)已开启」小字并排，不再占用额外的一行高度。
+        LinearLayout titleRow = new LinearLayout(this);
+        titleRow.setGravity(Gravity.CENTER_VERTICAL);
+        titleRow.addView(ink.text(c.name, 20, Ink.BOLD));
+        TextView count = ink.text("| (" + enabled + "/" + total + ")已开启", 13, enabled > 0 ? Ink.BOLD : Ink.REGULAR);
+        count.setPadding(ink.dp(10), 0, 0, 0);
+        titleRow.addView(count);
+        if (bad > 0) {
+            TextView fault = ink.text(bad + " 项异常", 13, Ink.BOLD);
+            fault.setPadding(ink.dp(10), 0, 0, 0);
+            titleRow.addView(fault);
+        }
+        content.addView(titleRow);
+        content.addView(spaced(paragraph(c.intro, 13), 6));
+        card.addView(content, new LinearLayout.LayoutParams(0, -2, 1));
+        card.addView(withMargin(ink.text("›", 28, Ink.REGULAR), 12));
+        card.setContentDescription(ink.t("分类 " + c.name));
+        card.setOnClickListener(click);
+        return card;
     }
 
     private View navCard(String title, String text, String meta, boolean strong, String description, View.OnClickListener click) {
@@ -1289,6 +1417,36 @@ public final class MainActivity extends Activity {
         body.addView(spaced(box, 22));
     }
 
+    // ───────────────────────── 模块设置 ─────────────────────────
+
+    /** 「安装」「诊断」的统一入口：跳转卡片 + 语言切换。 */
+    private void moduleSettings() {
+        body.addView(spaced(navCard("安装", "导出 Magisk 安装包、启用墨控模块并勾选作用域的完整向导。",
+                "", false, "打开安装向导", v -> { modulePage = INSTALL; render(); }), 12));
+        body.addView(spaced(navCard("诊断", "查看后端模块、配置应用与各项生效状态，排查异常。",
+                "", false, "打开诊断", v -> { modulePage = DIAGNOSE; render(); }), 12));
+        body.addView(spaced(navCard("实验室", Guide.CATEGORIES.get("实验室").intro,
+                "", false, "打开实验室", v -> { tab = FEATURES; category = "实验室"; featureId = ""; scroll = null; render(); }), 12));
+        body.addView(spaced(navCard("名词解释", "刷新方式、残影、关键帧、波形动画……这些词是什么意思。",
+                "", false, "名词解释", v -> navigate(TERMS, "")), 12));
+
+        LinearLayout languageCard = column(ink.text("语言 / Language", 16, Ink.BOLD));
+        TextView language = ink.chip("中 / EN", false, v -> UiLanguage.choose(this));
+        language.setContentDescription(ink.t("语言 / Language"));
+        languageCard.addView(spaced(language, 10));
+        languageCard.addView(spaced(paragraph("英文翻译已停止维护：部分界面文字可能仍显示中文。", 13), 8));
+        body.addView(spaced(card(languageCard), 12));
+
+        // 操作结果提示条（顶部「已保存…」那行）的停留时长；默认 30 秒自动消失，也可设为不显示。
+        LinearLayout noticeCard = column(ink.text("提示时长", 16, Ink.BOLD));
+        TextView duration = ink.chip(UiNotice.label(noticeSeconds), false, v -> UiNotice.choose(this));
+        duration.setContentDescription(ink.t("提示时长"));
+        noticeCard.addView(spaced(duration, 10));
+        noticeCard.addView(spaced(paragraph("修改设置后的结果提示会在页面上停留一段时间后自动消失；"
+                + "选「不显示」则不再占用页面空间。失败提示不会自动消失。", 13), 8));
+        body.addView(spaced(card(noticeCard), 12));
+    }
+
     // ───────────────────────── 安装 ─────────────────────────
 
     private void installation() {
@@ -1423,14 +1581,6 @@ public final class MainActivity extends Activity {
         return "…";
     }
 
-    private View stat(String number, String label) {
-        LinearLayout column = new LinearLayout(this);
-        column.setOrientation(LinearLayout.VERTICAL);
-        column.addView(ink.text(number, 30, Ink.BOLD));
-        column.addView(spaced(ink.text(label, 12, Ink.REGULAR), 4));
-        return column;
-    }
-
     private void confirm(String title, String text, Runnable action) {
         new AlertDialog.Builder(this).setTitle(ink.t(title)).setMessage(ink.t(text)).setNegativeButton(ink.t("取消"), null).setPositiveButton(ink.t("继续"), (dialog, which) -> action.run()).show();
     }
@@ -1444,6 +1594,8 @@ public final class MainActivity extends Activity {
      */
     private boolean perform(String label, Work work, boolean dialog) {
         if (busy) { Toast.makeText(this, ink.t("请等待当前操作完成"), Toast.LENGTH_SHORT).show(); return false; }
+        // 新操作开始前撤掉上一条结果的自动消失计时，免得中途把新提示清掉。
+        dismissNotice();
         busy = true; message = label; messageFailed = false;
         render();
         WORKER.execute(() -> {
@@ -1470,6 +1622,7 @@ public final class MainActivity extends Activity {
                 messageFailed = failure;
                 output = text;
                 render();
+                scheduleNoticeDismiss();
                 if (dialog || failure) showText(failure ? "未完成" : "操作结果", text);
             });
         });
