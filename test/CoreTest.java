@@ -136,20 +136,48 @@ public final class CoreTest {
         Configuration legacyPeriod = Configuration.parse(config.change("refresh.period", true, "300").text().replace("refresh.period.value=300", "refresh.period.value=0"));
         check(!legacyPeriod.requested("refresh.period") && legacyPeriod.value("refresh.period").equals("60"));   // 旧值 0 → 默认档（1 分钟）
         for (String bad : new String[]{"0", "1000", "abc", "-1", "@number", "", "3.5", " 3", "@curve"}) reject(() -> interval.validate(bad));
-        // 倒数日清单：最多 3 组「事项;日期」共 6 段，事项可空，日期为空该组停用
+        // 倒数日清单：新格式 12 段「事项;日期;农历;显示」×3；兼容旧 6 段「事项;日期」×3
         FeatureDefinition countdowns = FeatureCatalog.get("lock.countdowns");
         check(countdowns.acceptsCountdowns() && countdowns.defaultValue().isEmpty());
         countdowns.validate(""); check(FeatureDefinition.countdowns("").isEmpty());
+        // 旧格式兼容：农历=否、显示=是
         String two = "考试;2026-11-27;;;生日;2026-12-20";   // 组1 考试、组2 全空停用、组3 生日
         countdowns.validate(two);
-        check(FeatureDefinition.countdownList(two).size() == 2);
-        check(FeatureDefinition.countdownList(two).get(0)[0].equals("考试") && FeatureDefinition.countdownList(two).get(0)[1].equals("2026-11-27"));
-        check(FeatureDefinition.countdownList(two).get(1)[0].equals("生日"));
+        List<FeatureDefinition.CountdownItem> legacy = FeatureDefinition.countdownList(two);
+        check(legacy.size() == 2 && legacy.get(0).item.equals("考试") && legacy.get(0).date.equals("2026-11-27"));
+        check(!legacy.get(0).lunar && legacy.get(0).shown && legacy.get(1).item.equals("生日"));
         check(FeatureDefinition.countdownList(";2026-11-27;;;;").size() == 1);   // 事项为空只用日期
         check(FeatureDefinition.countdownList(";2026-11-27;;;;2027-01-01").size() == 2);   // 按日期升序
+        // 新格式：组1 考试（公历/显示）、组2 空（事项日期空、标志位默认）、组3 春节（农历/显示）
+        String modern = String.join(";", "考试", "2026-11-27", "0", "1", "", "", "0", "1", "春节", "2027-01-01", "1", "1");
+        countdowns.validate(modern);
+        List<FeatureDefinition.CountdownItem> items = FeatureDefinition.countdownList(modern);
+        check(items.size() == 2);
+        check(items.get(0).item.equals("考试") && !items.get(0).lunar);       // 2026-11-27 早于春节换算日
+        check(items.get(1).item.equals("春节") && items.get(1).lunar && items.get(1).shown);
+        // 「显示」关闭的组仍入清单（渲染层过滤），由 shown 标记
+        String hidden = String.join(";", "考试", "2026-11-27", "0", "1", "生日", "2026-12-20", "0", "0", "", "", "0", "1");
+        countdowns.validate(hidden);
+        check(FeatureDefinition.countdownList(hidden).size() == 2 && !FeatureDefinition.countdownList(hidden).get(1).shown);
+        // 农历换算锚点：设备实证 2026-10-24=九月十五；2027 春节=2027-02-06；2026 春节=2026-02-17
+        int[] anchor = LunarCalendar.toLunar(2026, 10, 24);
+        check(anchor[0] == 2026 && anchor[1] == 9 && anchor[2] == 15);
+        Calendar spring = FeatureDefinition.targetDate("2027-01-01", true);
+        check(spring != null && spring.get(Calendar.YEAR) == 2027 && spring.get(Calendar.MONTH) == Calendar.FEBRUARY && spring.get(Calendar.DAY_OF_MONTH) == 6);
+        Calendar newYear = FeatureDefinition.targetDate("2026-01-01", true);
+        check(newYear != null && newYear.get(Calendar.MONTH) == Calendar.FEBRUARY && newYear.get(Calendar.DAY_OF_MONTH) == 17);
+        check(FeatureDefinition.targetDate("2026-09-15", true) != null);      // 合法农历日
+        check(FeatureDefinition.targetDate("2026-02-29", true) != null);      // 2026 农历二月小月 29 天，合法
+        check(FeatureDefinition.targetDate("2026-02-30", true) == null);      // 农历月无 30 日以上
+        check(FeatureDefinition.targetDate("2027-13-01", true) == null && FeatureDefinition.targetDate("1899-01-01", true) == null);
+        check(FeatureDefinition.targetDate("2026-11-27", false) != null && FeatureDefinition.targetDate("2026-02-30", false) == null);
         check(FeatureDefinition.parseDate("2026-11-27") != null && FeatureDefinition.parseDate("2028-02-29") != null);
         check(FeatureDefinition.parseDate("2026-02-29") == null && FeatureDefinition.parseDate("2026-13-01") == null && FeatureDefinition.parseDate("2026-11-31") == null);
-        for (String bad : new String[]{"a;2026-11-27", ";;2026-11-27;;2027-01-01", ";2026-13-01;;;;", ";2026-02-30;;;;", ";not-a-date;;;;", "事项名特别长超过十二个字符;2026-11-27;;;;", "a=b;2026-11-27;;;;", "a;2026-11-27;;;b;2026-12-20;c;2027-01-01"})
+        for (String bad : new String[]{"a;2026-11-27", ";;2026-11-27;;2027-01-01", ";2026-13-01;;;;", ";2026-02-30;;;;", ";not-a-date;;;;", "事项名特别长超过十二个字符;2026-11-27;;;;", "a=b;2026-11-27;;;;", "a;2026-11-27;;;b;2026-12-20;c;2027-01-01",
+                String.join(";", "a", "2026-11-27", "2", "1", "", "", "", "", "", "", "", ""),          // 农历标志非 0/1
+                String.join(";", "a", "2026-02-30", "1", "1", "", "", "", "", "", "", "", ""),          // 农历月无 30 日
+                String.join(";", "a", "2026-11-27", "0", "1", "", "", "", "", "", "", ""),              // 只有 11 段
+                String.join(";", "a", "2026-11-27", "0", "1", "", "", "", "", "", "", "", "", "")})     // 13 段
             reject(() -> countdowns.validate(bad));
         FeatureDefinition appFilter = FeatureCatalog.get("refresh.apps");
         check(appFilter.acceptsApps() && !appFilter.acceptsNumber() && !appFilter.acceptsCurve() && appFilter.defaultValue().isEmpty());

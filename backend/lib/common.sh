@@ -61,21 +61,29 @@ ic_validate() {
         black=substr(value, second+1)
         return pkglist(white) && pkglist(black)
       }
-      function countdowns(choices, value,   n, parts, i, d, y, m, dd, dim) {
+      function countdowns(choices, value,   n, parts, i, d, y, m, dd, dim, step) {
         if (index("," choices ",", ",@countdowns,")==0) return 0
         if (value=="") return 1
         n=split(value, parts, ";")
-        if (n!=6) return 0
-        for (i=1; i<=n; i+=2) {
+        # 新格式 12 段「事项;日期;农历;显示」×3；旧格式 6 段「事项;日期」×3（农历=否、显示=是）
+        if (n!=12 && n!=6) return 0
+        step=(n==12)?4:2
+        for (i=1; i<=n; i+=step) {
           if (length(parts[i])>48) return 0
           d=parts[i+1]
           if (d!="") {
             if (d !~ /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/) return 0
             y=substr(d,1,4)+0; m=substr(d,6,2)+0; dd=substr(d,9,2)+0
             if (m<1 || m>12 || dd<1) return 0
-            dim=(m==4||m==6||m==9||m==11)?30:(m==2?((y%4==0&&(y%100!=0||y%400==0))?29:28):31)
-            if (dd>dim) return 0
+            if (step==4 && parts[i+2]=="1") {
+              if (dd>30) return 0   # 农历月最大 30 天；大小月/闰月语义由 App 侧完整校验
+            } else {
+              dim=(m==4||m==6||m==9||m==11)?30:(m==2?((y%4==0&&(y%100!=0||y%400==0))?29:28):31)
+              if (dd>dim) return 0
+            }
           }
+          if (step==4 && parts[i+2]!="0" && parts[i+2]!="1") return 0
+          if (step==4 && parts[i+3]!="0" && parts[i+3]!="1") return 0
         }
         return 1
       }

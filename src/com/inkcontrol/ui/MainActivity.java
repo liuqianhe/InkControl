@@ -1031,20 +1031,28 @@ public final class MainActivity extends Activity {
 
     private void countdownEditor(FeatureDefinition f, boolean requested, String current) {
         final String[] dates = new String[FeatureDefinition.COUNTDOWNS_MAX];
+        final boolean[] lunar = new boolean[FeatureDefinition.COUNTDOWNS_MAX];
+        final boolean[] shown = new boolean[FeatureDefinition.COUNTDOWNS_MAX];
+        // 兼容旧 6 段「事项;日期」值：农历=否、显示=是
         String[] parts = current == null ? new String[0] : current.split(";", -1);
+        boolean legacy = parts.length == FeatureDefinition.COUNTDOWNS_MAX * FeatureDefinition.COUNTDOWN_LEGACY_FIELDS;
+        boolean modern = parts.length == FeatureDefinition.COUNTDOWNS_MAX * FeatureDefinition.COUNTDOWN_FIELDS;
+        int step = legacy ? FeatureDefinition.COUNTDOWN_LEGACY_FIELDS : (modern ? FeatureDefinition.COUNTDOWN_FIELDS : 0);
         LinearLayout box = column(ink.text("倒数日事项", 18, Ink.BOLD),
-                spaced(paragraph("最多三个，按日期先后显示。事项名可留空；日期为空该组停用。", 13), 12));
+                spaced(paragraph("最多三个，按目标日先后显示。事项名可留空；日期为空该组停用。开启「农历日期」时按农历年/月/日计算（如选 2027-01-01 即 2027 年春节）；关闭「显示」可暂时隐藏该组。", 13), 12));
         final TextView[] dateButtons = new TextView[FeatureDefinition.COUNTDOWNS_MAX];
         final EditText[] itemFields = new EditText[FeatureDefinition.COUNTDOWNS_MAX];
         for (int i = 0; i < FeatureDefinition.COUNTDOWNS_MAX; i++) {
             final int index = i;
-            int base = i * 2;
-            dates[i] = base + 1 < parts.length ? parts[base + 1].trim() : "";
+            int base = i * step;
+            dates[i] = step > 0 && base + 1 < parts.length ? parts[base + 1].trim() : "";
+            lunar[i] = !legacy && step > 0 && base + 2 < parts.length && "1".equals(parts[base + 2].trim());
+            shown[i] = legacy || step <= 0 || base + 3 >= parts.length || !"0".equals(parts[base + 3].trim());
             LinearLayout row = new LinearLayout(this);
             row.setGravity(Gravity.CENTER_VERTICAL);
             EditText item = new EditText(this);
             item.setHint(ink.t("事项（可空）"));
-            item.setText(base < parts.length ? parts[base].trim() : "");
+            item.setText(step > 0 && base < parts.length ? parts[base].trim() : "");
             item.setSingleLine(true);
             item.setFilters(new android.text.InputFilter[]{
                     new android.text.InputFilter.LengthFilter(FeatureDefinition.COUNTDOWN_ITEM_MAX),
@@ -1061,37 +1069,83 @@ public final class MainActivity extends Activity {
             item.setPadding(ink.dp(10), ink.dp(8), ink.dp(10), ink.dp(8));
             itemFields[i] = item;
             row.addView(item, new LinearLayout.LayoutParams(0, -2, 1));
-            TextView date = ink.button(dates[i].isEmpty() ? "选日期" : dates[i], Ink.Kind.SECONDARY, v -> {
+            TextView date = ink.button(dates[i].isEmpty() ? "选日期" : dates[i] + (lunar[i] ? "（农历）" : ""), Ink.Kind.SECONDARY, v -> {
                 Calendar initial = FeatureDefinition.parseDate(dates[index]);
                 if (initial == null) initial = Calendar.getInstance();
                 new DatePickerDialog(this, (view, year, month, day) -> {
                     dates[index] = String.format(Locale.ROOT, "%04d-%02d-%02d", year, month + 1, day);
-                    dateButtons[index].setText(dates[index]);
+                    dateButtons[index].setText(dates[index] + (lunar[index] ? "（农历）" : ""));
                 }, initial.get(Calendar.YEAR), initial.get(Calendar.MONTH), initial.get(Calendar.DAY_OF_MONTH)).show();
             });
             dateButtons[i] = date;
             LinearLayout.LayoutParams dateParams = new LinearLayout.LayoutParams(-2, -2);
             dateParams.leftMargin = ink.dp(8);
             row.addView(date, dateParams);
-            box.addView(spaced(row, 10));
+            box.addView(spaced(row, 6));
+            // 日期按钮下方：本组独立的「农历日期」「显示」两个开关
+            LinearLayout sub = new LinearLayout(this);
+            sub.setGravity(Gravity.CENTER_VERTICAL);
+            sub.addView(ink.text("农历日期", 13, Ink.MEDIUM));
+            final CompoundButton lunarToggle = miniToggle(lunar[i]);
+            lunarToggle.setOnClickListener(v -> {
+                lunar[index] = lunarToggle.isChecked();
+                dateButtons[index].setText(dates[index].isEmpty() ? "选日期" : dates[index] + (lunarToggle.isChecked() ? "（农历）" : ""));
+            });
+            sub.addView(lunarToggle);
+            TextView showLabel = ink.text("显示", 13, Ink.MEDIUM);
+            LinearLayout.LayoutParams showParams = new LinearLayout.LayoutParams(-2, -2);
+            showParams.leftMargin = ink.dp(18);
+            sub.addView(showLabel, showParams);
+            final CompoundButton showToggle = miniToggle(shown[i]);
+            showToggle.setOnClickListener(v -> shown[index] = showToggle.isChecked());
+            sub.addView(showToggle);
+            box.addView(spaced(sub, 8));
         }
         box.addView(spaced(ink.button("保存", Ink.Kind.PRIMARY, v -> {
+            // 填了事项却没选日期：该组不会显示（日期为空停用），先明确提示再保存
+            for (int i = 0; i < FeatureDefinition.COUNTDOWNS_MAX; i++) {
+                if (!itemFields[i].getText().toString().trim().isEmpty() && dates[i].isEmpty()) {
+                    Toast.makeText(this, ink.t("第 " + (i + 1) + " 组填了事项但没选日期，该组不会显示"), Toast.LENGTH_LONG).show();
+                    return;
+                }
+            }
             StringBuilder value = new StringBuilder();
             for (int i = 0; i < FeatureDefinition.COUNTDOWNS_MAX; i++) {
                 if (i > 0) value.append(';');
-                value.append(itemFields[i].getText().toString().trim()).append(';').append(dates[i]);
+                value.append(itemFields[i].getText().toString().trim()).append(';').append(dates[i]).append(';')
+                        .append(lunar[i] ? '1' : '0').append(';').append(shown[i] ? '1' : '0');
             }
-            if (FeatureDefinition.countdowns(value.toString()) == null) {
+            String text = value.toString();
+            if (FeatureDefinition.countdowns(text) == null) {
+                // 农历月无此日（选择器按公历选日，30/31 日可能不是合法农历日）
+                for (int i = 0; i < FeatureDefinition.COUNTDOWNS_MAX; i++) {
+                    if (lunar[i] && !dates[i].isEmpty() && FeatureDefinition.targetDate(dates[i], true) == null) {
+                        Toast.makeText(this, ink.t("农历日期「" + dates[i] + "」不存在，请改选其他日期"), Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                }
                 Toast.makeText(this, ink.t("日期格式不正确"), Toast.LENGTH_SHORT).show();
                 return;
             }
-            if (!begin(f.id, requested, value.toString())) return;
+            if (!begin(f.id, requested, text)) return;
             perform(ink.t("保存"), () -> {
-                change(f.id, requested, value.toString());
+                change(f.id, requested, text);
                 return "已保存「" + f.title + "」";
             }, false);
         }), 14));
         body.addView(spaced(box, 16));
+    }
+
+    /** 编辑器行内小开关：无动画黑白开关图形，状态由调用方读取。
+     *  注意：不可重写 toggle() 为空——CompoundButton.performClick() 靠它切换选中态，
+     *  置空后点击无反应、OnClickListener 里读到的 isChecked() 永远是旧值。 */
+    private CompoundButton miniToggle(boolean checked) {
+        CompoundButton toggle = new CompoundButton(this) {
+            @Override public CharSequence getAccessibilityClassName() { return Switch.class.getName(); }
+        };
+        toggle.setButtonDrawable(ink.switchDrawable());
+        toggle.setChecked(checked);
+        return toggle;
     }
 
     private LinkedHashMap<String, String> launcherApps() {

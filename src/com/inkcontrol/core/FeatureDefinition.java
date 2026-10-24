@@ -62,41 +62,77 @@ public final class FeatureDefinition {
     }
     /** 目录里的占位值；本身不是合法配置，只表示允许逗号分隔的包名名单。 */
     public static final String APPS_TOKEN = "@apps";
-    /** 目录里的占位值；本身不是合法配置，只表示允许最多 COUNTDOWNS_MAX 组「事项;日期」倒数日清单。 */
+    /** 目录里的占位值；本身不是合法配置，只表示允许最多 COUNTDOWNS_MAX 组「事项;日期;农历;显示」倒数日清单。 */
     public static final String COUNTDOWNS_TOKEN = "@countdowns";
     /** 倒数日最多组数。 */
     public static final int COUNTDOWNS_MAX = 3;
     /** 倒数日事项名最长字符数。 */
     public static final int COUNTDOWN_ITEM_MAX = 12;
-    /** 是否接受「事项;日期」清单（最多 3 组，事项可空，日期为空则该组停用）。 */
+    /** 新格式每组字段数：事项;日期;农历;显示。 */
+    public static final int COUNTDOWN_FIELDS = 4;
+    /** 旧格式每组字段数：事项;日期（农历=否、显示=是，兼容读取）。 */
+    public static final int COUNTDOWN_LEGACY_FIELDS = 2;
+    /** 是否接受「事项;日期;农历;显示」清单（最多 3 组，事项可空，日期为空则该组停用）。 */
     public boolean acceptsCountdowns() { return values.contains(COUNTDOWNS_TOKEN); }
-    /** 解析倒数日清单值：空串（无事项）或 COUNTDOWNS_MAX*2 段「事项;日期」；日期须为真实阳历日。 */
+    /** 解析倒数日清单值：空串（无事项）、旧 6 段「事项;日期」×3 或新 12 段「事项;日期;农历;显示」×3。 */
     public static String countdowns(String value) {
         if (value == null) return null;
         if (value.isEmpty()) return "";
         String[] parts = value.split(";", -1);
-        if (parts.length != COUNTDOWNS_MAX * 2) return null;
-        for (int i = 0; i < parts.length; i += 2) {
+        boolean legacy = parts.length == COUNTDOWNS_MAX * COUNTDOWN_LEGACY_FIELDS;
+        if (!legacy && parts.length != COUNTDOWNS_MAX * COUNTDOWN_FIELDS) return null;
+        int step = legacy ? COUNTDOWN_LEGACY_FIELDS : COUNTDOWN_FIELDS;
+        for (int i = 0; i < parts.length; i += step) {
             String item = parts[i].trim();
             // 事项名不得含 '='：会破坏配置的 key=value 行格式（后端 ic_validate 同样拒绝）
             if (item.length() > COUNTDOWN_ITEM_MAX || item.indexOf('=') >= 0) return null;
             String date = parts[i + 1].trim();
-            if (!date.isEmpty() && parseDate(date) == null) return null;
+            boolean lunar = !legacy && "1".equals(parts[i + 2].trim());
+            if (!date.isEmpty() && targetDate(date, lunar) == null) return null;
+            if (!legacy && !(parts[i + 2].trim() + parts[i + 3].trim()).matches("[01]{2}")) return null;
         }
         return value;
     }
-    /** 有效倒数日组（日期非空且合法），按日期升序；每项为 {事项, 日期}，事项可能为空串。 */
-    public static List<String[]> countdownList(String value) {
-        List<String[]> result = new ArrayList<>();
+    /** 有效倒数日组（日期非空且合法），按目标公历日升序；旧格式按公历、默认显示。 */
+    public static List<CountdownItem> countdownList(String value) {
+        List<CountdownItem> result = new ArrayList<>();
         if (value == null || value.isEmpty()) return result;
         String[] parts = value.split(";", -1);
-        if (parts.length != COUNTDOWNS_MAX * 2) return result;
-        for (int i = 0; i < parts.length; i += 2) {
+        boolean legacy = parts.length == COUNTDOWNS_MAX * COUNTDOWN_LEGACY_FIELDS;
+        if (!legacy && parts.length != COUNTDOWNS_MAX * COUNTDOWN_FIELDS) return result;
+        int step = legacy ? COUNTDOWN_LEGACY_FIELDS : COUNTDOWN_FIELDS;
+        for (int i = 0; i < parts.length; i += step) {
             String date = parts[i + 1].trim();
-            if (!date.isEmpty() && parseDate(date) != null) result.add(new String[]{parts[i].trim(), date});
+            boolean lunar = !legacy && "1".equals(parts[i + 2].trim());
+            boolean shown = legacy || !"0".equals(parts[i + 3].trim());
+            if (!date.isEmpty() && targetDate(date, lunar) != null)
+                result.add(new CountdownItem(parts[i].trim(), date, lunar, shown));
         }
-        result.sort((a, b) -> a[1].compareTo(b[1]));   // yyyy-MM-dd 字典序即时间序
+        result.sort((a, b) -> Long.compare(targetMillis(a), targetMillis(b)));
         return result;
+    }
+    private static long targetMillis(CountdownItem item) {
+        Calendar target = targetDate(item.date, item.lunar);
+        return target == null ? Long.MAX_VALUE : target.getTimeInMillis();
+    }
+    /** 目标公历日：公历日期直接解析；农历日期按所选农历年/月/日换算（不支持闰月）。无效返回 null。 */
+    public static Calendar targetDate(String date, boolean lunar) {
+        if (date == null || !date.matches("\\d{4}-\\d{2}-\\d{2}")) return null;
+        int year = Integer.parseInt(date.substring(0, 4));
+        int month = Integer.parseInt(date.substring(5, 7));
+        int day = Integer.parseInt(date.substring(8, 10));
+        return lunar ? LunarCalendar.toSolar(year, month, day) : parseDate(date);
+    }
+    /** 一个倒数日组：事项名（可空）、目标日期（yyyy-MM-dd）、是否按农历解读、是否显示。 */
+    public static final class CountdownItem {
+        public final String item, date;
+        public final boolean lunar, shown;
+        public CountdownItem(String item, String date, boolean lunar, boolean shown) {
+            this.item = item == null ? "" : item;
+            this.date = date == null ? "" : date;
+            this.lunar = lunar;
+            this.shown = shown;
+        }
     }
     /** 把 yyyy-MM-dd 解析为当天 00:00 的 Calendar；不是真实日期返回 null。 */
     public static Calendar parseDate(String value) {

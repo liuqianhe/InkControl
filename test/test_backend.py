@@ -70,8 +70,36 @@ IC_LIB={shlex.quote(posix(SCHEMA))}
         for key,value in (('refresh.delay','3'),('motion.hold','3')):
             self.config.write_text(original.replace(key+'.value=0',key+'.value='+value),encoding='utf-8')
             self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
-        self.config.write_text(original.replace('refresh.period.value=300','refresh.period.value=3'),encoding='utf-8')
-        self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
+        # refresh.period 选项含 @number：任意 1–999 合法，范围外/非数字仍拒（默认档随选项表变化，读当前值）
+        period=[l.split('=',1)[1] for l in original.splitlines() if l.startswith('refresh.period.value=')][0]
+        for good in ('3','1','60','300','600','1800','999'):
+            self.config.write_text(original.replace('refresh.period.value='+period,'refresh.period.value='+good),encoding='utf-8')
+            self.shell('ic_validate "$IC_CONFIG"\n')
+        for bad in ('0','1000','abc','-1','@number','@curve','3.5',' 3'):
+            self.config.write_text(original.replace('refresh.period.value='+period,'refresh.period.value='+bad),encoding='utf-8')
+            self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
+    def test_countdown_list_accepts_both_formats(self):
+        original=self.config.read_text()
+        def with_value(value):
+            return original.replace('lock.countdowns.value=','lock.countdowns.value='+value)
+        # 旧 6 段「事项;日期」×3
+        for good in ('','考试;2026-11-27;;;;',';2026-11-27;;;;','a;2026-11-27;b;2026-12-20;c;2027-01-01'):
+            self.config.write_text(with_value(good),encoding='utf-8'); self.shell('ic_validate "$IC_CONFIG"\n')
+        # 新 12 段「事项;日期;农历;显示」×3（空组也带标志位）
+        new_good=(';'.join(['考试','2026-11-27','0','1','','','0','1','春节','2027-01-01','1','1']),
+                  ';'.join(['生日','2026-12-20','1','0','','','0','1','','','0','1']))
+        for good in new_good:
+            self.config.write_text(with_value(good),encoding='utf-8'); self.shell('ic_validate "$IC_CONFIG"\n')
+        for bad in ('a;2026-11-27',                                     # 段数不对
+                    ';'.join(['a','2026-11-27','2','1','','','','','','','','']),   # 农历标志非 0/1
+                    ';'.join(['a','2026-11-27','0','2','','','','','','','','']),   # 显示标志非 0/1
+                    ';'.join(['a','2026-11-31','1','1','','','','','','','','']),   # 农历月最大 30 天
+                    ';'.join(['a','2026-02-30','0','1','','','','','','','','']),   # 公历 2 月无 30 日
+                    ';'.join(['a','not-a-date','0','1','','','','','','','','']),
+                    ';'.join(['a','2026-11-27','0','1','','','','','','','']),      # 11 段
+                    '事项名特别长超过十二个字符;2026-11-27;0;1;;;;'):
+            self.config.write_text(with_value(bad),encoding='utf-8')
+            self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
     def test_refresh_debounce_accepts_custom_number_and_is_optional(self):
         original=self.config.read_text()
         for good in ('1000','500','2000','0','250','999'):

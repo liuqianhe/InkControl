@@ -37,7 +37,8 @@ final class LockData {
     /** 锁屏通知数；锁屏关闭通知显示或暂时取不到时为 -1 */
     int notifications = -1;
     /** 有效倒数日组（{事项, 日期}，事项可能为空串），按日期升序，最多 3 组；未启用或未设置为 null */
-    List<String[]> countdowns;
+    /** 倒数日清单（开关开启时读取；每组事项名可空、日期为空停用、可标记农历与是否显示） */
+    List<FeatureDefinition.CountdownItem> countdowns;
     /** 通知来源名称：系统通知为“通知”，兼容微信来源时为“微信” */
     String notificationLabel = "通知";
     /** 正在播放：歌词（没有歌词时用曲名），否则是格言 */
@@ -74,16 +75,10 @@ final class LockData {
         }
         if (RuntimeConfig.enabled("lock.weather")) readWeather(d, controller);
         readLunar(d, controller);
+        // 倒数日：仅当「锁屏 → 倒数日」开关开启时读取 App 配置的事项与日期；
+        // 开关关闭、或未配置任何事项时不绘制（测试期硬编码样张已移除，编辑器可正常配置）。
         if (RuntimeConfig.enabled("lock.countdown"))
             d.countdowns = FeatureDefinition.countdownList(RuntimeConfig.value("lock.countdowns"));
-        // 测试期：配置未设置倒数日时先用 3 组硬编码值（含一个空事项组）验证布局；
-        // App「锁屏自定义 → 倒数日事项」编辑器可用后，用户设置即覆盖此测试值。
-        if (d.countdowns == null || d.countdowns.isEmpty()) {
-            d.countdowns = new ArrayList<>();
-            d.countdowns.add(new String[]{"考试", "2026-11-27"});
-            d.countdowns.add(new String[]{"生日", "2026-12-20"});
-            d.countdowns.add(new String[]{"", "2026-12-31"});
-        }
 
         String lyric = RuntimeConfig.enabled("lock.lyric") ? Hook.activeLyric() : null;
         if (lyric != null) {
@@ -196,8 +191,9 @@ final class LockData {
         d.low = "12°";
         d.lunar = "九月初一";
         d.countdowns = new ArrayList<>();
-        d.countdowns.add(new String[]{"考试", "2026-11-27"});
-        d.countdowns.add(new String[]{"生日", "2026-12-20"});
+        d.countdowns.add(new FeatureDefinition.CountdownItem("考试", "2026-11-27", false, true));
+        d.countdowns.add(new FeatureDefinition.CountdownItem("生日", "2026-12-20", false, true));
+        d.countdowns.add(new FeatureDefinition.CountdownItem("春节", "2027-01-01", true, true));   // 农历示例（2027 春节=2027-02-06）
         d.notifications = 3;
         d.playing = true;
         d.text = "把今天折好，放进明天的口袋。";
