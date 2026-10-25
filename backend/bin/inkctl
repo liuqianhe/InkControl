@@ -46,5 +46,15 @@ case "$1" in
         mv "$IC_STATE/configuration.pending" "$IC_CONFIG" || exit 1
         ic_apply_hot || { echo '配置已保存，部分应用失败；请检查诊断后重试' >&2; exit 1; }
         echo '配置已应用，启动期选项等待完整重启' ;;
-    *) echo '仅支持 status/apply' >&2; exit 2 ;;
+    applyfont)
+        # 路径从 stdin 读一行（App 侧白名单校验后再传入），也接受第二个参数
+        IFS= read -r src || true
+        [ -n "$src" ] || src=$2
+        ic_apply_font "$src" ;;
+    fontlist)
+        # 目录从 stdin 读一行，也接受第二个参数；输出「文件名<TAB>字节数<TAB>绝对路径」
+        IFS= read -r dir || true
+        [ -n "$dir" ] || dir=$2
+        ic_list_fonts "$dir" ;;
+    *) echo '仅支持 status/apply/applyfont/fontlist' >&2; exit 2 ;;
 esac

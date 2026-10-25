@@ -61,8 +61,7 @@ ic_validate() {
         black=substr(value, second+1)
         return pkglist(white) && pkglist(black)
       }
-      function countdowns(choices, value,   n, parts, i, d, y, m, dd, dim, step) {
-        if (index("," choices ",", ",@countdowns,")==0) return 0
+      function countdowns(choices, value,   n, parts, i, d, y, m, dd, dim, step) {        if (index("," choices ",", ",@countdowns,")==0) return 0
         if (value=="") return 1
         n=split(value, parts, ";")
         # 新格式 12 段「事项;日期;农历;显示」×3；旧格式 6 段「事项;日期」×3（农历=否、显示=是）
@@ -87,17 +86,24 @@ ic_validate() {
         }
         return 1
       }
+      function fontpath(value,   n) {
+        # 字体目录或字体名：绝对路径/文件名，不含等号、分号、控制字符与 shell 元字符
+        if (value=="") return 1
+        if (length(value)>200) return 0
+        if (value ~ /[=;$`"|&<>*?!]/) return 0
+        return 1
+      }
       NR==FNR {split($0,s,"\t"); choices[s[1]]=s[2]; known[s[1]]=1; n++; next}
       {if (NF!=2 || seen[$1]++) bad=1}
       $1=="version" {if($2!="1") bad=1; next}
       $1=="revision" {if($2!~/^[0-9]+$/ || length($2)>15) bad=1; next}
-      {key=$1; if(sub(/\.value$/,"",key)) {if(!known[key] || $2=="@curve" || $2=="@number" || $2=="@apps" || $2=="@countdowns" || (index("," choices[key] ",", "," $2 ",")==0 && !curve(choices[key], $2) && !number(choices[key], $2) && !apps(choices[key], $2) && !countdowns(choices[key], $2))) bad=1}
+      {key=$1; if(sub(/\.value$/,"",key)) {if(!known[key] || $2=="@curve" || $2=="@number" || $2=="@apps" || $2=="@countdowns" || $2=="@path" || $2=="@font" || (index("," choices[key] ",", "," $2 ",")==0 && !curve(choices[key], $2) && !number(choices[key], $2) && !apps(choices[key], $2) && !countdowns(choices[key], $2) && !fontpath($2))) bad=1}
        else if(!known[key] || ($2!="0" && $2!="1")) bad=1}
       END {
         if(!seen["version"] || !seen["revision"]) bad=1
         for(key in known) {
           # 旧版配置没有分模式选项、自动刷新项与后来新增的开关；仅允许这些新增字段整对缺省，其他字段仍严格检查。
-          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/)
+          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^font\.(dir|pick|saf)$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/)
           if(optional && !seen[key] && !seen[key ".value"]) continue
           if(!seen[key] || !seen[key ".value"]) bad=1
         }
@@ -157,6 +163,50 @@ ic_properties() {
         case "$ic_hysteresis" in default|on|off) ;; *) return 1 ;; esac
         setprop "debug.eink.hyst.$ic_scope" "$ic_hysteresis" || return 1
     done
+}
+# ── 系统字体替换 ──────────────────────────────────────────────────────────
+# 只写当前生效的字体槽位：/data/fonts/HmctFont.ttf 指向的 <主题字体id>.ttf。
+# 换字体必须完整重启才生效；写入前把原文件备份到 $IC_STATE/font-backup.ttf。
+IC_FONT_DIR=${IC_FONT_DIR:-/data/fonts}
+ic_font_slot() {
+    [ -L "$IC_FONT_DIR/HmctFont.ttf" ] || return 1
+    readlink -f "$IC_FONT_DIR/HmctFont.ttf" 2>/dev/null
+}
+# 列出目录里的 TTF/OTF（含无扩展名的主题字体包），每行「文件名 \t 字节数 \t 绝对路径」。
+# 走 root 而不是 App 的存储权限，TF 卡与隐藏目录同样可读。
+ic_list_fonts() {
+    dir=$1
+    [ -n "$dir" ] || dir=/storage/emulated/0/.hmcttheme/com.hmct.theme
+    [ -d "$dir" ] || { echo '目录不存在或无法读取' >&2; return 1; }
+    for file in "$dir"/*; do
+        [ -f "$file" ] || continue
+        size=$(stat -c %s "$file" 2>/dev/null) || continue
+        [ "$size" -ge 65536 ] || continue
+        head -c 4 "$file" | xxd -p | grep -Eq '^(00010000|4f54544f|74727565|74746366)$' || continue
+        printf '%s\t%s\t%s\n' "$(basename "$file")" "$size" "$file"
+    done
+}
+ic_apply_font() {
+    src=$1
+    [ -n "$src" ] && [ -f "$src" ] || { echo '找不到字体文件' >&2; return 1; }
+    case "$src" in
+        /storage/*|/sdcard/*|/data/local/tmp/*|/data/user/*|/data/data/*) ;;
+        *) echo '字体路径不在允许范围' >&2; return 1 ;;
+    esac
+    printf '%s' "$src" | grep -q '[[:cntrl:]]' && { echo '字体路径无效' >&2; return 1; }
+    # TTF(00010000)、OTF(OTTO)、'true'、TTC(ttcf) 四种合法字体头
+    head -c 4 "$src" | xxd -p | grep -Eq '^(00010000|4f54544f|74727565|74746366)$' || {
+        echo '不是有效的字体文件（需要 TTF 或 OTF）' >&2; return 1; }
+    dst=$(ic_font_slot) || { echo '找不到当前字体槽位；请先在系统设置里应用过一次字体' >&2; return 1; }
+    [ -f "$dst" ] || { echo '当前字体文件不存在' >&2; return 1; }
+    owner=$(stat -c '%u:%g' "$dst") || return 1
+    mkdir -p "$IC_STATE" || return 1
+    cp -f "$dst" "$IC_STATE/font-backup.ttf" || { echo '备份原字体失败' >&2; return 1; }
+    cp -f "$src" "$dst" || { echo '写入字体失败' >&2; return 1; }
+    chown "$owner" "$dst" 2>/dev/null
+    chmod 666 "$dst" 2>/dev/null
+    ic_log "font: $src -> $dst"
+    echo "已写入当前字体槽位 $(basename "$dst")；完整重启后生效"
 }
 # 自动刷新依赖随 App 提供的无障碍服务；只按刷新总开关增删该组件，关闭时不改写系统设置。
 ic_accessibility() {

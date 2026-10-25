@@ -78,7 +78,7 @@ final class Guide {
                 {"触摸与响应", "display.sampling", "display.idle"}, {"系统刷新设置", "display.dynamic", "display.apps"}});
         cat("锁屏", "锁屏样式、天气、通知、倒数日与锁屏刷新，以及歌词相关设置。", new String[][]{
                 {"样式", "lock.style", "lock.weather"}, {"通知", "lock.notify", "lock.notifyhide"},
-                {"倒数日", "lock.countdown", "lock.countdowns"},
+                {"倒数日", "lock.countdown"},
                 {"锁屏刷新", "lock.first", "lock.update", "lock.delay", "lock.dither"},
                 {"歌词", "lock.lyric", "lock.statusbar", "lock.lyricmode"}});
         cat("动画", "打开应用、返回、弹窗和锁屏时的过渡效果，专为墨水屏设计。", new String[][]{
@@ -96,6 +96,8 @@ final class Guide {
                 {"遮挡延时", "wave.coverDelay"}});
         cat("桌面", "原厂桌面的主题、图标、字体与组件；不改动图标位置和布局。", new String[][]{
                 {"主题", "desktop.theme"}, {"换肤项目", "desktop.icons", "desktop.font", "desktop.wallpaper", "desktop.widget"}});
+        cat("字体", "把任意 TTF/OTF 字体写进系统当前字体槽位，省掉「重命名字体文件 → 切到别的字体 → 重启 → 再切回来」的老流程。改完必须完整重启。", new String[][]{
+                {"字体来源", "font.dir"}, {"替换系统字体", "font.pick", "font.saf"}});
         cat("系统增强", "修复原厂墨水屏服务的几个问题：偶发重启、卡开机、多余刷新。", new String[][]{
                 {"稳定性", "fix.exceptions", "fix.configlock", "guard.config"}, {"刷新行为", "fix.modes", "fix.video"},
                 {"安全", "fix.permissions"}, {"外观", "fix.google"}});
@@ -259,10 +261,10 @@ final class Guide {
                 .option("wechat", "微信", "只统计微信未读消息，适合安装了微信的设备。");
         put("lock.notifyhide").summary("不想在锁屏看到通知时打开").what("打开后六种锁屏样式都不再画通知区：编辑排版的「通知 N 条」框、横版的右下通知框、瑞士与液态玻璃右下角的通知数、像素样式的通知数和通知一格都会消失，腾出的位置不会再摆空框。")
                 .cost("只影响显示，通知仍在正常统计；关掉这个开关马上恢复，不用等新的通知。锁屏的「通知来源」选择保持不变。");
-        put("lock.countdown").summary("锁屏显示事项倒数日").what("在自定义锁屏时间右侧的框里显示倒数日：最多三个，每组一个事项和日期。事项名可留空；日期为空该组停用。多个按目标日先后排列，整体在框里垂直居中。")
-                .cost("关闭后不显示倒数日框；已保存的事项和日期仍保留。").option("default", "显示倒数日", "");
-        put("lock.countdowns").summary("编辑倒数日的事项和日期").what("最多三个倒数日。事项名可留空；日期为空该组停用。每组有独立的「农历日期」和「显示」开关：开启农历后按农历年/月/日计算（如选 2027-01-01 即 2027 年春节）；关闭显示可暂时隐藏该组而不删除。")
-                .option("@countdowns", "编辑事项", "每组一个事项和日期，点按上方编辑器修改。");
+        put("lock.countdown").summary("一个开关管显示，本页直接编辑事项").what("打开后在锁屏上显示事项倒数日：最多三个，每组一个事项和日期，多个按目标日先后排列。下方就是事项编辑器——事项名可留空；日期为空该组停用。")
+                .cost("关闭后锁屏不再显示倒数日，已填的事项和日期仍保留，再打开即恢复。").option("default", "显示倒数日", "");
+        put("lock.countdowns").summary("倒数日事项的数据存储位置").what("最多三个倒数日，每组有独立的「农历日期」和「显示」开关：开启农历后按农历年/月/日计算（如选 2027-01-01 即 2027 年春节）；关闭显示可暂时隐藏该组而不删除。编辑入口已并入上一页「锁屏倒数日」，这里是它的数据保存位置，旧配置继续有效。")
+                .option("@countdowns", "编辑事项", "每组一个事项和日期，在「锁屏倒数日」页下方编辑。");
         put("lock.lyric").summary("锁屏和息屏画面显示当前一句歌词").what("播放音乐时，在锁屏画面和息屏显示区显示当前这一句歌词，随播放逐句更新。支持在媒体信息里带歌词的播放器，以及 Lyric Getter。")
                 .cost("每换一句歌词都要刷新一次锁屏，刷新方式见“歌词的刷新方式”。").option("default", "显示歌词", "");
         put("lock.statusbar").summary("状态栏左侧滚动显示歌词").what("播放音乐时，在状态栏左侧显示当前歌词。停止播放或关闭本项后，通知图标恢复显示。").option("default", "显示歌词", "");
@@ -289,7 +291,10 @@ final class Guide {
         put("desktop.theme").summary("三套配套的桌面外观").what("给原厂桌面换一套完整的外观。下面的图标、字体、壁纸、组件可以分别开关；图标位置和桌面布局保持不变。").visual(Visual.DESKTOP_THEME)
                 .option("glass", "流光玻璃", "浅色玻璃质感卡片，细线图标。").option("paper", "纸间", "纸张质感与衬线字体，像一本笔记本。").option("ink", "墨构", "黑底反白、高对比，粗线条图标。");
         put("desktop.icons").summary("应用图标换成主题配套的黑白图标").what("把常用应用的图标换成与主题匹配的黑白图标（覆盖 39 个常用应用），在墨水屏上比彩色图标清晰得多。").cost("关闭后立即恢复原厂图标。").option("default", "主题图标", "");
-        put("desktop.font").summary("桌面图标文字换成主题字体").what("桌面上图标下方的名称改用主题配套的字体。").cost("关闭后恢复原厂字体。").option("default", "主题字体", "");
+        put("desktop.font").summary("只换桌面图标下方应用名的字体").what("仅对原厂桌面图标下方的应用名生效：纸间主题用系统衬线体、墨构用窄体、流光玻璃用普通黑体，字号与字色也随主题调整。它不加载字体文件、也不改系统全局字体，图标以外任何界面都不受影响。").cost("关闭后恢复原厂字体。想要全局换字体请用「字体 → 替换系统字体」。").option("default", "主题字体", "");
+        put("font.dir").summary("字体文件放在哪个目录").what("默认是海信主题的字体目录（/storage/emulated/0/.hmcttheme/com.hmct.theme/），这里放的字体在系统「设置 → 显示和亮度 → 字体样式」里下载过才会出现。也可以改成自己存字体的目录（例如 TF 卡上的字体文件夹）。目录里的文件名不用改，什么名字都能识别。").cost("读取该目录需要存储权限；Android 10 的分区存储或 TF 卡读不到时，改用「从文件管理器选择字体」。");
+        put("font.pick").summary("选一个目录里的字体，写进系统").what("扫描「字体文件目录」，逐个列出可用的 TTF/OTF。点某个字体右侧的「应用」，墨控会用 Root 把字体写进系统当前正在用的字体槽位（/data/fonts 下 HmctFont.ttf 指向的那个文件），原字体会备份到 /data/adb/inkcontrol/font-backup.ttf。").cost("写入后必须完整重启才生效；重启前系统显示仍是旧字体。字体缺少中文字形时会出现方块，此时把备份文件写回去再重启即可恢复。").option("@font", "选择字体", "目录里每个字体一行，点「应用」写入系统。");
+        put("font.saf").summary("目录读不到时，用系统文件选择器挑字体").what("打开系统的文件选择器，从任意位置（TF 卡、下载目录、网盘挂载）挑一个 TTF/OTF，选中后同样写入系统当前字体槽位。这条路不依赖存储权限，是「字体文件目录」读不到时的兜底。").cost("同样需要完整重启才生效；选择器只负责把文件交给墨控，不会改动原文件。").option("@font", "选择文件", "打开系统文件选择器挑一个字体文件。");
         put("desktop.wallpaper").summary("桌面显示主题底纹").what("在桌面背景显示主题配套的底纹材质。只改变显示，不替换你的壁纸文件。").option("default", "主题材质", "");
         put("desktop.widget").summary("原厂时钟插件位置换成主题组件").what("把原厂时钟插件所在位置换成主题风格的组件。").visual(Visual.DESKTOP_WIDGET)
                 .option("clock", "时钟", "大字时间与日期。").option("weather", "天气", "当前天气与温度。").option("music", "音乐", "正在播放的歌曲，可直接控制播放。");

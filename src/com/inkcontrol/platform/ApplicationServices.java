@@ -59,8 +59,19 @@ public final class ApplicationServices {
         features.change(id, enabled, value);
         inspect();
     }
-    public void disableAll() throws Exception { features.disableAll(); }
-    public void restoreGroup(String group) throws Exception { features.restoreGroup(group); }
+    /** 把字体文件写入系统当前字体槽位；需要完整重启才生效。 */
+    public String applyFont(String source) throws Exception { return root.applyFont(source); }
+    /** 列出目录里的字体：{绝对路径, 文件名, 字节数}；root 读取，不受 App 存储权限限制。 */
+    public java.util.List<String[]> listFonts(String directory) throws Exception {
+        java.util.List<String[]> result = new java.util.ArrayList<>();
+        for (String line : root.listFonts(directory).split("\n")) {
+            String[] parts = line.split("\t");
+            if (parts.length < 3 || parts[0].isEmpty()) continue;
+            result.add(new String[]{parts[2], parts[0], parts[1]});
+        }
+        return result;
+    }
+    public void disableAll() throws Exception { features.disableAll(); }    public void restoreGroup(String group) throws Exception { features.restoreGroup(group); }
     public String retry() throws Exception { features.retryApply(); return inspect(); }
     public String inspect() {
         try {

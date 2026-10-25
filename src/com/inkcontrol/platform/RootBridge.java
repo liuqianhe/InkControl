@@ -41,7 +41,7 @@ final class RootBridge {
         }
     }
     String run(String command, String input) throws Exception {
-        if (!command.matches("status|apply")) throw new IllegalArgumentException("命令未注册");
+        if (!command.matches("status|apply|applyfont|fontlist")) throw new IllegalArgumentException("命令未注册");
         String controller = new File(payload(), "bin/inkctl").getCanonicalPath();
         if (!controller.matches("[a-zA-Z0-9_./-]+")) throw new SecurityException("控制器路径无效");
         Process process;
@@ -61,5 +61,19 @@ final class RootBridge {
         String text = new String(result.toByteArray(), StandardCharsets.UTF_8).trim();
         if (process.exitValue() != 0) throw new IOException(text.isEmpty() ? "Root 未授权或控制器不可用" : text);
         return text;
+    }
+    /** 应用系统字体：只接受绝对路径，写入与校验由后端固定脚本负责；调用方负责提示完整重启。 */
+    String applyFont(String source) throws Exception {
+        if (source == null || !source.startsWith("/") || source.length() > 300
+                || source.indexOf('\n') >= 0 || source.indexOf('\r') >= 0)
+            throw new IllegalArgumentException("字体路径无效");
+        return run("applyfont", source + "\n");
+    }
+    /** 列出目录里的字体（root 读取，绕过 App 存储权限）；返回「文件名\t字节数\t绝对路径」逐行文本。 */
+    String listFonts(String directory) throws Exception {
+        if (directory == null || !directory.startsWith("/") || directory.length() > 300
+                || directory.indexOf('\n') >= 0 || directory.indexOf('\r') >= 0)
+            throw new IllegalArgumentException("字体目录无效");
+        return run("fontlist", directory + "\n");
     }
 }

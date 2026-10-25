@@ -137,7 +137,7 @@ public final class CoreTest {
         Configuration config = new Configuration(); Set<String> ids = new HashSet<>();
         for (FeatureDefinition feature : FeatureCatalog.all()) {
             check(ids.add(feature.id)); check(!config.enabled(feature.id)); check(!config.requested(feature.id));
-            for (String value : feature.values) { if (value.equals(FeatureDefinition.CURVE_TOKEN) || value.equals(FeatureDefinition.NUMBER_TOKEN) || value.equals(FeatureDefinition.APPS_TOKEN) || value.equals(FeatureDefinition.COUNTDOWNS_TOKEN)) { reject(() -> feature.validate(value)); continue; } feature.validate(value); check(Configuration.parse(config.change(feature.id, true, value).text()).value(feature.id).equals(value)); }
+            for (String value : feature.values) { if (value.equals(FeatureDefinition.CURVE_TOKEN) || value.equals(FeatureDefinition.NUMBER_TOKEN) || value.equals(FeatureDefinition.APPS_TOKEN) || value.equals(FeatureDefinition.COUNTDOWNS_TOKEN) || value.equals(FeatureDefinition.PATH_TOKEN) || value.equals(FeatureDefinition.FONT_TOKEN)) { reject(() -> feature.validate(value)); continue; } feature.validate(value); check(Configuration.parse(config.change(feature.id, true, value).text()).value(feature.id).equals(value)); }
             reject(() -> feature.validate("$(id)"));
         }
         check(Configuration.parse(config.text()).text().equals(config.text()));
@@ -148,6 +148,15 @@ public final class CoreTest {
         for (String bad : new String[]{"curve:", "curve:1,2,3", "curve:1,2,3,4,5,6,7,8,9,10", "curve:1,2,3,4,5,6,7,8,2001", "curve:1,2,3,4,5,6,7,8,-1", "curve:1,2,3,4,5,6,7,8,9;id", "curve:1,2,3,4,5,6,7,8,9\n", "curve:1, 2,3,4,5,6,7,8,9"})
             reject(() -> hold.validate(bad));
         reject(() -> FeatureCatalog.get("motion.steps").validate(curve));
+        // 字体目录/文件名：允许绝对路径与中文文件名，拒绝 shell 元字符
+        FeatureDefinition fontDir = FeatureCatalog.get("font.dir");
+        check(fontDir.acceptsPath() && !fontDir.acceptsFont());
+        fontDir.validate("/storage/emulated/0/.hmcttheme/com.hmct.theme/");
+        FeatureDefinition fontPick = FeatureCatalog.get("font.pick");
+        check(fontPick.acceptsFont() && !fontPick.acceptsPath());
+        fontPick.validate("霞鹜文楷等宽 屏幕阅读版");
+        reject(() -> fontDir.validate("/storage/$(id)/"));
+        reject(() -> fontPick.validate("a;b"));
         FeatureDefinition interval = FeatureCatalog.get("refresh.interval");
         check(interval.acceptsNumber() && !interval.acceptsCurve() && FeatureDefinition.number("3") == 3);
         interval.validate("3"); check(Configuration.parse(config.change("refresh.interval", true, "3").text()).value("refresh.interval").equals("3"));

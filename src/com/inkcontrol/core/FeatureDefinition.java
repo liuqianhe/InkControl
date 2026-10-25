@@ -40,12 +40,14 @@ public final class FeatureDefinition {
     public boolean acceptsApps() { return values.contains(APPS_TOKEN); }
     public void validate(String value) {
         if (CURVE_TOKEN.equals(value) || NUMBER_TOKEN.equals(value) || APPS_TOKEN.equals(value)
-                || COUNTDOWNS_TOKEN.equals(value)) throw new IllegalArgumentException("不支持的选项：" + title);
+                || COUNTDOWNS_TOKEN.equals(value) || PATH_TOKEN.equals(value) || FONT_TOKEN.equals(value))
+            throw new IllegalArgumentException("不支持的选项：" + title);
         if (values.contains(value)) return;
         if (acceptsCurve() && curve(value) != null) return;
         if (acceptsNumber() && number(value) != null) return;
         if (acceptsApps() && appFilter(value) != null) return;
         if (acceptsCountdowns() && countdowns(value) != null) return;
+        if ((acceptsPath() || acceptsFont()) && path(value) != null) return;
         throw new IllegalArgumentException("不支持的选项：" + title);
     }
 
@@ -74,6 +76,28 @@ public final class FeatureDefinition {
     public static final int COUNTDOWN_LEGACY_FIELDS = 2;
     /** 是否接受「事项;日期;农历;显示」清单（最多 3 组，事项可空，日期为空则该组停用）。 */
     public boolean acceptsCountdowns() { return values.contains(COUNTDOWNS_TOKEN); }
+    /** 目录里的占位值；本身不是合法配置，只表示允许输入目录路径或字体文件名。 */
+    public static final String PATH_TOKEN = "@path";
+    /** 目录里的占位值；本身不是合法配置，只表示允许记录最近应用的字体文件名。 */
+    public static final String FONT_TOKEN = "@font";
+    /** 路径/文件名字符数上限。 */
+    public static final int PATH_MAX = 200;
+    public boolean acceptsPath() { return values.contains(PATH_TOKEN); }
+    public boolean acceptsFont() { return values.contains(FONT_TOKEN); }
+    /** 字体目录或字体文件名：空串表示用默认值；非空时不允许等号、分号、控制字符与 shell 元字符。 */
+    public static String path(String value) {
+        if (value == null) return null;
+        if (value.isEmpty()) return "";
+        if (value.length() > PATH_MAX) return null;
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (c < 0x20 || c == 0x7f) return null;
+            if (c == '=' || c == ';' || c == '$' || c == '`' || c == '"' || c == '\''
+                    || c == '|' || c == '&' || c == '>' || c == '<' || c == '*' || c == '?'
+                    || c == '!' || c == '\\') return null;
+        }
+        return value;
+    }
     /** 解析倒数日清单值：空串（无事项）、旧 6 段「事项;日期」×3 或新 12 段「事项;日期;农历;显示」×3。 */
     public static String countdowns(String value) {
         if (value == null) return null;
