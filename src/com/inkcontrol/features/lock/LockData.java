@@ -41,6 +41,8 @@ final class LockData {
     List<FeatureDefinition.CountdownItem> countdowns;
     /** 通知来源名称：系统通知为“通知”，兼容微信来源时为“微信” */
     String notificationLabel = "通知";
+    /** 「隐藏锁屏通知」开关：开启后所有锁屏样式都不画通知区，但通知仍在正常统计（供回到开关时立即显示） */
+    boolean hideNotify;
     /** 正在播放：歌词（没有歌词时用曲名），否则是格言 */
     boolean playing;
     String text;
@@ -73,6 +75,8 @@ final class LockData {
                 d.notifications = LockNotifications.count();
             }
         }
+        // 锁屏通知显示开关：只是不画，计数照旧，重新打开开关时不用等下一次通知事件
+        d.hideNotify = RuntimeConfig.enabled("lock.notifyhide");
         if (RuntimeConfig.enabled("lock.weather")) readWeather(d, c, controller);
         readLunar(d, controller);
         // 倒数日：仅当「锁屏 → 倒数日」开关开启时读取 App 配置的事项与日期；

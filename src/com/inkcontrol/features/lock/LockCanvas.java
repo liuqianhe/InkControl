@@ -325,7 +325,7 @@ final class LockCanvas extends View {
             textBase(data.battery < 0 ? "—" : data.battery + "%", 52, 386, 248);
             font(sSans, 13, 0, INK, true);
             if (data.charging) text("正在充电", 55, 404, 80);
-            if (data.notifications >= 0) {
+            if (!data.hideNotify && data.notifications >= 0) {
                 textRight(notificationText(), 304, 404, 145);
             }
         }
@@ -350,7 +350,7 @@ final class LockCanvas extends View {
         if (hasWeather()) {
             font(sSansMedium, 11, 0, INK, true);
             text("电量 " + (data.battery < 0 ? "—" : data.battery + "%") + (data.charging ? " · 充电中" : ""), 35, 661, 170);
-            if (data.notifications >= 0) {
+            if (!data.hideNotify && data.notifications >= 0) {
                 textRight(notificationText(), 325, 661, 140);
             }
         }
@@ -470,7 +470,7 @@ final class LockCanvas extends View {
             font(sSerif, 22, 0, INK, true);
             String battery = data.battery < 0 ? "—" : data.battery + "%";
             textBase(battery + (data.charging ? " · 充电中" : ""), L, gy + 48, CW - 150);
-            if (data.notifications > 0) {
+            if (!data.hideNotify && data.notifications > 0) {
                 font(sSerif, 14, 0, INK, true);
                 textRight(notificationText(), R, gy + 48, 160);
             }
@@ -528,16 +528,18 @@ final class LockCanvas extends View {
         }
 
         float hintTop = 671;
-        if (data.notifications > 0) {
-            frame(L, 613, CW, 42, 1);
-            font(sSerifBold, 14, 0, INK, true);
-            float w = textBase(data.notificationLabel, L + 14, 639, 0);
-            font(sSerif, 14, 0, INK, true);
-            textBase("　" + data.notifications + " 条", L + 14 + w, 639, CW - 40);
-        } else if (data.notifications == 0) {
-            frame(L, 613, CW, 42, 1);
-            font(sSerif, 14, 0, INK, true);
-            textBase("暂无新消息", L + 14, 639, 0);
+        if (!data.hideNotify) {
+            if (data.notifications > 0) {
+                frame(L, 613, CW, 42, 1);
+                font(sSerifBold, 14, 0, INK, true);
+                float w = textBase(data.notificationLabel, L + 14, 639, 0);
+                font(sSerif, 14, 0, INK, true);
+                textBase("　" + data.notifications + " 条", L + 14 + w, 639, CW - 40);
+            } else if (data.notifications == 0) {
+                frame(L, 613, CW, 42, 1);
+                font(sSerif, 14, 0, INK, true);
+                textBase("暂无新消息", L + 14, 639, 0);
+            }
         }
         rect(L, hintTop, CW, 1, INK);
         font(sSerif, 11, 0.6f, INK, true);
@@ -615,16 +617,18 @@ final class LockCanvas extends View {
         final float BH = 40;
         final float BW = 95;                          // 外框宽（x 605-700，右缘与倒数日框对齐）
         final float boxY = 280;                        // 框顶（垂直居中对齐电量/格言带）
-        if (data.notifications > 0) {
-            frame(BX, boxY, BW, BH, 1);
-            font(sSerifBold, 15, 0, INK, true);
-            float w = textBase(data.notificationLabel, BX + 14, boxY + 26, 0);
-            font(sSerif, 15, 0, INK, true);
-            textBase("　" + data.notifications + " 条", BX + 14 + w, boxY + 26, BW - 28);
-        } else if (data.notifications == 0) {
-            frame(BX, boxY, BW, BH, 1);
-            font(sSerif, 15, 0, INK, true);
-            textBase("暂无新消息", BX + 14, boxY + 26, 0);
+        if (!data.hideNotify) {
+            if (data.notifications > 0) {
+                frame(BX, boxY, BW, BH, 1);
+                font(sSerifBold, 15, 0, INK, true);
+                float w = textBase(data.notificationLabel, BX + 14, boxY + 26, 0);
+                font(sSerif, 15, 0, INK, true);
+                textBase("　" + data.notifications + " 条", BX + 14 + w, boxY + 26, BW - 28);
+            } else if (data.notifications == 0) {
+                frame(BX, boxY, BW, BH, 1);
+                font(sSerif, 15, 0, INK, true);
+                textBase("暂无新消息", BX + 14, boxY + 26, 0);
+            }
         }
 
         // ── 中右部：大号时间（三次样张：整体下沉，不贴上划线）──
@@ -816,13 +820,18 @@ final class LockCanvas extends View {
             paragraph(data.subText, tx, ny + 8 + th + 4, tw, 1.4f, 3);
         }
 
-        // 底部数据行
+        // 底部数据行：隐藏通知时只留「电量 / 第几周」两格（不摆空位）
         float fy = 640;
         rect(L, fy, CW, 4, INK);
-        String[] nums = {batteryText(), data.notifications < 0 ? "—" : String.valueOf(data.notifications),
-                String.valueOf(data.now.get(Calendar.WEEK_OF_YEAR))};
-        String[] labels = {"电量 %", data.notificationLabel, "第几周"};
-        for (int i = 0; i < 3; i++) {
+        final boolean showNotify = !data.hideNotify;
+        String[] nums = showNotify
+                ? new String[]{batteryText(), data.notifications < 0 ? "—" : String.valueOf(data.notifications),
+                        String.valueOf(data.now.get(Calendar.WEEK_OF_YEAR))}
+                : new String[]{batteryText(), String.valueOf(data.now.get(Calendar.WEEK_OF_YEAR))};
+        String[] labels = showNotify
+                ? new String[]{"电量 %", data.notificationLabel, "第几周"}
+                : new String[]{"电量 %", "第几周"};
+        for (int i = 0; i < nums.length; i++) {
             float x = L + i * (COL + GAP);
             font(sHeavy, 30, -0.04f, INK, true);
             text(nums[i], x, fy + 12, COL);
@@ -909,7 +918,7 @@ final class LockCanvas extends View {
             rect(IN - 2 + 3 * 1.5f, y3 + 12 + 6 * 1.5f, Math.round(inner / 1.5f) * 1.5f, 4 * 1.5f, INK);
         }
         pixText(batteryText() + "%", IN + 26, y3 + 19, 1.5f);
-        if (data.notifications >= 0) {
+        if (!data.hideNotify && data.notifications >= 0) {
             String n = String.valueOf(data.notifications);
             float nw = pixWidth(n, 1.5f);
             pixText(n, IN + IW - nw, y3 + 19, 1.5f);

@@ -24,6 +24,24 @@ public final class CoreTest {
         check(DisplayAlgorithms.scopeForMode(7).isEmpty());
         reject(() -> DisplayAlgorithms.hysteresisProperty("reading"));
         reject(() -> DisplayAlgorithms.algorithmProperty("unknown"));
+        // 「改用原厂显示算法」总开关：逐模式算法/迟滞仍各自保存，但总开关打开时一律回退原厂
+        FeatureDefinition stockFeature = FeatureCatalog.get("display.alg.stock");
+        check(stockFeature.role.equals("backend") && stockFeature.dependency.equals("display.gpu"));
+        check(stockFeature.mode == FeatureDefinition.ApplyMode.HOT && stockFeature.defaultValue().equals("default"));
+        Configuration tuned = gpu.change("display.alg.fast", true, "blue").change("display.hyst.fast", true, "on")
+                .change("display.alg.video", true, "bayer");
+        check(DisplayAlgorithms.algorithm(tuned, "fast").equals("blue") && DisplayAlgorithms.hysteresis(tuned, "fast"));
+        Configuration stockOnly = tuned.change("display.alg.stock", true, "default");
+        check(DisplayAlgorithms.stock(stockOnly) && DisplayAlgorithms.algorithm(stockOnly, "fast").equals("stock"));
+        check(DisplayAlgorithms.algorithmOverride(stockOnly, "video").equals("default"));
+        check(!DisplayAlgorithms.supportsHysteresis(stockOnly, "fast") && !DisplayAlgorithms.hysteresis(stockOnly, "fast"));
+        check(DisplayAlgorithms.hysteresisOverride(stockOnly, "fast").equals("default"));
+        // 父开关 display.gpu 关闭时总开关不生效，逐模式设置照旧
+        check(!DisplayAlgorithms.stock(empty.change("display.alg.stock", true, "default")));
+        // 锁屏通知显示开关挂在锁屏样式下，默认关闭（照常显示通知）
+        FeatureDefinition hideNotify = FeatureCatalog.get("lock.notifyhide");
+        check(hideNotify.role.equals("systemui") && hideNotify.dependency.equals("lock.style"));
+        check(!new Configuration().enabled("lock.notifyhide"));
         for (String scope : DisplayAlgorithms.SCOPES) {
             String id = "display.alg." + scope;
             FeatureDefinition f = FeatureCatalog.get(id);

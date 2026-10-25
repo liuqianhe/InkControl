@@ -72,12 +72,12 @@ final class Guide {
     static final Map<String, Category> CATEGORIES = new LinkedHashMap<>();
     static {
         cat("显示", "按清晰、阅读、快速、极速和视频分别选算法，调整触摸响应。", new String[][]{
-                {"核心", "display.gpu"},
+                {"核心", "display.gpu", "display.alg.stock"},
                 {"原厂四模式 · 算法", "display.alg.clear", "display.alg.reading", "display.alg.fast", "display.alg.extreme"},
                 {"独立视频场景", "display.alg.video"},
                 {"触摸与响应", "display.sampling", "display.idle"}, {"系统刷新设置", "display.dynamic", "display.apps"}});
         cat("锁屏", "锁屏样式、天气、通知、倒数日与锁屏刷新，以及歌词相关设置。", new String[][]{
-                {"样式", "lock.style", "lock.weather"}, {"通知", "lock.notify"},
+                {"样式", "lock.style", "lock.weather"}, {"通知", "lock.notify", "lock.notifyhide"},
                 {"倒数日", "lock.countdown", "lock.countdowns"},
                 {"锁屏刷新", "lock.first", "lock.update", "lock.delay", "lock.dither"},
                 {"歌词", "lock.lyric", "lock.statusbar", "lock.lyricmode"}});
@@ -182,6 +182,9 @@ final class Guide {
                 .cost("会替换系统显示库，开关后需要完整重启。墨控持续监测 GPU 运行状态，一旦出错会自动停用，下次重启即回到原厂显示库。")
                 .bars("每次刷新的 CPU 处理时间（实测）", new Bar("原厂", 45.5f, "45 ms"), new Bar("开启后", 3f, "3 ms"))
                 .option("default", "启用 GPU 显示后端", "").term("显示后端", "GPU 显示后端", "完整重启");
+        put("display.alg.stock").summary("一键退回原厂算法，GPU 后端照常工作").what("清晰、阅读、快速、极速、视频五个模式都不再接管量化算法与迟滞，全部交回原厂处理；GPU 显示后端本身仍然加载，所以全刷扫过、波形动画、触摸响应加速这些照常可用。")
+                .cost("打开时各模式自己保存的算法与迟滞只保留在配置里、不生效，关掉立刻按原设置恢复。适合对照排查「换了算法之后残影变重」这类问题。")
+                .option("default", "使用原厂算法", "").term("抖动", "迟滞", "显示后端");
         put("display.sampling").summary("触摸后画面更快开始变化，约快 50 毫秒").what("屏幕正在刷新时，显示服务会提前取走下一张画面排队。等真正轮到它上屏，内容已经过时将近 0.1 秒。开启后改为等队列快空时才取最新的画面。")
                 .before("从手指触摸到画面开始变化约 98 毫秒。").after("缩短到约 45 毫秒，滑动和点按更跟手。")
                 .cost("连续快速滑动时，每秒刷新次数会略少一点（约 5.9 → 5.6 次）。")
@@ -254,6 +257,8 @@ final class Guide {
         put("lock.notify").summary("锁屏显示系统通知数").what("统计当前可清除的系统通知，不再只显示微信未读。墨水屏通常不安装微信，默认使用系统通知数。")
                 .cost("关闭时仍显示系统通知数；打开后可切换到微信未读数。").option("system", "系统通知", "统计可清除的系统通知，不依赖微信。")
                 .option("wechat", "微信", "只统计微信未读消息，适合安装了微信的设备。");
+        put("lock.notifyhide").summary("不想在锁屏看到通知时打开").what("打开后六种锁屏样式都不再画通知区：编辑排版的「通知 N 条」框、横版的右下通知框、瑞士与液态玻璃右下角的通知数、像素样式的通知数和通知一格都会消失，腾出的位置不会再摆空框。")
+                .cost("只影响显示，通知仍在正常统计；关掉这个开关马上恢复，不用等新的通知。锁屏的「通知来源」选择保持不变。");
         put("lock.countdown").summary("锁屏显示事项倒数日").what("在自定义锁屏时间右侧的框里显示倒数日：最多三个，每组一个事项和日期。事项名可留空；日期为空该组停用。多个按目标日先后排列，整体在框里垂直居中。")
                 .cost("关闭后不显示倒数日框；已保存的事项和日期仍保留。").option("default", "显示倒数日", "");
         put("lock.countdowns").summary("编辑倒数日的事项和日期").what("最多三个倒数日。事项名可留空；日期为空该组停用。每组有独立的「农历日期」和「显示」开关：开启农历后按农历年/月/日计算（如选 2027-01-01 即 2027 年春节）；关闭显示可暂时隐藏该组而不删除。")

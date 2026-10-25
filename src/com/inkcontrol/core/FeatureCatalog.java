@@ -19,6 +19,7 @@ public final class FeatureCatalog {
             if (!gray) add("display.hyst." + scope, "显示", DisplayAlgorithms.name(scope) + "迟滞", "独立控制 Bayer、蓝噪声和固定阈值的历史稳定；原厂算法不适用", "backend", "display.gpu", HOT, true,
                     "default,on,off", "跟随默认,开启,关闭");
         }
+        add("display.alg.stock", "显示", "改用原厂显示算法", "开启后清晰/阅读/快速/极速/视频全部退回原厂算法与迟滞；GPU 后端与全刷动画照常工作", "backend", "display.gpu", HOT, true, "default", "原厂算法");
         add("display.sampling", "显示", "触摸响应加速", "队列余量降至两张再采样", "backend", "display.gpu", HOT, false, "2", "余量两张");
         add("display.idle", "显示", "停顿后首次响应加速", "关闭时恢复原厂空闲断电代码", "backend", "display.gpu", REBOOT, false, "10", "空闲十秒");
         add("display.dynamic", "显示", "滑动时减少系统查询", "关闭重复触摸查询，关闭功能时条件恢复", "backend", "", HOT, false, "0", "关闭原厂动态切换");
@@ -41,6 +42,7 @@ public final class FeatureCatalog {
         add("lock.style", "锁屏", "自定义锁屏", "关闭时恢复有效的原厂样式", "systemui", "", HOT, false, "5,6,7,9,10,8", "编辑排版,瑞士网格,像素,编辑排版-横,编辑排版-横-逆,液态玻璃");
         add("lock.weather", "锁屏", "锁屏天气", "跟随原厂桌面组件，或直接读取系统预装的天气App", "systemui", "lock.style", HOT, false, "default,moji", "原厂桌面组件,天气App");
         add("lock.notify", "锁屏", "锁屏通知来源", "默认统计系统通知，可切换到微信未读数", "systemui", "lock.style", HOT, false, "system,wechat", "系统通知,微信");
+        add("lock.notifyhide", "锁屏", "隐藏锁屏通知", "开启后锁屏主题里不再显示通知区（通知条与通知条数）；GPU 与刷新不受影响", "systemui", "lock.style", HOT, false, "default", "不显示通知");
         add("lock.countdown", "锁屏", "锁屏倒数日", "锁屏右侧显示事项倒数，最多三个，事项名可留空", "systemui", "lock.style", HOT, false, "default", "显示倒数日");
         add("lock.countdowns", "锁屏", "倒数日事项", "每组一个事项和日期；日期为空则该组停用", "systemui", "lock.countdown", HOT, false, "@countdowns", "编辑事项");
         add("lock.lyric", "锁屏", "锁屏歌词", "支持现有媒体歌词与 Lyric Getter 广播", "systemui", "", HOT, false, "default", "显示歌词");

@@ -96,8 +96,8 @@ ic_validate() {
       END {
         if(!seen["version"] || !seen["revision"]) bad=1
         for(key in known) {
-          # 旧版配置没有分模式选项与自动刷新项；仅允许这些新增字段整对缺省，其他字段仍严格检查。
-          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video)|hyst\.(fast|extreme|video))$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/)
+          # 旧版配置没有分模式选项、自动刷新项与后来新增的开关；仅允许这些新增字段整对缺省，其他字段仍严格检查。
+          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/)
           if(optional && !seen[key] && !seen[key ".value"]) continue
           if(!seen[key] || !seen[key ".value"]) bad=1
         }
@@ -135,9 +135,12 @@ ic_properties() {
     setprop debug.eink.video.dither "$video" || return 1
     # default 保留既有路径：包括锁屏点量化和旧版视频算法选择。
     # 关闭选项或 GPU 后端时明确复位属性，避免停用后遗留之前的选择。
+    # display.alg.stock 是「改用原厂显示算法」总开关：开启时五个模式一律不接管，逐模式的选择只保留在配置里。
+    ic_stock=0
+    if ic_enabled display.alg.stock; then ic_stock=1; fi
     for ic_scope in clear reading fast extreme video; do
         ic_algorithm=default
-        if ic_enabled "display.alg.$ic_scope"; then
+        if [ "$ic_stock" = 0 ] && ic_enabled "display.alg.$ic_scope"; then
             ic_algorithm=$(ic_get "display.alg.$ic_scope.value")
         fi
         case "$ic_scope:$ic_algorithm" in
@@ -148,7 +151,7 @@ ic_properties() {
     done
     for ic_scope in fast extreme video; do
         ic_hysteresis=default
-        if ic_enabled "display.hyst.$ic_scope"; then
+        if [ "$ic_stock" = 0 ] && ic_enabled "display.hyst.$ic_scope"; then
             ic_hysteresis=$(ic_get "display.hyst.$ic_scope.value")
         fi
         case "$ic_hysteresis" in default|on|off) ;; *) return 1 ;; esac

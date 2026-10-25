@@ -2,7 +2,7 @@
 
 [简体中文](architecture.md)
 
-InkControl targets the Hisense A5 Pro 经典版 (Classic Edition, monochrome) (HLTE203T), Android 10, firmware L1732.6.01.02. One `com.inkcontrol` APK contains a matching Magisk backend ZIP. All 62 enhancements default to off.
+InkControl targets the Hisense A5 Pro 经典版 (Classic Edition, monochrome) (HLTE203T), Android 10, firmware L1732.6.01.02. One `com.inkcontrol` APK contains a matching Magisk backend ZIP. All 64 enhancements default to off.
 
 | Directory | Responsibility |
 | --- | --- |
