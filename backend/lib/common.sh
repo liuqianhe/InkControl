@@ -186,6 +186,32 @@ ic_list_fonts() {
         printf '%s\t%s\t%s\n' "$(basename "$file")" "$size" "$file"
     done
 }
+IC_FONT_BACKUP=$IC_STATE/font-backup.ttf
+# 原厂字体只在第一次替换前备份一次；后来的字体绝不能盖掉这份
+ic_font_backup() {
+    [ -s "$IC_FONT_BACKUP" ] && return 0
+    cp -f "$1" "$IC_FONT_BACKUP" || return 1
+    chmod 644 "$IC_FONT_BACKUP" 2>/dev/null
+    ic_log "font: 备份原厂字体 $(stat -c %s "$IC_FONT_BACKUP") 字节"
+}
+# 原子替换字体槽位：先在同目录写临时文件、改好属主/权限/SELinux 标签，再 rename 覆盖。
+# 直接 cp 覆盖正在被 mmap 的字体文件，会让渲染中的进程读到半截数据（SystemUI 崩溃、状态栏消失、黑屏），
+# rename 走的是「换 inode」：旧进程继续用旧数据，新起的进程读新字体。
+ic_font_write() {
+    src=$1; dst=$2
+    owner=$(stat -c '%u:%g' "$dst") || return 1
+    mode=$(stat -c '%a' "$dst" 2>/dev/null) || mode=666
+    ctx=$(ls -Z "$dst" 2>/dev/null | awk '{print $1}')
+    tmp="$dst.inknew"
+    rm -f "$tmp"
+    cp -f "$src" "$tmp" || { rm -f "$tmp"; echo '写入临时文件失败（存储空间不足？）' >&2; return 1; }
+    chown "$owner" "$tmp" 2>/dev/null
+    chmod "$mode" "$tmp" 2>/dev/null
+    case "$ctx" in *:*) chcon "$ctx" "$tmp" 2>/dev/null ;; esac
+    sync
+    mv -f "$tmp" "$dst" || { rm -f "$tmp"; echo '替换字体槽位失败' >&2; return 1; }
+    return 0
+}
 ic_apply_font() {
     src=$1
     [ -n "$src" ] && [ -f "$src" ] || { echo '找不到字体文件' >&2; return 1; }
@@ -199,14 +225,41 @@ ic_apply_font() {
         echo '不是有效的字体文件（需要 TTF 或 OTF）' >&2; return 1; }
     dst=$(ic_font_slot) || { echo '找不到当前字体槽位；请先在系统设置里应用过一次字体' >&2; return 1; }
     [ -f "$dst" ] || { echo '当前字体文件不存在' >&2; return 1; }
-    owner=$(stat -c '%u:%g' "$dst") || return 1
     mkdir -p "$IC_STATE" || return 1
-    cp -f "$dst" "$IC_STATE/font-backup.ttf" || { echo '备份原字体失败' >&2; return 1; }
-    cp -f "$src" "$dst" || { echo '写入字体失败' >&2; return 1; }
-    chown "$owner" "$dst" 2>/dev/null
-    chmod 666 "$dst" 2>/dev/null
-    ic_log "font: $src -> $dst"
-    echo "已写入当前字体槽位 $(basename "$dst")；完整重启后生效"
+    ic_font_backup "$dst" || { echo '备份原厂字体失败' >&2; return 1; }
+    ic_font_write "$src" "$dst" || return 1
+    size=$(stat -c %s "$dst")
+    ic_log "font: $src -> $dst ($size)"
+    echo "已写入 $(basename "$dst")（$((size / 1024 / 1024)) MB）"
+}
+# 把原厂备份写回当前槽位
+ic_restore_font() {
+    [ -s "$IC_FONT_BACKUP" ] || { echo '没有原厂字体备份' >&2; return 1; }
+    dst=$(ic_font_slot) || { echo '找不到当前字体槽位' >&2; return 1; }
+    tmp="$IC_STATE/font-restore.tmp"
+    cp -f "$IC_FONT_BACKUP" "$tmp" || { echo '读取备份失败' >&2; return 1; }
+    ic_font_write "$tmp" "$dst" || { rm -f "$tmp"; return 1; }
+    rm -f "$tmp"
+    ic_log "font: 恢复原厂字体 -> $dst"
+    echo "已恢复原厂字体（$(( $(stat -c %s "$dst") / 1024 / 1024 )) MB）"
+}
+# 让新字体立刻生效：重启系统界面（SystemUI 会被系统自动拉起），不必重启整机。
+# full 走 zygote 软重启，全部应用一致，但不卸载 data、不需要重新开机。
+ic_reload_font() {
+    case "$1" in
+        full)
+            ic_log "font: 重启系统框架"
+            echo '正在重启系统框架，约 30 秒后自动回来；不需要重新开机。'
+            ( sleep 1; setprop ctl.restart zygote ) >/dev/null 2>&1 &
+            ;;
+        *)
+            pids=$(pidof com.android.systemui 2>/dev/null)
+            [ -n "$pids" ] || { echo '系统界面没有在运行' >&2; return 1; }
+            kill $pids 2>/dev/null
+            ic_log "font: 重启系统界面 ($pids)"
+            echo '已刷新系统界面：状态栏、通知栏、锁屏立即使用新字体。'
+            ;;
+    esac
 }
 # 自动刷新依赖随 App 提供的无障碍服务；只按刷新总开关增删该组件，关闭时不改写系统设置。
 ic_accessibility() {

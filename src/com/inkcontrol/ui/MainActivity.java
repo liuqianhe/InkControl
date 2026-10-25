@@ -39,6 +39,7 @@ public final class MainActivity extends Activity {
     private static final int[] TAB_GLYPHS = {Ink.Glyph.FEATURES, Ink.Glyph.INSTALL};
     private static final int EXPORT_REQUEST = 100;
     private static final int FONT_REQUEST = 101;
+    private static final int FONT_DIR_REQUEST = 102;
     /** 海信主题字体目录：字体包没有扩展名，靠文件头识别 TTF/OTF。 */
     private static final String FONT_DIR_DEFAULT = "/storage/emulated/0/.hmcttheme/com.hmct.theme/";
 
@@ -203,11 +204,13 @@ public final class MainActivity extends Activity {
         row.setGravity(Gravity.CENTER_VERTICAL);
         String title, subtitle, back = "";
         boolean isHome = tab.equals(FEATURES) && category.isEmpty() && featureId.isEmpty();
-        boolean sub = tab.equals(FEATURES) && !category.isEmpty();
+        // 单页分类（字体）会跳过分类页直接进功能页，此时 category 为空，仍算子页
+        boolean sub = tab.equals(FEATURES) && !isHome;
         if (sub && category.equals(TERMS)) { title = "名词解释"; subtitle = "界面里出现的专业词是什么意思。"; back = "模块设置"; }
         else if (sub && !featureId.isEmpty()) {
             FeatureDefinition f = FeatureCatalog.get(featureId);
-            title = f.title; subtitle = Guide.get(f.id).summary.isEmpty() ? f.description : Guide.get(f.id).summary; back = category;
+            title = f.title; subtitle = Guide.get(f.id).summary.isEmpty() ? f.description : Guide.get(f.id).summary;
+            back = category.isEmpty() ? "功能" : category;
         } else if (sub) { title = category; subtitle = Guide.CATEGORIES.get(category).intro; back = category.equals("实验室") ? "模块设置" : "功能"; }
         else { title = "墨控"; subtitle = ""; }
 
@@ -269,12 +272,26 @@ public final class MainActivity extends Activity {
         return box;
     }
 
+    /** 字体条目是页内操作（目录、字体列表、应用），没有开关，也不计入开启数量。 */
+    private static boolean isFontNode(String id) { return id.startsWith("font."); }
+
+    /** 分类里只有一个「页内操作」项时返回它（字体），调用方直接打开那一页。 */
+    private static String singleItem(Guide.Category c) {
+        String only = "";
+        int count = 0;
+        for (String[] section : c.sections) for (int i = 1; i < section.length; i++) { count++; only = section[i]; }
+        return count == 1 && isFontNode(only) ? only : null;
+    }
+
     /** 标题下方的单行状态：N 已开启 / 总数，待重启与异常仅在非 0 时出现；异常项可点击跳转。 */
     private View headerStats() {
         if (snapshot == null) return null;
-        int on = 0, pending = 0, faults = 0;
+        int on = 0, pending = 0, faults = 0, total = 0;
         String firstFault = "";
         for (FeatureDefinition feature : FeatureCatalog.all()) {
+            // 字体是页内操作（选文件、应用），没有开关，不计入「已开启 / 总数」
+            if (isFontNode(feature.id)) continue;
+            total++;
             String status = status(feature.id);
             if (snapshot.config.requested(feature.id)) on++;
             if (status.equals("待重启")) pending++;
@@ -285,7 +302,7 @@ public final class MainActivity extends Activity {
         }
         LinearLayout row = new LinearLayout(this);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.addView(statInline(String.valueOf(on), "已开启 / " + FeatureCatalog.all().size()));
+        row.addView(statInline(String.valueOf(on), "已开启 / " + total));
         if (pending > 0) row.addView(statInline(String.valueOf(pending), "待重启"));
         if (faults > 0) {
             View fault = statInline(String.valueOf(faults), "异常");
@@ -459,11 +476,18 @@ public final class MainActivity extends Activity {
             if (c.name.equals("实验室")) continue;   // 实验室入口移到「模块设置」
             int total = 0, enabled = 0, bad = 0;
             for (String[] section : c.sections) for (int i = 1; i < section.length; i++) {
+                if (isFontNode(section[i])) continue;   // 字体是页内操作，没有开关
                 total++;
                 if (s.config.requested(section[i])) enabled++;
                 if (status(section[i]).startsWith("异常")) bad++;
             }
-            body.addView(spaced(categoryCard(c, enabled, total, bad, v -> navigate(c.name, "")), 12));
+            // 整类都是页内操作时（字体），不显示「0/0 已开启」，点卡片直接进那一页
+            String single = singleItem(c);
+            View.OnClickListener open = v -> {
+                if (single != null) navigate("", single); else navigate(c.name, "");
+            };
+            body.addView(spaced(total == 0 ? categoryCard(c, -1, -1, 0, open)
+                    : categoryCard(c, enabled, total, bad, open), 12));
         }
 
         body.addView(spaced(ink.button("检查当前生效状态", Ink.Kind.PRIMARY, v -> perform("检查生效状态", () -> services.inspect(), false)), 28));
@@ -485,9 +509,11 @@ public final class MainActivity extends Activity {
         LinearLayout titleRow = new LinearLayout(this);
         titleRow.setGravity(Gravity.CENTER_VERTICAL);
         titleRow.addView(ink.text(c.name, 20, Ink.BOLD));
-        TextView count = ink.text("| (" + enabled + "/" + total + ")已开启", 13, enabled > 0 ? Ink.BOLD : Ink.REGULAR);
-        count.setPadding(ink.dp(10), 0, 0, 0);
-        titleRow.addView(count);
+        if (total > 0) {
+            TextView count = ink.text("| (" + enabled + "/" + total + ")已开启", 13, enabled > 0 ? Ink.BOLD : Ink.REGULAR);
+            count.setPadding(ink.dp(10), 0, 0, 0);
+            titleRow.addView(count);
+        }
         if (bad > 0) {
             TextView fault = ink.text(bad + " 项异常", 13, Ink.BOLD);
             fault.setPadding(ink.dp(10), 0, 0, 0);
@@ -553,6 +579,15 @@ public final class MainActivity extends Activity {
                     Guide.optionName(feature, chosen) + " · " + Guide.selectionStatus(!chosen.equals("default"), status(feature.id)), snapshot.config.requested(feature.id),
                     feature.title + "，打开算法与迟滞设置", v -> openFeature(feature.id));
         }
+        // 字体是页内操作项，不带开关，直接进页面挑字体
+        if (isFontNode(feature.id)) {
+            String applied = snapshot.config.value("font.pick");
+            String saved = snapshot.config.value("font.dir");
+            String meta = applied == null || applied.isEmpty() ? "未换过字体" : "上次应用 " + applied;
+            if (saved != null && !saved.isEmpty() && !saved.equals(FONT_DIR_DEFAULT)) meta += " · 自定义目录";
+            return navCard(feature.title, Guide.get(feature.id).summary, meta, false,
+                    feature.title + "，打开字体设置", v -> openFeature(feature.id));
+        }
         ApplicationServices.Snapshot s = snapshot;
         boolean requested = s.config.requested(feature.id);
         boolean pending = busy && feature.id.equals(pendingId);
@@ -611,6 +646,8 @@ public final class MainActivity extends Activity {
         result.remove(FeatureDefinition.CURVE_TOKEN);
         result.remove(FeatureDefinition.NUMBER_TOKEN);
         result.remove(FeatureDefinition.APPS_TOKEN);
+        result.remove(FeatureDefinition.PATH_TOKEN);
+        result.remove(FeatureDefinition.FONT_TOKEN);
         return result;
     }
 
@@ -648,6 +685,8 @@ public final class MainActivity extends Activity {
 
     private void featurePage(FeatureDefinition f) {
         if (DisplayAlgorithms.algorithmFeature(f.id)) { displayAlgorithmPage(f); return; }
+        // 字体是「页内操作」，没有开关：目录、字体列表、选择器、恢复与刷新全在一页
+        if (isFontNode(f.id)) { fontPage(f); return; }
         ApplicationServices.Snapshot s = snapshot;
         Guide.Entry g = Guide.get(f.id);
         boolean requested = s.config.requested(f.id);
@@ -682,10 +721,7 @@ public final class MainActivity extends Activity {
             String stored = busy && "lock.countdowns".equals(pendingId) ? pendingValue : s.config.value("lock.countdowns");
             countdownEditor(FeatureCatalog.get("lock.countdowns"), stored);
         }
-        // 2c. 字体：目录编辑 / 目录扫描并应用 / 文件选择器兜底
-        if (f.id.equals("font.dir")) fontDirEditor(f, current);
-        if (f.id.equals("font.pick")) fontPicker(f, s.config.value("font.dir"), current);
-        if (f.id.equals("font.saf")) fontSafPicker(f, current);
+        // 2c. 字体页自己处理全部内容（目录 / 列表 / 选择器 / 恢复 / 刷新），这里不再插编辑器
         // 3. 说明
         if (!g.what.isEmpty()) body.addView(spaced(section("它做什么", paragraph(g.what, 15)), 20));
         // 4. 演示 / 示意图
@@ -1275,49 +1311,53 @@ public final class MainActivity extends Activity {
         body.addView(spaced(box, 16));
     }
 
-    // ── 字体：目录路径 / 目录扫描并应用 / 文件选择器兜底 ─────────────────────
+    // ── 字体：目录、字体列表、文件选择、恢复与刷新都在同一页 ─────────────────
 
-    private void fontDirEditor(FeatureDefinition f, String current) {
-        LinearLayout box = column(ink.text("字体目录", 18, Ink.BOLD),
-                spaced(paragraph("填字体文件所在的绝对路径。目录里的字体不用改扩展名，墨控按文件头识别 TTF/OTF。留空则使用默认的系统主题字体目录。", 13), 12));
+    private void fontPage(FeatureDefinition f) {
+        ApplicationServices.Snapshot s = snapshot;
+        String saved = s.config.value("font.dir");
+        String dir = saved == null || saved.isEmpty() ? FONT_DIR_DEFAULT : saved;
+        String applied = s.config.value("font.pick");
+
+        body.addView(spaced(paragraph("点「应用」写入字体后，状态栏、通知栏、锁屏立即换成新字体，不用重新开机；墨控自己和其他已经打开的应用要重新打开才换（系统只在进程启动时读字体）。", 14), 4));
+
+        LinearLayout box = column();
         EditText field = new EditText(this);
         field.setSingleLine(true);
-        field.setText(current == null ? "" : current);
+        field.setText(saved == null ? "" : saved);
         field.setHint(FONT_DIR_DEFAULT);
         field.setBackground(ink.box(Ink.PAPER, Ink.INK, 1.5f, 8));
         field.setPadding(ink.dp(10), ink.dp(8), ink.dp(10), ink.dp(8));
-        box.addView(field);
-        box.addView(spaced(ink.button("保存目录", Ink.Kind.PRIMARY, v -> {
-            String text = field.getText().toString().trim();
-            if (!text.isEmpty() && !text.startsWith("/")) {
-                Toast.makeText(this, "请填绝对路径，例如 " + FONT_DIR_DEFAULT, Toast.LENGTH_LONG).show();
-                return;
-            }
-            if (FeatureDefinition.path(text) == null) {
-                Toast.makeText(this, "路径里不能有等号、分号或换行", Toast.LENGTH_LONG).show();
-                return;
-            }
-            if (!begin(f.id, true, text)) return;
-            perform(ink.t("保存字体目录"), () -> {
-                change(f.id, true, text);
-                return "已保存字体目录：" + (text.isEmpty() ? FONT_DIR_DEFAULT : text);
-            }, false);
-        }), 14));
-        box.addView(spaced(ink.text("默认：" + FONT_DIR_DEFAULT, 12, Ink.MEDIUM), 10));
+        box.addView(spaced(field, 12));
+        box.addView(spaced(ink.button("保存并刷新列表", Ink.Kind.PRIMARY, v -> saveFontDir(f.id, field.getText().toString())), 10));
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.addView(ink.button("选择目录", Ink.Kind.SECONDARY, v -> pickFontDir()), new LinearLayout.LayoutParams(0, -2, 1));
+        LinearLayout.LayoutParams rightParams = new LinearLayout.LayoutParams(0, -2, 1);
+        rightParams.leftMargin = ink.dp(10);
+        actions.addView(ink.button("从文件选择", Ink.Kind.SECONDARY, v -> pickFontFile()), rightParams);
+        box.addView(spaced(actions, 12));
+
+        LinearLayout tools = new LinearLayout(this);
+        tools.addView(ink.button("恢复原厂字体", Ink.Kind.SECONDARY, v -> restoreFont()), new LinearLayout.LayoutParams(0, -2, 1));
+        LinearLayout.LayoutParams reloadParams = new LinearLayout.LayoutParams(0, -2, 1);
+        reloadParams.leftMargin = ink.dp(10);
+        tools.addView(ink.button("重启系统框架", Ink.Kind.SECONDARY, v -> askReloadFramework()), reloadParams);
+        box.addView(spaced(tools, 10));
+        box.addView(spaced(paragraph("「重启系统框架」= 只重启安卓系统进程（zygote 与全部应用），不重新开机、不卸载数据，约 30 秒自动回到桌面；写入字体后系统界面已自动刷新，只有想让所有应用立刻统一字体时才需要它。", 12), 8));
+        box.addView(spaced(ink.text("默认：" + FONT_DIR_DEFAULT, 12, Ink.MEDIUM), 8));
+        if (applied != null && !applied.isEmpty())
+            box.addView(spaced(ink.text("上次应用：" + applied, 13, Ink.BOLD), 12));
         body.addView(spaced(box, 16));
+
+        TextView hint = ink.text("正在扫描…", 13, Ink.MEDIUM);
+        body.addView(hint);
+        LinearLayout list = column();
+        body.addView(spaced(list, 8));
+        loadFonts(dir, hint, list, applied);
     }
 
-    private void fontPicker(FeatureDefinition f, String dirValue, String applied) {
-        String dir = dirValue == null || dirValue.isEmpty() ? FONT_DIR_DEFAULT : dirValue;
-        LinearLayout box = column(ink.text("目录里的字体", 18, Ink.BOLD),
-                spaced(paragraph("目录：" + dir, 12), 8),
-                spaced(paragraph("点「应用」把字体写进系统当前字体槽位，原字体会备份到 /data/adb/inkcontrol/font-backup.ttf。写完要完整重启才看得到效果。", 13), 10));
-        TextView hint = ink.text("正在扫描…", 13, Ink.MEDIUM);
-        box.addView(hint);
-        LinearLayout list = column();
-        box.addView(spaced(list, 8));
-        if (applied != null && !applied.isEmpty()) box.addView(spaced(ink.text("上次应用：" + applied, 12, Ink.MEDIUM), 8));
-        body.addView(spaced(box, 16));
+    private void loadFonts(String dir, TextView hint, LinearLayout list, String applied) {
         WORKER.execute(() -> {
             List<String[]> fonts = new ArrayList<>();
             String failure = "";
@@ -1335,11 +1375,11 @@ public final class MainActivity extends Activity {
                 if (isFinishing() || isDestroyed()) return;
                 list.removeAllViews();
                 hint.setText(!problem.isEmpty()
-                        ? "读取目录失败：" + problem + "\n请装好配套后端模块，或用「从文件管理器选择字体」。"
+                        ? "读取目录失败：" + problem + "\n可以用「从文件选择」直接挑一个字体文件。"
                         : found.isEmpty()
-                        ? "这个目录里没找到字体文件。换一个目录，或用「从文件管理器选择字体」。"
+                        ? "这个目录里没找到字体文件。换一个目录，或用「从文件选择」。"
                         : "共 " + found.size() + " 个字体");
-                for (String[] font : found) list.addView(spaced(fontRow(f, font, applied), 8));
+                for (String[] font : found) list.addView(spaced(fontRow(font, applied), 8));
             });
         });
     }
@@ -1360,8 +1400,7 @@ public final class MainActivity extends Activity {
                 if (!tag.equals("00010000") && !tag.equals("4f54544f")
                         && !tag.equals("74727565") && !tag.equals("74746366")) continue;
             } catch (Exception ignored) { continue; }
-            long bytes = file.length();
-            result.add(new String[]{file.getAbsolutePath(), file.getName(), fontSize(bytes)});
+            result.add(new String[]{file.getAbsolutePath(), file.getName(), fontSize(file.length())});
         }
         return result;
     }
@@ -1371,43 +1410,83 @@ public final class MainActivity extends Activity {
                 ? String.format(Locale.ROOT, "%.1f MB", bytes / 1048576f) : (bytes / 1024) + " KB";
     }
 
-    private View fontRow(FeatureDefinition f, String[] font, String applied) {
-        LinearLayout row = new LinearLayout(this);
-        row.setGravity(Gravity.CENTER_VERTICAL);
+    /** 一个字体占两行：名字独占整行（再长也换行显示），下面一行放大小与「应用」。 */
+    private View fontRow(String[] font, String applied) {
         boolean current = font[1].equals(applied);
-        LinearLayout text = column(ink.text(font[1], 15, Ink.BOLD),
-                spaced(ink.text(font[2] + (current ? " · 上次已应用" : ""), 12, Ink.REGULAR), 4));
-        row.addView(text, new LinearLayout.LayoutParams(0, -2, 1));
-        row.addView(ink.button("应用", Ink.Kind.SECONDARY, v -> applyFontFile(f, font[0], font[1])));
+        TextView name = ink.text(font[1], 15, Ink.BOLD);
+        name.setSingleLine(false);
+        LinearLayout row = column(name);
+        LinearLayout meta = new LinearLayout(this);
+        meta.setGravity(Gravity.CENTER_VERTICAL);
+        meta.addView(ink.text(font[2] + (current ? " · 上次已应用" : ""), 12, Ink.REGULAR),
+                new LinearLayout.LayoutParams(0, -2, 1));
+        meta.addView(ink.button("应用", Ink.Kind.SECONDARY, v -> applyFontFile(font[0], font[1])));
+        row.addView(spaced(meta, 6));
+        row.setBackground(ink.outline(12));
+        row.setPadding(ink.dp(14), ink.dp(12), ink.dp(10), ink.dp(10));
         return row;
     }
 
-    private void applyFontFile(FeatureDefinition f, String path, String name) {
+    private void saveFontDir(String id, String text) {
+        String value = text == null ? "" : text.trim();
+        if (!value.isEmpty() && !value.startsWith("/")) {
+            Toast.makeText(this, "请填绝对路径，例如 " + FONT_DIR_DEFAULT, Toast.LENGTH_LONG).show();
+            return;
+        }
+        if (FeatureDefinition.path(value) == null) {
+            Toast.makeText(this, "路径里不能有等号、分号或换行", Toast.LENGTH_LONG).show();
+            return;
+        }
+        perform(ink.t("保存字体目录"), () -> {
+            change(id, true, value);
+            return "已保存字体目录：" + (value.isEmpty() ? FONT_DIR_DEFAULT : value);
+        }, false);
+    }
+
+    private void pickFontDir() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        try { startActivityForResult(intent, FONT_DIR_REQUEST); }
+        catch (android.content.ActivityNotFoundException error) { showText("无法选择目录", "系统没有可用的文件夹选择界面。"); }
+    }
+
+    private void pickFontFile() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE);
+        try { startActivityForResult(intent, FONT_REQUEST); }
+        catch (android.content.ActivityNotFoundException error) { showText("无法选择文件", "系统没有可用的文件选择界面。"); }
+    }
+
+    /** 文件选择器给的 tree URI 转成文件系统路径；转不出来时返回 null（用「从文件选择」兜底）。 */
+    private static String treePath(android.net.Uri uri) {
+        try {
+            String id = android.provider.DocumentsContract.getTreeDocumentId(uri);
+            int colon = id.indexOf(':');
+            if (colon < 0) return null;
+            String volume = id.substring(0, colon);
+            String rest = id.substring(colon + 1);
+            String base;
+            if (volume.equalsIgnoreCase("primary")) base = "/storage/emulated/0";
+            else if (volume.matches("(?i)[0-9a-f]{4}-[0-9a-f]{4}")) base = "/storage/" + volume;
+            else return null;
+            return rest.isEmpty() ? base : base + "/" + rest;
+        } catch (Exception error) { return null; }
+    }
+
+    private void applyFontFile(String path, String name) {
         if (busy) { Toast.makeText(this, ink.t("请等待当前操作完成"), Toast.LENGTH_SHORT).show(); return; }
         perform(ink.t("应用字体"), () -> {
             String result = services.applyFont(path);
-            rememberFont(f, name);
-            return result + "\n\n请完整重启（关机再开机）后生效；不满意可把 /data/adb/inkcontrol/font-backup.ttf 写回原槽位。";
+            rememberFont(name);
+            String reload;
+            try { reload = services.reloadFont(false); }
+            catch (Exception error) { reload = "系统界面刷新失败：" + reason(error) + "，请点「重启系统框架」。"; }
+            return result + "\n" + reload + "\n\n墨控自己、桌面和其他已打开的应用仍是旧字体——系统只在进程重启时才重新读字体。想让它们立刻也换，点「重启系统框架」。";
         }, true);
     }
 
     /** 记住最近应用的字体名；写配置失败不影响字体已经写入的事实。 */
-    private void rememberFont(FeatureDefinition f, String name) {
+    private void rememberFont(String name) {
         if (FeatureDefinition.path(name) == null) return;
-        try { change(f.id, true, name); } catch (Exception ignored) { }
-    }
-
-    private void fontSafPicker(FeatureDefinition f, String applied) {
-        LinearLayout box = column(ink.text("从文件管理器选择", 18, Ink.BOLD),
-                spaced(paragraph("适用于 TF 卡、下载目录，或「字体文件目录」读不到的情况。选中的字体同样写进系统当前字体槽位，原字体会备份到 /data/adb/inkcontrol/font-backup.ttf。", 13), 12));
-        if (applied != null && !applied.isEmpty()) box.addView(spaced(ink.text("上次应用：" + applied, 12, Ink.MEDIUM), 8));
-        box.addView(spaced(ink.button("打开文件选择器", Ink.Kind.PRIMARY, v -> {
-            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE);
-            try { startActivityForResult(intent, FONT_REQUEST); }
-            catch (android.content.ActivityNotFoundException error) { showText("无法选择文件", "系统没有可用的文件选择界面。"); }
-        }), 14));
-        box.addView(spaced(ink.text("需要完整重启才生效。", 12, Ink.MEDIUM), 10));
-        body.addView(spaced(box, 16));
+        try { change("font.pick", true, name); } catch (Exception ignored) { }
     }
 
     private void applyFontFromUri(android.net.Uri uri) {
@@ -1422,8 +1501,11 @@ public final class MainActivity extends Activity {
                 while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
             }
             String result = services.applyFont(copy.getAbsolutePath());
-            rememberFont(FeatureCatalog.get("font.saf"), fontName(uri));
-            return result + "\n\n请完整重启（关机再开机）后生效。";
+            rememberFont(fontName(uri));
+            String reload;
+            try { reload = services.reloadFont(false); }
+            catch (Exception error) { reload = "系统界面刷新失败：" + reason(error) + "，请点「重启系统框架」。"; }
+            return result + "\n" + reload;
         }, true);
     }
 
@@ -1432,6 +1514,24 @@ public final class MainActivity extends Activity {
         if (name == null) return "";
         int slash = name.lastIndexOf('/');
         return slash < 0 ? name : name.substring(slash + 1);
+    }
+
+    private void restoreFont() {
+        if (busy) { Toast.makeText(this, ink.t("请等待当前操作完成"), Toast.LENGTH_SHORT).show(); return; }
+        confirm("恢复原厂字体", "把首次替换前备份的原厂字体写回当前槽位，然后刷新系统界面。",
+                () -> perform(ink.t("恢复原厂字体"), () -> {
+                    String result = services.restoreFont();
+                    String reload;
+                    try { reload = services.reloadFont(false); }
+                    catch (Exception error) { reload = "系统界面刷新失败：" + reason(error) + "，请点「重启系统框架」。"; }
+                    return result + "\n" + reload;
+                }, true));
+    }
+
+    private void askReloadFramework() {
+        if (busy) { Toast.makeText(this, ink.t("请等待当前操作完成"), Toast.LENGTH_SHORT).show(); return; }
+        confirm("重启系统框架", "不是重新开机：只重启安卓系统进程（zygote 与全部应用），屏幕黑一下，约 30 秒自动回到桌面；数据、设置和已装的模块都不受影响。",
+                () -> perform(ink.t("重启系统框架"), () -> services.reloadFont(true), false));
     }
 
     /** 编辑器行内小开关：无动画黑白开关图形，状态由调用方读取。
@@ -1816,6 +1916,11 @@ public final class MainActivity extends Activity {
         }, true);
         if (request == FONT_REQUEST && result == RESULT_OK && data != null && data.getData() != null)
             applyFontFromUri(data.getData());
+        if (request == FONT_DIR_REQUEST && result == RESULT_OK && data != null && data.getData() != null) {
+            String path = treePath(data.getData());
+            if (path == null) showText("无法换成路径", "这个位置没法转换成文件路径。可以改用「从文件选择」直接挑一个字体文件。");
+            else saveFontDir("font.dir", path);
+        }
     }
 
     // ───────────────────────── 排版工具 ─────────────────────────

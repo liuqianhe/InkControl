@@ -61,9 +61,9 @@ public final class FeatureCatalog {
         add("desktop.font", "桌面", "字体换肤", "独立恢复原厂字体", "launcher", "desktop.theme", HOT, false, "default", "主题字体");
         add("desktop.wallpaper", "桌面", "壁纸材质", "仅覆盖显示，不改原厂壁纸文件", "launcher", "desktop.theme", HOT, false, "default", "主题材质");
         add("desktop.widget", "桌面", "主屏组件换肤", "复用原厂时钟插件的位置", "launcher", "desktop.theme", HOT, false, "clock,weather,music", "时钟,天气,音乐");
-        add("font.dir", "字体", "字体文件目录", "扫描这个目录里的字体；默认是系统主题字体目录，也可以填自己存字体的路径", "backend", "", HOT, false, "@path", "字体目录");
-        add("font.pick", "字体", "替换系统字体", "列出目录里的字体，选一个写入系统当前字体槽位；完整重启后生效", "backend", "", HOT, false, "@font", "选择字体");
-        add("font.saf", "字体", "从文件管理器选择字体", "目录读不到时用系统文件选择器挑一个字体文件（TF 卡、网盘挂载都能用）", "backend", "", HOT, false, "@font", "选择文件");
+        add("font.dir", "字体", "字体", "换掉系统正在用的字体：选目录或直接挑文件，点应用写入，系统界面立即刷新", "backend", "", HOT, false, "@path", "字体目录");
+        add("font.pick", "字体", "最近应用的字体", "只记录上次应用成功的字体名，用于在页面标出「上次已应用」", "backend", "", HOT, false, "@font", "字体名");
+        add("font.saf", "字体", "文件选择器记录", "旧版从文件管理器选字体的记录，功能已并入「字体文件」页", "backend", "", HOT, false, "@font", "字体名");
         add("fix.exceptions", "系统增强", "防止显示服务引发重启", "恢复时回到原厂处理逻辑", "system", "", HOT, false, "default", "异常保护");
         add("fix.configlock", "系统增强", "防止刷新配置被写坏", "串行化原厂配置写入", "system", "", HOT, false, "default", "修复写入锁");
         add("fix.modes", "系统增强", "切换应用少刷一次", "模式实际改变时正常下发", "system", "", HOT, false, "default", "模式去重");

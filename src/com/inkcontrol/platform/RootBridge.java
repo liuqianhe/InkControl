@@ -41,7 +41,7 @@ final class RootBridge {
         }
     }
     String run(String command, String input) throws Exception {
-        if (!command.matches("status|apply|applyfont|fontlist")) throw new IllegalArgumentException("命令未注册");
+        if (!command.matches("status|apply|applyfont|fontlist|restorefont|reloadfont")) throw new IllegalArgumentException("命令未注册");
         String controller = new File(payload(), "bin/inkctl").getCanonicalPath();
         if (!controller.matches("[a-zA-Z0-9_./-]+")) throw new SecurityException("控制器路径无效");
         Process process;
@@ -76,4 +76,8 @@ final class RootBridge {
             throw new IllegalArgumentException("字体目录无效");
         return run("fontlist", directory + "\n");
     }
+    /** 把原厂字体备份写回槽位。 */
+    String restoreFont() throws Exception { return run("restorefont", ""); }
+    /** 让新字体立刻生效：soft 只重启系统界面，full 走 zygote 软重启（不关机）。 */
+    String reloadFont(boolean full) throws Exception { return run("reloadfont", (full ? "full" : "soft") + "\n"); }
 }
