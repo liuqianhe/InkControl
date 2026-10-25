@@ -27,10 +27,9 @@ def main():
         schema=module.read('lib/features.tsv').decode().splitlines()
         assert len(flags)==len(schema) and all(line.endswith('=0') for line in flags)
         assert {line.split('=')[0] for line in flags}=={line.split('\t')[0] for line in schema}
-        overlay=module.read('payload/GmsSettingsIconFix.apk')
-        with zipfile.ZipFile(io.BytesIO(overlay)) as resources: assert resources.testzip() is None
+        assert 'GmsSettingsIconFix.apk' not in {n.filename for n in module.infolist()}, '图标覆盖已下线，不应再打包'
         result={'version':version,'signing':manifest.get('signing','legacy-build'),'apk_sha256':hashlib.sha256(apk.read_bytes()).hexdigest(),'zip_sha256':hashlib.sha256(backend.read_bytes()).hexdigest(),
-                'default_off':len(flags),'module_checksums':True,'embedded_zip_identical':True,'overlay_zip_valid':True}
+                'default_off':len(flags),'module_checksums':True,'embedded_zip_identical':True}
     (a.build/'package-verification.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8');print(json.dumps(result,ensure_ascii=False))
 
 

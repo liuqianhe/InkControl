@@ -38,12 +38,16 @@ final class HwcBridge {
         } catch (Throwable t) { return ""; }
     }
 
-    static boolean supports(String style) { return ("," + capabilities() + ",").contains("," + style + ","); }
+    /** 空能力表示“还没读到”（后端未下发）而不是“不支持”：照常发请求，HWC 不认识就忽略，等同瞬切。 */
+    static boolean supports(String style) {
+        String caps = capabilities();
+        return caps.isEmpty() || ("," + caps + ",").contains("," + style + ",");
+    }
     static boolean supportsLock(String style) {
         try {
             String caps = (String) Class.forName("android.os.SystemProperties")
                     .getMethod("get", String.class, String.class).invoke(null, PROP_LOCK_CAP, "");
-            return ("," + caps + ",").contains("," + style + ",");
+            return caps.isEmpty() || ("," + caps + ",").contains("," + style + ",");
         } catch (Throwable t) { return false; }
     }
 

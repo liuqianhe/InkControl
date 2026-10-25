@@ -10,8 +10,9 @@ final class WaveConfig {
         this.enabled = enabled; this.lock = lock; this.wake = wake; this.coverDelay = coverDelay;
     }
     static WaveConfig from(Configuration config) {
+        // 总开关（wave.master）已下线：遮挡息屏 / 移开唤醒任一开启即监听传感器。
         return new WaveConfig(
-                config.enabled("wave.master"),
+                config.enabled("wave.lock") || config.enabled("wave.wake"),
                 config.enabled("wave.lock"),
                 config.enabled("wave.wake"),
                 number(config.value("wave.coverDelay"), 1000));

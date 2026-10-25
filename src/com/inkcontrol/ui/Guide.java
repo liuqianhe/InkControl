@@ -77,13 +77,13 @@ final class Guide {
                 {"独立视频场景", "display.alg.video"},
                 {"触摸与响应", "display.sampling", "display.idle"}, {"系统刷新设置", "display.dynamic", "display.apps"}});
         cat("锁屏", "锁屏样式、天气、通知、倒数日与锁屏刷新，以及歌词相关设置。", new String[][]{
-                {"样式", "lock.style", "lock.weather"}, {"通知", "lock.notify", "lock.notifyhide"},
+                {"样式", "lock.style", "lock.weather"}, {"通知", "lock.notify"},
                 {"倒数日", "lock.countdown"},
                 {"锁屏刷新", "lock.first", "lock.update", "lock.delay", "lock.dither"},
                 {"歌词", "lock.lyric", "lock.statusbar", "lock.lyricmode"}});
         cat("动画", "打开应用、返回、弹窗和锁屏时的过渡效果，专为墨水屏设计。", new String[][]{
                 {"总开关", "motion.master"},
-                {"各场景用什么动画", "motion.app_open", "motion.app_close", "motion.in_app_forward", "motion.in_app_back", "motion.dialog", "motion.lock", "motion.unlock", "motion.gc_clear"},
+                {"各场景用什么动画", "motion.app_open", "motion.app_close", "motion.in_app_forward", "motion.in_app_back", "motion.dialog", "motion.gc_clear", "motion.lock", "motion.unlock"},
                 {"动画节奏", "motion.steps", "motion.hold", "motion.spread", "motion.origin", "motion.direction"},
                 {"其他", "motion.dim", "motion.scale"}});
         cat("自动刷新", "点击、按键或阅读时累计操作，达到设定次数后自动刷新，减少墨水屏残影。", new String[][]{
@@ -93,14 +93,12 @@ final class Guide {
         cat("字体", "把系统字体换成目录里的任意 TTF/OTF，点「应用」立刻全局生效，不用重启。", new String[][]{
                 {"字体", "font.dir"}});
         cat("体感", "用手掌或物体遮挡屏幕顶部的近距离传感器，锁屏下自动息屏；移开后唤醒并尝试退出锁屏。需要系统无障碍中启用「墨控体感」服务。", new String[][]{
-                {"总开关", "wave.master"},
-                {"行为", "wave.lock", "wave.wake"},
-                {"遮挡延时", "wave.coverDelay"}});
+                {"行为", "wave.lock", "wave.coverDelay", "wave.wake"}});
         cat("桌面", "原厂桌面的主题、图标、字体与组件；不改动图标位置和布局。", new String[][]{
                 {"主题", "desktop.theme"}, {"换肤项目", "desktop.icons", "desktop.font", "desktop.wallpaper", "desktop.widget"}});
         cat("系统增强", "修复原厂墨水屏服务的几个问题：偶发重启、卡开机、多余刷新。", new String[][]{
                 {"稳定性", "fix.exceptions", "fix.configlock", "guard.config"}, {"刷新行为", "fix.modes", "fix.video"},
-                {"安全", "fix.permissions"}, {"外观", "fix.google"}});
+                {"安全", "fix.permissions"}});
         cat("实验室", "仍在验证的优化，效果因场景而异。", new String[][]{{"实验项目", "experiment.cache"}});
     }
     private static void cat(String name, String intro, String[][] sections) { CATEGORIES.put(name, new Category(name, intro, sections)); }
@@ -138,7 +136,7 @@ final class Guide {
         return " 次";
     }
 
-    private static final String SCENE_COMMON = "选「瞬间切换」以外的效果后，这个场景就不再是原厂的直接跳变。波形类效果（墨迹、网点、扫描线、百叶窗）需要先开启 GPU 显示后端。";
+    private static final String SCENE_COMMON = "选「瞬间切换」以外的效果后，这个场景就不再是原厂的直接跳变。波形类效果（墨迹、网点、扫描线、百叶窗）需要先开启 GPU 显示后端，并关闭「改用原厂显示算法」。";
     private static void styles(Entry e, boolean transitions, boolean lock) {
         if (transitions) {
             e.option("kiris", "方形展开", "新画面从你点的位置以方块形状分几步扩开。关键帧动画，不需要 GPU 后端。");
@@ -184,8 +182,8 @@ final class Guide {
                 .cost("会替换系统显示库，开关后需要完整重启。墨控持续监测 GPU 运行状态，一旦出错会自动停用，下次重启即回到原厂显示库。")
                 .bars("每次刷新的 CPU 处理时间（实测）", new Bar("原厂", 45.5f, "45 ms"), new Bar("开启后", 3f, "3 ms"))
                 .option("default", "启用 GPU 显示后端", "").term("显示后端", "GPU 显示后端", "完整重启");
-        put("display.alg.stock").summary("一键退回原厂算法，GPU 后端照常工作").what("清晰、阅读、快速、极速、视频五个模式都不再接管量化算法与迟滞，全部交回原厂处理；GPU 显示后端本身仍然加载，所以全刷扫过、波形动画、触摸响应加速这些照常可用。")
-                .cost("打开时各模式自己保存的算法与迟滞只保留在配置里、不生效，关掉立刻按原设置恢复。适合对照排查「换了算法之后残影变重」这类问题。")
+        put("display.alg.stock").summary("一键退回原厂算法，优先级高于 GPU 后端").what("清晰、阅读、快速、极速、视频五个模式都不再接管量化算法与迟滞，全部交回原厂处理；GPU 显示后端本身仍然加载，触摸响应加速与全刷复用照常可用，但所有像素量化都走原厂路径。")
+                .cost("打开时各模式自己保存的算法与迟滞只保留在配置里、不生效，关掉立刻按原设置恢复。适合对照排查「换了算法之后残影变重」这类问题。本开关不需要先开启 GPU 显示后端；但开启期间波形动画（墨迹/网点/扫描线/百叶窗）与「全刷扫过」都无法生效，因为 GPU 的逐像素波形时序会被一并停用。")
                 .option("default", "使用原厂算法", "").term("抖动", "迟滞", "显示后端");
         put("display.sampling").summary("触摸后画面更快开始变化，约快 50 毫秒").what("屏幕正在刷新时，显示服务会提前取走下一张画面排队。等真正轮到它上屏，内容已经过时将近 0.1 秒。开启后改为等队列快空时才取最新的画面。")
                 .before("从手指触摸到画面开始变化约 98 毫秒。").after("缩短到约 45 毫秒，滑动和点按更跟手。")
@@ -218,7 +216,7 @@ final class Guide {
                     .cost("关闭此场景即恢复原厂的瞬间切换。");
             styles(e, !scene[0].equals("lock") && !scene[0].equals("unlock"), true);
         }
-        put("motion.gc_clear").summary("去残影全刷不再整屏同时闪黑").what("系统做“清晰全刷”去残影时，整屏会同时闪一下黑。开启后改成从一侧扫向另一侧，闪黑像一道光带扫过。需要 GPU 显示后端。")
+        put("motion.gc_clear").summary("去残影全刷不再整屏同时闪黑").what("系统做“清晰全刷”去残影时，整屏会同时闪一下黑。开启后改成从一侧扫向另一侧，闪黑像一道光带扫过。需要 GPU 显示后端，并关闭「改用原厂显示算法」。")
                 .before("整屏同时变黑再变回，比较刺眼。").after("黑色光带从左扫到右，过程柔和，去残影效果相同。")
                 .visual(Visual.MOTION_SCENE).option("gcsweep", "全刷扫过", "黑色光带从一侧扫过屏幕。").term("清晰全刷", "残影", "波形动画");
         put("motion.dim").summary("弹窗时背后不再变成满屏颗粒").what("弹出对话框时，系统会把背后的画面调暗。墨水屏显示不了半透明灰，变暗层会被转成满屏颗粒点，弹出和关闭时都要整屏重刷。开启后背后保持原样。")
@@ -256,11 +254,9 @@ final class Guide {
                 .cost("「天气App」用的是天气软件最后一次下载的结果；开机后没打开过天气软件、长期不打开它、或把它冻结，都可能取不到，此时自动退回原厂数据。")
                 .option("default", "原厂桌面组件", "沿用原厂锁屏天气，数据来自桌面时钟/天气小组件；没有放小组件时通常取不到。")
                 .option("moji", "天气App", "直接读取系统预装的天气软件（墨迹天气）已下载的数据，不需要桌面小组件。");
-        put("lock.notify").summary("锁屏显示系统通知数").what("统计当前可清除的系统通知，不再只显示微信未读。墨水屏通常不安装微信，默认使用系统通知数。")
-                .cost("关闭时仍显示系统通知数；打开后可切换到微信未读数。").option("system", "系统通知", "统计可清除的系统通知，不依赖微信。")
+        put("lock.notify").summary("锁屏通知：一个开关管显示与来源").what("关闭后，六种锁屏样式都不再画通知区：编辑排版的「通知 N 条」框、横版的右下通知框、瑞士与液态玻璃右下角的通知数、像素样式的通知数和通知一格都会消失，腾出的位置不会再摆空框。开启后统计通知并显示，来源可在下面二选一：系统通知或微信未读。")
+                .cost("只影响显示，开启时通知照常统计；关掉再打开马上恢复，不用等新的通知。").option("system", "系统通知", "统计可清除的系统通知，不依赖微信。")
                 .option("wechat", "微信", "只统计微信未读消息，适合安装了微信的设备。");
-        put("lock.notifyhide").summary("不想在锁屏看到通知时打开").what("打开后六种锁屏样式都不再画通知区：编辑排版的「通知 N 条」框、横版的右下通知框、瑞士与液态玻璃右下角的通知数、像素样式的通知数和通知一格都会消失，腾出的位置不会再摆空框。")
-                .cost("只影响显示，通知仍在正常统计；关掉这个开关马上恢复，不用等新的通知。锁屏的「通知来源」选择保持不变。");
         put("lock.countdown").summary("一个开关管显示，本页直接编辑事项").what("打开后在锁屏上显示事项倒数日：最多三个，每组一个事项和日期，多个按目标日先后排列。下方就是事项编辑器——事项名可留空；日期为空该组停用。")
                 .cost("关闭后锁屏不再显示倒数日，已填的事项和日期仍保留，再打开即恢复。").option("default", "显示倒数日", "");
         put("lock.countdowns").summary("倒数日事项的数据存储位置").what("最多三个倒数日，每组有独立的「农历日期」和「显示」开关：开启农历后按农历年/月/日计算（如选 2027-01-01 即 2027 年春节）；关闭显示可暂时隐藏该组而不删除。编辑入口已并入上一页「锁屏倒数日」，这里是它的数据保存位置，旧配置继续有效。")
@@ -310,8 +306,6 @@ final class Guide {
                 .cost("个别依赖这个漏洞的第三方墨水屏工具可能失效。").option("default", "调用方校验", "");
         put("guard.config").summary("刷新配置损坏时自动还原，避免卡开机").what("每应用刷新配置文件一旦损坏，原厂会在开机时崩溃、无法进入系统。开启后每次开机前检查该文件，发现损坏就用最近一次正常的备份还原；运行中每 6 小时备份一次。")
                 .cost("需要完整重启后开始保护。").option("default", "配置守护", "").term("完整重启");
-        put("fix.google").summary("Google 设置的彩色图标换成黑色").what("Google 设置的彩色“G”图标在墨水屏上会变成一团灰，开启后替换成清晰的黑色图标。")
-                .note("当前固件的 Google 服务把这个图标放在拆分安装包里，系统暂时无法套用替换，本项在本机尚未生效。").option("default", "黑色图标", "").term("完整重启");
         put("experiment.cache").summary("显示后端少做几次重复查询").what("GPU 显示后端每帧都要查询 GPU 程序参数的位置，开启后把结果缓存起来。")
                 .cost("只是局部优化，日常几乎感觉不到差别。需要 GPU 显示后端。").option("default", "缓存参数位置", "").term("GPU 显示后端");
         put("experiment.video").summary("旧版视频选择，已归入显示分类").what("旧配置继续保留。「显示 → 视频场景算法」选保持现状时沿用这里的选择；新页面明确选择算法时优先使用新选择。")
@@ -347,10 +341,8 @@ final class Guide {
                 .option("60", "1分钟", "默认。").option("300", "5分钟", "").option("600", "10分钟", "").option("1800", "30分钟", "最省电。")
                 .option(com.inkcontrol.core.FeatureDefinition.NUMBER_TOKEN, "自定义", "手动输入 1–999 之间的分钟数。");
 
-        put("wave.master").summary("遮挡传感器息屏、移开唤醒").what("海信 A5 Pro 官方没有这个功能。开启后，墨控在系统无障碍中监听近距离（覆盖）传感器：屏幕被手掌或物体持续遮挡时锁定并关闭屏幕；遮挡结束（移出口袋、移开手掌）后点亮屏幕并尝试退出锁屏。")
-                .cost("需要系统无障碍中启用「墨控体感」服务；安全锁屏（PIN、图案、密码）无法在无 root、无设备管理员的情况下绕过，只能亮屏、不能自动退锁屏。").option("default", "启用体感", "").term("近距离传感器");
-        put("wave.lock").summary("遮挡一段时间后息屏").what("近距离传感器被持续遮挡达到设定的延时后，主动锁定并关闭屏幕。适合放进裤袋、盖上衣物时避免误触。").option("default", "遮挡息屏", "");
-        put("wave.wake").summary("移开遮挡后唤醒").what("遮挡结束（移出口袋、移开手掌）后点亮屏幕。若未设置安全锁屏，会进一步尝试退出锁屏；若有安全锁屏，则只亮屏。").option("default", "移开唤醒", "");
+        put("wave.lock").summary("遮挡一段时间后息屏").what("近距离传感器被持续遮挡达到「遮挡延时」设定的时间后，主动锁定并关闭屏幕。适合放进裤袋、盖上衣物时避免误触。需要系统无障碍中启用「墨控体感」服务。").option("default", "遮挡息屏", "");
+        put("wave.wake").summary("移开遮挡后唤醒").what("遮挡结束（移出口袋、移开手掌）后点亮屏幕。若未设置安全锁屏，会进一步尝试退出锁屏；若有安全锁屏，则只亮屏。需要系统无障碍中启用「墨控体感」服务。").option("default", "移开唤醒", "");
         put("wave.coverDelay").summary("遮挡持续多久才息屏").what("传感器短暂被碰一下不会立刻息屏，只有持续遮挡超过这个时间才锁定屏幕，避免误触。")
                 .cost("数值越小越灵敏，越大越不容易误触。")
                 .option("1000", "1 秒", "默认，平衡灵敏与误触。").option("500", "500 毫秒", "更灵敏，适合稳定遮挡场景。")

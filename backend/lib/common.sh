@@ -97,9 +97,12 @@ ic_validate() {
       {if (NF!=2 || seen[$1]++) bad=1}
       $1=="version" {if($2!="1") bad=1; next}
       $1=="revision" {if($2!~/^[0-9]+$/ || length($2)>15) bad=1; next}
-      # 旧版「字体2」（font2.*）已并入「字体」（font.*）；容忍旧配置里的残留键，升级不卡开机
-      {key=$1; if(sub(/\.value$/,"",key)) {legacy=(key ~ /^font2\.(dir|pick|saf)$/) ? 1 : 0; if((!known[key] && !legacy) || $2=="@curve" || $2=="@number" || $2=="@apps" || $2=="@countdowns" || $2=="@path" || $2=="@font" || (index("," choices[key] ",", "," $2 ",")==0 && !curve(choices[key], $2) && !number(choices[key], $2) && !apps(choices[key], $2) && !countdowns(choices[key], $2) && !fontpath($2))) bad=1}
-       else {legacy=(key ~ /^font2\.(dir|pick|saf)$/) ? 1 : 0; if((!known[key] && !legacy) || ($2!="0" && $2!="1")) bad=1}}
+      # 旧版残留键已删除：「字体2」（font2.*）并入「字体」；「Google 设置图标修复」（fix.google）、
+      # 「隐藏锁屏通知」（lock.notifyhide）并入「锁屏通知」、「过渡动画总开关」（motion.master）、
+      # 「全刷扫过」（motion.gc_clear）、「体感息屏唤醒」（wave.master）下线。
+      # 容忍旧配置里的残留键，升级不卡开机
+      {key=$1; if(sub(/\.value$/,"",key)) {legacy=(key ~ /^(font2\.(dir|pick|saf)|fix\.google|lock\.notifyhide|wave\.master)$/) ? 1 : 0; if((!known[key] && !legacy) || $2=="@curve" || $2=="@number" || $2=="@apps" || $2=="@countdowns" || $2=="@path" || $2=="@font" || (index("," choices[key] ",", "," $2 ",")==0 && !curve(choices[key], $2) && !number(choices[key], $2) && !apps(choices[key], $2) && !countdowns(choices[key], $2) && !fontpath($2))) bad=1}
+       else {legacy=(key ~ /^(font2\.(dir|pick|saf)|fix\.google|lock\.notifyhide|wave\.master)$/) ? 1 : 0; if((!known[key] && !legacy) || ($2!="0" && $2!="1")) bad=1}}
       END {
         if(!seen["version"] || !seen["revision"]) bad=1
         for(key in known) {
@@ -121,10 +124,11 @@ ic_ready() {
         [ "$(sed -n 's/^version=//p' "$IC_MODULE/module.prop")" = '0.1.1-rc17' ] && [ ! -f "$IC_STATE/error" ] || return 1
     ! ic_module_conflict >/dev/null
 }
-# 同样替换显示库、配置守护或图标覆盖的 Magisk 模块会与墨控争用同一文件；启用时拒绝加载。
+# 同样替换显示库或配置守护的 Magisk 模块会与墨控争用同一文件；启用时拒绝加载。
+# 图标覆盖已下线，gms_settings_icon_fix 不再与本模块争用文件。
 ic_module_conflict() {
     IC_MODULES=${IC_MODULES:-/data/adb/modules}
-    for module in eink_display epd_cfg_guard gms_settings_icon_fix a_eink_pipeline_opt a_eink_lock_dither a_eink_lock_motion a_eink_lock_motion2 a_eink_lock_motion3 a_eink_lock_motion4 a_eink_reading_verify a_eink_lock_crop; do
+    for module in eink_display epd_cfg_guard a_eink_pipeline_opt a_eink_lock_dither a_eink_lock_motion a_eink_lock_motion2 a_eink_lock_motion3 a_eink_lock_motion4 a_eink_reading_verify a_eink_lock_crop; do
         [ -d "$IC_MODULES/$module" ] && [ ! -f "$IC_MODULES/$module/disable" ] && [ ! -f "$IC_MODULES/$module/remove" ] && { echo "$module"; return 0; }
     done
     return 1
@@ -145,6 +149,8 @@ ic_properties() {
     # display.alg.stock 是「改用原厂显示算法」总开关：开启时五个模式一律不接管，逐模式的选择只保留在配置里。
     ic_stock=0
     if ic_enabled display.alg.stock; then ic_stock=1; fi
+    # 原厂算法总开关下发给 native：=1 时 GPU 不接管任何像素量化（A2 二值与灰阶全走原厂 CPU 路径）。
+    setprop debug.eink.alg.stock "$ic_stock" || return 1
     for ic_scope in clear reading fast extreme video; do
         ic_algorithm=default
         if [ "$ic_stock" = 0 ] && ic_enabled "display.alg.$ic_scope"; then
@@ -164,6 +170,22 @@ ic_properties() {
         case "$ic_hysteresis" in default|on|off) ;; *) return 1 ;; esac
         setprop "debug.eink.hyst.$ic_scope" "$ic_hysteresis" || return 1
     done
+}
+# 波形动画能力：system_server（LSPosed motion Hook）用 debug.eink.motion.cap / lockcap
+# 判断能否向 HWC 请求波形动画（墨迹晕开/网点长大/扫描线/百叶窗/全刷扫过）。
+# 能力列表来自 payload 里 libeinkgpu 的标记；没挂载显示后端时清空，请求会被忽略、等同瞬切。
+ic_motion_caps() {
+    ic_lib_file=$IC_MODULE/system/vendor/lib64/hw/libeinkgpu.so
+    ic_motion=
+    ic_lock=
+    if [ -f "$ic_lib_file" ]; then
+        ic_motion=$(grep -a -o 'EINK_MOTION_V2:[a-z,]*' "$ic_lib_file" 2>/dev/null | head -n 1 | sed 's/^[^:]*://')
+        ic_lock=$(grep -a -o 'EINK_LOCK_MOTION_V1:[a-z,]*' "$ic_lib_file" 2>/dev/null | head -n 1 | sed 's/^[^:]*://')
+        # 全刷扫过与锁屏过渡依赖不同的标记；锁屏标记缺失时退回主标记里的公共波形。
+        [ -n "$ic_lock" ] || ic_lock=$(printf '%s' "$ic_motion" | sed 's/,gcsweep//; s/gcsweep,//; s/^gcsweep$//')
+    fi
+    setprop debug.eink.motion.cap "$ic_motion" || return 1
+    setprop debug.eink.motion.lockcap "$ic_lock" || return 1
 }
 # ── 系统字体替换 ──────────────────────────────────────────────────────────
 # 槽位链：/system/fonts/SysFont.ttf -> /data/fonts/HmctFont.ttf -> 当前字体文件。

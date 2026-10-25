@@ -34,7 +34,7 @@ import java.util.concurrent.Executors;
  */
 public final class MainActivity extends Activity {
     private static final ExecutorService WORKER = Executors.newSingleThreadExecutor();
-    private static final String FEATURES = "功能", MODULE = "模块设置", INSTALL = "安装", DIAGNOSE = "诊断", TERMS = "__terms";
+    private static final String FEATURES = "功能", MODULE = "模块设置", INSTALL = "安装", DIAGNOSE = "诊断", ORDER = "大功能排序", TERMS = "__terms";
     private static final String[] TABS = {FEATURES, MODULE};
     private static final int[] TAB_GLYPHS = {Ink.Glyph.FEATURES, Ink.Glyph.INSTALL};
     private static final int EXPORT_REQUEST = 100;
@@ -187,6 +187,14 @@ public final class MainActivity extends Activity {
         root.addView(navigation());
         setContentView(root);
 
+        // 墨水屏偶发「点了没画」：点击触发的快速刷新可能吞掉换页后的第一次画面更新，
+        // 内容其实已经画好、但要再滑动一下才出现。布局完成后紧接着补一次重绘请求，
+        // 让屏幕驱动再收到一帧，进大功能后无需再动一下就能看到新页面。
+        View repaint = root;
+        repaint.postDelayed(() -> {
+            if (!isFinishing() && !isDestroyed()) { repaint.invalidate(); repaint.requestLayout(); }
+        }, 80);
+
         if (snapshot == null && loadError.isEmpty()) body.addView(note("正在读取配置…"));
         else {
             // 配置读取失败也要能进「模块设置」（导出 ZIP、诊断都靠它）：先给错误卡，再照常渲染页面。
@@ -197,6 +205,7 @@ public final class MainActivity extends Activity {
             if (tab.equals(MODULE)) {
                 if (modulePage.equals(INSTALL)) installation();
                 else if (modulePage.equals(DIAGNOSE)) diagnostics();
+                else if (modulePage.equals(ORDER)) categoryOrderPage();
                 else moduleSettings();
             } else if (!loadError.isEmpty()) {
                 body.addView(spaced(paragraph("出错了先从这里处理：进「诊断」查看详情，或在「安装」重新导出 Magisk 模块 ZIP。", 14), 12));
@@ -249,7 +258,8 @@ public final class MainActivity extends Activity {
         titles.setOrientation(LinearLayout.VERTICAL);
         if (!back.isEmpty()) {
             String target = back;
-            TextView backView = ink.text("‹ " + target, 15, Ink.MEDIUM);
+            // 返回按钮放大到 18sp：此前 15sp 在墨水屏上偏小，点按区域不好找。
+            TextView backView = ink.text("‹ " + target, 18, Ink.MEDIUM);
             backView.setPadding(0, ink.dp(4), ink.dp(16), ink.dp(10));
             backView.setContentDescription(ink.t("返回 " + target));
             backView.setOnClickListener(v -> onBackPressed());
@@ -503,7 +513,7 @@ public final class MainActivity extends Activity {
             body.addView(card(overview));
         }
 
-        for (Guide.Category c : Guide.CATEGORIES.values()) {
+        for (Guide.Category c : orderedCategories()) {
             if (c.name.equals("实验室")) continue;   // 实验室入口移到「模块设置」
             int total = 0, enabled = 0, bad = 0;
             for (String[] section : c.sections) for (int i = 1; i < section.length; i++) {
@@ -637,15 +647,16 @@ public final class MainActivity extends Activity {
             barParams.setMargins(0, ink.dp(2), ink.dp(12), ink.dp(2));
             row.addView(bar, barParams);
         }
+        String status = pending ? "正在保存" : status(feature.id);
+        boolean strong = status.equals("已生效") || status.startsWith("异常") || status.equals("待重启");
+        boolean rebootPending = status.equals("待重启");
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
-        content.addView(titleLine(feature, 17));
+        content.addView(titleLine(feature, 17, rebootPending));
         String summary = Guide.get(feature.id).summary;
         content.addView(spaced(paragraph(summary.isEmpty() ? feature.description : summary, 13), 5));
         if (child && shown && !s.config.enabled(feature.dependency))
             content.addView(spaced(ink.text("需先开启「" + FeatureCatalog.get(feature.dependency).title + "」", 13, Ink.MEDIUM), 5));
-        String status = pending ? "正在保存" : status(feature.id);
-        boolean strong = status.equals("已生效") || status.startsWith("异常") || status.equals("待重启");
         String value = valueSummary(feature, pending ? pendingValue : s.config.value(feature.id), shown);
         content.addView(spaced(ink.text(glyph(status) + " " + status + (value.isEmpty() ? "" : " · " + value), 13, strong ? Ink.BOLD : Ink.REGULAR), 7));
         row.addView(content, new LinearLayout.LayoutParams(0, -2, 1));
@@ -682,12 +693,13 @@ public final class MainActivity extends Activity {
         return result;
     }
 
-    private LinearLayout titleLine(FeatureDefinition feature, float sp) {
+    private LinearLayout titleLine(FeatureDefinition feature, float sp, boolean rebootPending) {
         LinearLayout line = new LinearLayout(this);
         line.setGravity(Gravity.CENTER_VERTICAL);
         line.addView(ink.text(feature.title, sp, Ink.MEDIUM));
         if (feature.experimental) line.addView(withMargin(ink.tag("实验", false), 8));
-        if (feature.mode == FeatureDefinition.ApplyMode.REBOOT) line.addView(withMargin(ink.tag("需重启", false), 6));
+        // 只有回执还没追上配置时才标「需重启」；已生效的 REBOOT 功能不再常驻标签
+        if (rebootPending) line.addView(withMargin(ink.tag("需重启", false), 6));
         return line;
     }
 
@@ -734,7 +746,7 @@ public final class MainActivity extends Activity {
         statusTitle.setGravity(Gravity.CENTER_VERTICAL);
         statusTitle.addView(ink.text(shown ? "已开启" : "未开启", 18, Ink.BOLD));
         if (f.experimental) statusTitle.addView(withMargin(ink.tag("实验", false), 8));
-        if (f.mode == FeatureDefinition.ApplyMode.REBOOT) statusTitle.addView(withMargin(ink.tag("需重启", false), 6));
+        if (f.mode == FeatureDefinition.ApplyMode.REBOOT && status.equals("待重启")) statusTitle.addView(withMargin(ink.tag("需重启", false), 6));
         LinearLayout statusText = column(statusTitle, spaced(ink.text(glyph(status) + " " + status, 14, Ink.REGULAR), 6));
         if (f.mode == FeatureDefinition.ApplyMode.REBOOT) statusText.addView(spaced(paragraph("↻ 更改后需要完整重启才生效。", 13), 4));
         statusRow.addView(statusText, new LinearLayout.LayoutParams(0, -2, 1));
@@ -1044,8 +1056,8 @@ public final class MainActivity extends Activity {
             }
             LinearLayout content = column(ink.text(name, 16, isSelected ? Ink.BOLD : Ink.MEDIUM));
             if (!detail.isEmpty()) content.addView(spaced(paragraph(detail, 13), 4));
-            if (FeatureService.needsWaveBackend(f.id, value) && f.id.startsWith("motion.") && !f.id.equals("motion.gc_clear"))
-                content.addView(spaced(ink.text("需要 GPU 显示后端", 12, Ink.REGULAR), 4));
+            if (FeatureService.needsWaveBackend(f.id, value) && f.id.startsWith("motion."))
+                content.addView(spaced(ink.text("需要 GPU 显示后端，并关闭「改用原厂显示算法」", 12, Ink.REGULAR), 4));
             if (isCurrent || isSelected) {
                 LinearLayout tags = new LinearLayout(this);
                 if (isCurrent) tags.addView(ink.tag(requested ? "✓ 正在使用" : "已选（未开启）", true));
@@ -1765,6 +1777,8 @@ public final class MainActivity extends Activity {
                 "", false, "打开安装向导", v -> { modulePage = INSTALL; render(); }), 12));
         body.addView(spaced(navCard("诊断", "查看后端模块、配置应用与各项生效状态，排查异常。",
                 "", false, "打开诊断", v -> { modulePage = DIAGNOSE; render(); }), 12));
+        body.addView(spaced(navCard("大功能排序", "调整首页各大功能的显示顺序，立即生效、随时可恢复默认。",
+                "", false, "打开大功能排序", v -> { modulePage = ORDER; render(); }), 12));
         body.addView(spaced(navCard("实验室", Guide.CATEGORIES.get("实验室").intro,
                 "", false, "打开实验室", v -> { tab = FEATURES; category = "实验室"; featureId = ""; scroll = null; render(); }), 12));
         body.addView(spaced(navCard("名词解释", "刷新方式、残影、关键帧、波形动画……这些词是什么意思。",
@@ -1785,6 +1799,69 @@ public final class MainActivity extends Activity {
         noticeCard.addView(spaced(paragraph("修改设置后的结果提示会在页面上停留一段时间后自动消失；"
                 + "选「不显示」则不再占用页面空间。失败提示不会自动消失。", 13), 8));
         body.addView(spaced(card(noticeCard), 12));
+    }
+
+    // ───────────────────────── 大功能排序 ─────────────────────────
+
+    /** 首页大功能的显示顺序：按保存的顺序排列，未保存的新分类自动补在末尾；空表示默认顺序。 */
+    private List<Guide.Category> orderedCategories() {
+        List<Guide.Category> result = new ArrayList<>();
+        Map<String, Guide.Category> byName = new LinkedHashMap<>();
+        for (Guide.Category c : Guide.CATEGORIES.values()) byName.put(c.name, c);
+        for (String name : UiCategoryOrder.saved(this).split(";", -1)) {
+            Guide.Category c = byName.remove(name);
+            if (c != null) result.add(c);
+        }
+        result.addAll(byName.values());
+        return result;
+    }
+
+    private void categoryOrderPage() {
+        body.addView(card(column(heading("大功能排序", 20),
+                spaced(paragraph("调整首页各大功能的显示顺序。改动立即生效，只影响排列，不影响任何功能本身；「实验室」在「模块设置」里，不参与排序。", 14), 8))));
+        // 编辑列表不含「实验室」：它不在首页显示，顺序由导航位置决定。
+        List<Guide.Category> list = new ArrayList<>();
+        for (Guide.Category c : orderedCategories()) if (!c.name.equals("实验室")) list.add(c);
+        LinearLayout box = column();
+        for (int i = 0; i < list.size(); i++) {
+            Guide.Category c = list.get(i);
+            if (i > 0) box.addView(ink.rule(1));
+            LinearLayout row = new LinearLayout(this);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            TextView name = ink.text(c.name, 16, Ink.BOLD);
+            name.setPadding(ink.dp(14), 0, 0, 0);
+            row.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
+            if (i > 0) row.addView(ink.button("上移", Ink.Kind.SECONDARY, v -> moveCategory(list.indexOf(c), -1)));
+            if (i < list.size() - 1) {
+                LinearLayout.LayoutParams down = new LinearLayout.LayoutParams(-2, -2);
+                down.leftMargin = ink.dp(8);
+                row.addView(ink.button("下移", Ink.Kind.SECONDARY, v -> moveCategory(list.indexOf(c), 1)), down);
+            }
+            LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(-1, -2);
+            rowParams.setMargins(0, ink.dp(10), 0, ink.dp(10));
+            box.addView(row, rowParams);
+        }
+        body.addView(spaced(card(box), 16));
+        body.addView(spaced(ink.button("恢复默认顺序", Ink.Kind.SECONDARY, v -> {
+            UiCategoryOrder.save(this, "");
+            render();
+        }), 12));
+    }
+
+    /** 交换相邻两项并立即保存；保存的是不含「实验室」的完整顺序。 */
+    private void moveCategory(int index, int delta) {
+        List<Guide.Category> list = new ArrayList<>();
+        for (Guide.Category c : orderedCategories()) if (!c.name.equals("实验室")) list.add(c);
+        int target = index + delta;
+        if (index < 0 || target < 0 || target >= list.size()) return;
+        Collections.swap(list, index, target);
+        StringBuilder value = new StringBuilder();
+        for (Guide.Category c : list) {
+            if (value.length() > 0) value.append(';');
+            value.append(c.name);
+        }
+        UiCategoryOrder.save(this, value.toString());
+        render();
     }
 
     // ───────────────────────── 安装 ─────────────────────────

@@ -24,9 +24,10 @@ public final class CoreTest {
         check(DisplayAlgorithms.scopeForMode(7).isEmpty());
         reject(() -> DisplayAlgorithms.hysteresisProperty("reading"));
         reject(() -> DisplayAlgorithms.algorithmProperty("unknown"));
-        // 「改用原厂显示算法」总开关：逐模式算法/迟滞仍各自保存，但总开关打开时一律回退原厂
+        // 「改用原厂显示算法」总开关：逐模式算法/迟滞仍各自保存，但总开关打开时一律回退原厂；
+        // 优先级高于 GPU 显示后端，不依赖它即可开启
         FeatureDefinition stockFeature = FeatureCatalog.get("display.alg.stock");
-        check(stockFeature.role.equals("backend") && stockFeature.dependency.equals("display.gpu"));
+        check(stockFeature.role.equals("backend") && stockFeature.dependency.isEmpty());
         check(stockFeature.mode == FeatureDefinition.ApplyMode.HOT && stockFeature.defaultValue().equals("default"));
         Configuration tuned = gpu.change("display.alg.fast", true, "blue").change("display.hyst.fast", true, "on")
                 .change("display.alg.video", true, "bayer");
@@ -36,12 +37,13 @@ public final class CoreTest {
         check(DisplayAlgorithms.algorithmOverride(stockOnly, "video").equals("default"));
         check(!DisplayAlgorithms.supportsHysteresis(stockOnly, "fast") && !DisplayAlgorithms.hysteresis(stockOnly, "fast"));
         check(DisplayAlgorithms.hysteresisOverride(stockOnly, "fast").equals("default"));
-        // 父开关 display.gpu 关闭时总开关不生效，逐模式设置照旧
-        check(!DisplayAlgorithms.stock(empty.change("display.alg.stock", true, "default")));
-        // 锁屏通知显示开关挂在锁屏样式下，默认关闭（照常显示通知）
-        FeatureDefinition hideNotify = FeatureCatalog.get("lock.notifyhide");
-        check(hideNotify.role.equals("systemui") && hideNotify.dependency.equals("lock.style"));
-        check(!new Configuration().enabled("lock.notifyhide"));
+        // 总开关独立于 GPU 后端：不开 GPU 也能开启并生效
+        check(DisplayAlgorithms.stock(empty.change("display.alg.stock", true, "default")));
+        // 「锁屏通知」单一开关挂在锁屏样式下：关闭即不显示通知，开启后可选系统 / 微信来源
+        FeatureDefinition notify = FeatureCatalog.get("lock.notify");
+        check(notify.role.equals("systemui") && notify.dependency.equals("lock.style"));
+        check(notify.values.equals(Arrays.asList("system", "wechat")));
+        check(!new Configuration().enabled("lock.notify"));
         for (String scope : DisplayAlgorithms.SCOPES) {
             String id = "display.alg." + scope;
             FeatureDefinition f = FeatureCatalog.get(id);
@@ -141,6 +143,11 @@ public final class CoreTest {
             reject(() -> feature.validate("$(id)"));
         }
         check(Configuration.parse(config.text()).text().equals(config.text()));
+        // 已下线功能的旧配置残留键被容忍并丢弃：字体2、Google 图标、隐藏锁屏通知、体感息屏唤醒
+        Configuration tolerated = Configuration.parse(config.text()
+                + "font2.pick=1\nfont2.pick.value=x\nfix.google=1\nfix.google.value=default\n"
+                + "lock.notifyhide=1\nlock.notifyhide.value=default\nwave.master=1\nwave.master.value=default\n");
+        check(tolerated.revision == 0 && !tolerated.requested("motion.lock") && !tolerated.requested("wave.lock"));
         FeatureDefinition hold = FeatureCatalog.get("motion.hold");
         String curve = FeatureDefinition.curveValue(new int[]{420, 400, 360, 320, 280, 230, 210, 175, 150});
         hold.validate(curve); check(Configuration.parse(config.change("motion.hold", true, curve).text()).value("motion.hold").equals(curve));
@@ -236,7 +243,7 @@ public final class CoreTest {
         final StatusSource.Evidence[] evidence = {null};
         FeatureService service = new FeatureService(store, (before, after) -> { check(after.revision == before.revision + 1 || after == before); applied[0]++; }, feature -> evidence[0]);
         reject(() -> service.change("desktop.icons", true, "default")); check(store.value.revision == 0);
-        reject(() -> service.change("motion.lock", true, "scan"));
+        reject(() -> service.change("refresh.touch", true, "default"));   // 依赖的总开关未开启
         service.change("desktop.theme", true, "paper"); check(store.value.revision == 1);
         service.change("desktop.icons", true, "default"); service.change("desktop.theme", false, "ink");
         check(store.value.requested("desktop.icons")); check(!store.value.enabled("desktop.icons")); check(service.status("desktop.icons").equals("依赖未满足"));

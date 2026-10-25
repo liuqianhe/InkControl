@@ -65,18 +65,19 @@ final class LockData {
             }
         } catch (Throwable ignored) {
         }
-        if (Settings.Global.getInt(c.getContentResolver(), "eink_keyguard_notification_on", 1) != 0) {
-            boolean wechat = RuntimeConfig.enabled("lock.notify")
-                    && "wechat".equals(RuntimeConfig.value("lock.notify"));
-            if (wechat) {
+        // 「锁屏通知」单一开关：关闭即不画通知区；开启后按来源统计（系统 / 微信）。
+        // 原来的「隐藏锁屏通知」（lock.notifyhide）已并入这里。
+        boolean notifyOn = RuntimeConfig.enabled("lock.notify");
+        if (notifyOn && Settings.Global.getInt(c.getContentResolver(), "eink_keyguard_notification_on", 1) != 0) {
+            if ("wechat".equals(RuntimeConfig.value("lock.notify"))) {
                 d.notifications = Math.max(0, Settings.System.getInt(c.getContentResolver(), "com_hs_wechat_mini", 0));
                 d.notificationLabel = "微信";
             } else {
                 d.notifications = LockNotifications.count();
             }
         }
-        // 锁屏通知显示开关：只是不画，计数照旧，重新打开开关时不用等下一次通知事件
-        d.hideNotify = RuntimeConfig.enabled("lock.notifyhide");
+        // 只是这一处不画，计数照旧；重新打开开关时不用等下一次通知事件
+        d.hideNotify = !notifyOn;
         if (RuntimeConfig.enabled("lock.weather")) readWeather(d, c, controller);
         readLunar(d, controller);
         // 倒数日：仅当「锁屏 → 倒数日」开关开启时读取 App 配置的事项与日期；

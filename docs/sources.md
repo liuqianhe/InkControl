@@ -14,7 +14,6 @@
 | HWC 派生输入 | `过渡动画模块/out/backend-v0.2-rc3/module/system/vendor/lib64/hw/hwcomposer.ums512.so` | 私有输入，严格哈希校验；默认空闲代码恢复为原厂8字节 |
 | 原厂 HWC | `墨水屏刷新分析/原版库/hwcomposer.ums512.so.lib64` | 私有固件输入，原样保留，不纳入公开源码 |
 | 条件恢复／守护 | `墨水屏显示套件/module/config_state.sh`、既有 guard 实现 | 独立墨控状态目录和恢复脚本名称，添加重复启停周期管理 |
-| Google 图标覆盖 | `谷歌图标修复/src` | 独立源码编译并签名，包标识 `com.inkcontrol.overlay.google` 避免与旧签名冲突；仅开关启用时挂载，读取系统覆盖状态确认生效 |
 | 回归测试 | 过渡动画、EinkFix 与显示套件测试 | 调整包名和路径，重新执行；原厂服务由电脑端替身模拟 |
 
 原始文件 SHA256 记录在 `source-provenance.json`；该文件记录迁入前来源，不要求与修改后的同名目标相等。构建清单记录当前权威源码哈希，交付归档另有完整 `source-manifest.json`。迁移中去重掉的目标作为历史记录保留，天气图标当前只保留 `shared/WeatherIcon.java`。

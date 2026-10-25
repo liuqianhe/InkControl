@@ -9,6 +9,7 @@ ic_supported && ic_validate "$IC_CONFIG" || { echo '设备或配置校验失败'
 if conflict=$(ic_module_conflict); then echo "冲突模块仍启用：$conflict" > "$IC_STATE/error"; touch "$MODDIR/skip_mount"; exit 1; fi
 rm -f "$IC_STATE/error" "$MODDIR/skip_mount"
 # 仅删除本模块固定的派生文件，不递归删除目录，不操作原厂分区。
+# InkControlGoogleIcon.apk 是已下线的图标覆盖，保留清理以便旧安装升级后自动移除。
 for file in system/vendor/lib64/hw/hwcomposer.ums512.so system/vendor/lib64/hw/libeinkgpu.so system/product/overlay/InkControlGoogleIcon.apk; do rm -f "$MODDIR/$file"; done
 if ic_enabled display.gpu; then
     current=$(sha256sum "$IC_VENDOR/hwcomposer.ums512.so" | cut -d' ' -f1)
@@ -36,12 +37,8 @@ else
         rm -f "$IC_STATE/disable_hwc"
     fi
 fi
-if ic_enabled fix.google; then
-    mkdir -p "$MODDIR/system/product/overlay"
-    cp "$MODDIR/payload/GmsSettingsIconFix.apk" "$MODDIR/system/product/overlay/InkControlGoogleIcon.apk"
-    chmod 644 "$MODDIR/system/product/overlay/InkControlGoogleIcon.apk"
-    chcon u:object_r:system_file:s0 "$MODDIR/system/product/overlay/InkControlGoogleIcon.apk"
-fi
+# 波形动画能力必须与“这一开机实际挂载的库”一致，挂载判断之后再下发。
+ic_motion_caps || { echo '波形动画能力下发失败' > "$IC_STATE/error"; exit 1; }
 if ic_enabled guard.config; then . "$MODDIR/lib/guard.sh"; guard_boot; fi
 ic_prepare_restore
 cs_prepare_hooks || { echo '恢复入口创建失败' > "$IC_STATE/error"; exit 1; }

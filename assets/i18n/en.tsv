@@ -1,4 +1,3 @@
-# UTF-8 Chinese source phrase	English display text
 功能	Features
 安装	Install
 诊断	Diagnostics
@@ -51,7 +50,6 @@
 已生效	Active
 ，打开详情	, open details
 温度自适应	Temperature adaptive
-实验	Experimental
 需重启	Restart needed
 开启	On
 关闭	Off
@@ -126,7 +124,6 @@ GPU 显示后端未开启，当前沿用系统显示路径；已保存的选择�
 查看说明	read the explanation
 预览效果	preview the effect
 ，满意后再点下方按钮使用。	, then use the button below to apply it.
-需要 GPU 显示后端	Requires GPU display backend
 ✓ 正在使用	✓ In use
 已选（未开启）	Selected (disabled)
 预览中	Previewing
@@ -276,7 +273,6 @@ GPU 显示后端	GPU display backend
 仍在验证的优化，效果因场景而异。	Optimizations still being evaluated; results depend on the scenario.
 实验项目	Experiments
 沿用当前默认	Keep current defaults
-选「瞬间切换」以外的效果后，这个场景就不再是原厂的直接跳变。波形类效果（墨迹、网点、扫描线、百叶窗）需要先开启 GPU 显示后端。	Any effect except Instant switch replaces the stock direct transition. Waveform effects (ink, dots, scanlines, blinds) require the GPU display backend first.
 方形展开	Square reveal
 新画面从你点的位置以方块形状分几步扩开。关键帧动画，不需要 GPU 后端。	Reveal the new image in square steps from the touch point. A keyframe animation; no GPU backend required.
 关键帧擦除	Keyframe wipe
@@ -357,12 +353,7 @@ GPU 显示后端	GPU display backend
 约 0.12 秒，翻页、滚动明显更跟手；图片变成黑白网点、略有颗粒感。	About 0.12 seconds for more responsive scrolling and page turns; images become grainier black-and-white dots.
 只改原本是阅读模式的应用；关闭时逐个恢复原值，你自己单独改过的应用不会被动。需要完整重启。	Only changes apps originally in Reading mode. Restores each previous value when disabled, preserving independent changes. Requires a full restart.
 阅读模式 → 极速模式	Reading → Extreme
-原厂没有过渡动画；开启后各场景可分别设置	Enable per-scenario transitions instead of stock instant switching
 原厂为了墨水屏把窗口动画全部关闭，打开应用、返回时画面直接跳变。开启后，可以在下面每个场景选一种专为墨水屏设计的过渡效果。	The stock firmware disables window animations for e-ink, so opening and leaving apps jumps directly between images. Enable this to choose a transition designed for e-ink for each scenario.
-所有切换都是瞬间跳变，很难看出画面从哪来、到哪去。	Instant jumps give little indication of where a view came from or is going.
-切换有方向感：从点的地方展开、从一侧推入等。	Directional transitions reveal from the touch point or slide in from one side.
-关键帧动画每多一张中间画面就多一次刷新；波形动画几乎不增加时间。关闭总开关后所有场景恢复原厂，各场景的选择会保留。	Each intermediate keyframe adds a refresh; waveform animations add almost no time. Disabling the master switch restores stock transitions while retaining selections.
-按场景应用	Apply by scenario
 从桌面点开一个应用时。	When opening an app from the launcher.
 从应用回到桌面时。	When returning from an app to the launcher.
 在应用里进入下一页，例如点开一条设置。	When moving forward inside an app, such as opening a setting.
@@ -372,12 +363,6 @@ GPU 显示后端	GPU display backend
 唤醒屏幕时。	When waking the screen.
 的过渡效果	 transition
 关闭此场景即恢复原厂的瞬间切换。	Disable this scenario to restore the stock instant transition.
-去残影全刷不再整屏同时闪黑	Remove ghosting without flashing the entire screen black at once
-系统做“清晰全刷”去残影时，整屏会同时闪一下黑。开启后改成从一侧扫向另一侧，闪黑像一道光带扫过。需要 GPU 显示后端。	A stock Clear refresh flashes the whole screen black. This option sweeps that black phase across the screen, preserving ghost removal. Requires the GPU backend.
-整屏同时变黑再变回，比较刺眼。	The entire screen turns black and back at once, which can be distracting.
-黑色光带从左扫到右，过程柔和，去残影效果相同。	A black band sweeps across the screen for a gentler transition with the same ghost removal.
-全刷扫过	Full-refresh sweep
-黑色光带从一侧扫过屏幕。	A black band sweeps across the screen from one side.
 弹窗时背后不再变成满屏颗粒	Avoid a screen full of grain behind dialogs
 弹出对话框时，系统会把背后的画面调暗。墨水屏显示不了半透明灰，变暗层会被转成满屏颗粒点，弹出和关闭时都要整屏重刷。开启后背后保持原样。	Dialogs dim the background. E-ink converts translucent gray into a noisy dot pattern, causing a full-screen refresh on open and close. This option leaves the background unchanged.
 每次弹窗，整屏先变成颗粒灰，关闭时再整屏刷回来。	Opening a dialog makes the whole screen grainy, then closing refreshes it again.
@@ -544,10 +529,6 @@ GPU 显示后端	GPU display backend
 每应用刷新配置文件一旦损坏，原厂会在开机时崩溃、无法进入系统。开启后每次开机前检查该文件，发现损坏就用最近一次正常的备份还原；运行中每 6 小时备份一次。	Check per-app refresh configuration before boot and restore the latest good backup if corrupt. Save a new backup every six hours while running.
 需要完整重启后开始保护。	Protection starts after a full restart.
 配置守护	Configuration guard
-Google 设置的彩色图标换成黑色	Make the Google Settings icon black
-Google 设置的彩色“G”图标在墨水屏上会变成一团灰，开启后替换成清晰的黑色图标。	Replace the colored Google Settings G, which looks muddy on e-ink, with a clear black icon.
-当前固件的 Google 服务把这个图标放在拆分安装包里，系统暂时无法套用替换，本项在本机尚未生效。	This firmware stores the icon in a split Google Services APK. The overlay currently does not take effect on this device.
-黑色图标	Black icon
 显示后端少做几次重复查询	Avoid repeated lookups in the display backend
 GPU 显示后端每帧都要查询 GPU 程序参数的位置，开启后把结果缓存起来。	Cache GPU program parameter locations instead of querying them for every frame.
 只是局部优化，日常几乎感觉不到差别。需要 GPU 显示后端。	A small local optimization with little perceptible daily difference. Requires the GPU backend.
@@ -598,7 +579,6 @@ GPU 显示后端每帧都要查询 GPU 程序参数的位置，开启后把结�
 关闭重复触摸查询，关闭功能时条件恢复	Disable repeated touch queries; conditionally restore the setting when disabled
 阅读类应用改用极速刷新	Use Extreme refresh for reading apps
 阅读模式515调整为521；启动前应用，停用时字段级恢复	Change Reading 515 to Extreme 521 before startup; restore owned fields when disabled
-过渡动画总开关	Transition master switch
 各场景仍可单独选择	Each scenario can still be configured independently
 打开应用	Open app
 返回桌面	Return home
@@ -609,7 +589,6 @@ GPU 显示后端每帧都要查询 GPU 程序参数的位置，开启后把结�
 唤醒过渡	Wake transition
 扫描线,墨迹晕开,网点长大,百叶窗	Scanlines,Ink spread,Growing dots,Blinds
 方形展开,关键帧擦除,墨迹晕开,网点长大,扫描线,百叶窗	Square reveal,Keyframe wipe,Ink spread,Growing dots,Scanlines,Blinds
-关闭此场景即恢复系统过渡	Restore system transitions when this scenario is disabled
 去掉对话框背景变暗	Remove dialog background dimming
 独立于动画总开关	Independent of the animation master switch
 移除变暗	Remove dimming
@@ -636,8 +615,6 @@ GPU 显示后端每帧都要查询 GPU 程序参数的位置，开启后把结�
 编辑排版,瑞士网格,像素,液态玻璃,编辑排版-横	Editorial,Swiss grid,Pixel,Liquid glass,Editorial Landscape
 锁屏天气	Lock-screen weather
 使用原厂已有天气数据	Use existing stock weather data
-锁屏通知来源	Lock-screen notification source
-默认统计系统通知，可切换到微信未读数	Counts system notifications by default; can switch to the WeChat unread count
 系统通知,微信	System notifications,WeChat
 锁屏样式、天气、通知、歌词，以及锁屏时用哪种刷新方式。	Lock-screen style, weather, notifications, lyrics, and refresh mode while locked.
 锁屏样式、天气、通知、倒数日、歌词，以及锁屏时用哪种刷新方式。	Lock-screen style, weather, notifications, countdowns, lyrics, and refresh mode while locked.
@@ -659,9 +636,6 @@ GPU 显示后端每帧都要查询 GPU 程序参数的位置，开启后把结�
 事项（可空）	Item (optional)
 选日期	Pick a date
 日期格式不正确	Invalid date format
-锁屏显示系统通知数	Show the system notification count on the lock screen
-统计当前可清除的系统通知，不再只显示微信未读。墨水屏通常不安装微信，默认使用系统通知数。	Count clearable system notifications instead of only WeChat unread messages. E-ink devices usually do not install WeChat, so system notifications are the default.
-关闭时仍显示系统通知数；打开后可切换到微信未读数。	System notifications remain visible when disabled; enable this to switch to the WeChat unread count.
 系统通知	System notifications
 统计可清除的系统通知，不依赖微信。	Count clearable system notifications without relying on WeChat.
 微信	WeChat
@@ -705,8 +679,6 @@ GPU 显示后端每帧都要查询 GPU 程序参数的位置，开启后把结�
 按UID及证书校验调用方，候选	Validate callers by UID and certificate; candidate
 刷新配置损坏自动还原	Restore corrupt refresh configuration
 启动前检查，备份保留供恢复	Check before startup and retain backups for restoration
-Google 设置图标修复	Google Settings icon fix
-资源覆盖，重启后生效	Resource overlay; full restart required
 GPU 参数缓存	GPU parameter cache
 提交阶段局部优化，不承诺整机提速	Local submission optimization; no promise of overall device speedup
 缓存uniform位置	Cache uniform locations
@@ -755,7 +727,6 @@ Provider未就绪	Provider not ready
 恢复待检查：	Restoration awaiting check: 
 配置同步稍后重试	Retry configuration sync later
 运行回执稍后重试	Retry runtime acknowledgement later
-图标覆盖未被系统启用	Icon overlay is not enabled by the system
 系统值已被独立修改，保留该修改；重新关闭再开启可接管	The system value was changed independently and has been preserved. Disable and enable again to take ownership
 GPU 记录到执行错误	GPU execution error recorded
 锁屏样式写入失败	Could not write lock-screen style
@@ -876,9 +847,6 @@ GPU 记录到执行错误	GPU execution error recorded
 已清空名单应用	App list cleared
 搜索应用	Search apps
 没有可选择的启动器应用。	No launcher apps available.
-体感息屏唤醒	Proximity sleep & wake
-遮挡近距离传感器息屏、移开唤醒；需在系统无障碍中启用「墨控体感」服务	Turn the screen off when the proximity sensor is covered and wake it when uncovered; enable the InkControl gestures accessibility service.
-启用体感	Enable gestures
 遮挡息屏	Sleep on cover
 近距离传感器被持续遮挡一段时间后锁定并关闭屏幕	Lock and turn off the screen after the sensor stays covered for a while
 移开唤醒	Wake on uncover
@@ -892,12 +860,8 @@ GPU 记录到执行错误	GPU execution error recorded
 用手掌或物体遮挡屏幕顶部的近距离传感器，锁屏下自动息屏；移开后唤醒并尝试退出锁屏。需要系统无障碍中启用「墨控体感」服务。	Cover the top proximity sensor with your hand or an object to turn off the screen while locked; uncover to wake and try to exit the lock screen. Requires enabling the InkControl gestures accessibility service.
 行为	Behavior
 遮挡传感器息屏、移开唤醒	Sleep on cover, wake on uncover
-海信 A5 Pro 官方没有这个功能。开启后，墨控在系统无障碍中监听近距离（覆盖）传感器：屏幕被手掌或物体持续遮挡时锁定并关闭屏幕；遮挡结束（移出口袋、移开手掌）后点亮屏幕并尝试退出锁屏。	Hisense A5 Pro has no such feature officially. Once enabled, InkControl listens to the proximity (cover) sensor through the accessibility service: it locks and turns off the screen while covered by a hand or object, and lights the screen and tries to exit the lock screen once the cover ends (taken out of a pocket or off the hand).
-需要系统无障碍中启用「墨控体感」服务；安全锁屏（PIN、图案、密码）无法在无 root、无设备管理员的情况下绕过，只能亮屏、不能自动退锁屏。	Requires enabling the InkControl gestures accessibility service. A secure lock screen (PIN, pattern, password) cannot be bypassed without root or device admin; it can only light the screen, not auto-unlock.
 遮挡一段时间后息屏	Sleep after being covered for a while
-近距离传感器被持续遮挡达到设定的延时后，主动锁定并关闭屏幕。适合放进裤袋、盖上衣物时避免误触。	Lock and turn off the screen once the sensor stays covered past the set delay. Good for avoiding misfires when in a pocket or under clothing.
 移开遮挡后唤醒	Wake after the cover is removed
-遮挡结束（移出口袋、移开手掌）后点亮屏幕。若未设置安全锁屏，会进一步尝试退出锁屏；若有安全锁屏，则只亮屏。	Light the screen after the cover ends (taken out of a pocket or off the hand). If no secure lock screen is set, it also tries to exit the lock screen; with a secure lock screen it only lights the screen.
 遮挡持续多久才息屏	How long covered before sleep
 传感器短暂被碰一下不会立刻息屏，只有持续遮挡超过这个时间才锁定屏幕，避免误触。	A brief touch will not turn off the screen immediately; only a sustained cover longer than this delay locks it, avoiding misfires.
 数值越小越灵敏，越大越不容易误触。	Smaller values are more sensitive; larger values are less prone to misfires.
@@ -914,3 +878,34 @@ GPU 记录到执行错误	GPU execution error recorded
 5 秒	5 seconds
 30 秒	30 seconds
 60 秒	60 seconds
+大功能排序	Feature order
+调整首页各大功能的显示顺序，立即生效、随时可恢复默认。	Reorder the feature groups on the home page. Takes effect immediately; restore defaults anytime.
+打开大功能排序	Open feature order
+调整首页各大功能的显示顺序。改动立即生效，只影响排列，不影响任何功能本身；「实验室」在「模块设置」里，不参与排序。	Reorder the feature groups on the home page. Changes take effect immediately and only affect the order, not the features themselves. The Laboratory lives in Module settings and is not ordered here.
+上移	Move up
+下移	Move down
+恢复默认顺序	Restore default order
+锁屏通知	Lock-screen notifications
+关闭后锁屏不显示通知；开启后统计系统通知，可切换到微信未读数	When off, the lock screen hides notifications; when on, it counts system notifications, switchable to the WeChat unread count.
+锁屏通知：一个开关管显示与来源	Lock-screen notifications: one switch for visibility and source
+关闭后，六种锁屏样式都不再画通知区：编辑排版的「通知 N 条」框、横版的右下通知框、瑞士与液态玻璃右下角的通知数、像素样式的通知数和通知一格都会消失，腾出的位置不会再摆空框。开启后统计通知并显示，来源可在下面二选一：系统通知或微信未读。	When off, none of the six lock styles draw the notification area (the notification box on Editorial, the corner box on Landscape, the counts on Swiss and Liquid Glass, the pixel count and cell all disappear). When on, notifications are counted and shown; pick the source below: system notifications or WeChat unread.
+只影响显示，开启时通知照常统计；关掉再打开马上恢复，不用等新的通知。	Display only; notifications keep counting while enabled. Toggling restores instantly without waiting for a new notification.
+近距离传感器被持续遮挡一段时间后锁定并关闭屏幕；需在系统无障碍中启用「墨控体感」服务	Lock and turn off the screen after the sensor stays covered for a while; enable the InkControl gestures accessibility service.
+遮挡结束（移出口袋/移开手掌）后点亮屏幕并尝试退出锁屏；需在系统无障碍中启用「墨控体感」服务	Light the screen and try to exit the lock screen once the cover ends; enable the InkControl gestures accessibility service.
+近距离传感器被持续遮挡达到「遮挡延时」设定的时间后，主动锁定并关闭屏幕。适合放进裤袋、盖上衣物时避免误触。需要系统无障碍中启用「墨控体感」服务。	Lock and turn off the screen once the sensor stays covered past the Cover delay. Good for avoiding misfires in a pocket or under clothing. Requires the InkControl gestures accessibility service.
+遮挡结束（移出口袋、移开手掌）后点亮屏幕。若未设置安全锁屏，会进一步尝试退出锁屏；若有安全锁屏，则只亮屏。需要系统无障碍中启用「墨控体感」服务。	Light the screen after the cover ends. Without a secure lock screen it also tries to exit the lock screen; with one, it only lights the screen. Requires the InkControl gestures accessibility service.
+原厂没有过渡动画；开启后各场景可分别设置	Enable per-scenario transitions instead of stock instant switching
+所有切换都是瞬间跳变，很难看出画面从哪来、到哪去。	Instant jumps give little indication of where a view came from or is going.
+切换有方向感：从点的地方展开、从一侧推入等。	Directional transitions reveal from the touch point or slide in from one side.
+关键帧动画每多一张中间画面就多一次刷新；波形动画几乎不增加时间。关闭总开关后所有场景恢复原厂，各场景的选择会保留。	Each intermediate keyframe adds a refresh; waveform animations add almost no time. Disabling the master switch restores stock transitions while retaining selections.
+按场景应用	Apply by scenario
+去残影全刷不再整屏同时闪黑	Remove ghosting without flashing the entire screen black at once
+整屏同时变黑再变回，比较刺眼。	The entire screen turns black and back at once, which can be distracting.
+黑色光带从左扫到右，过程柔和，去残影效果相同。	A black band sweeps across the screen for a gentler transition with the same ghost removal.
+全刷扫过	Full-refresh sweep
+黑色光带从一侧扫过屏幕。	A black band sweeps across the screen from one side.
+过渡动画总开关	Transition master switch
+选「瞬间切换」以外的效果后，这个场景就不再是原厂的直接跳变。波形类效果（墨迹、网点、扫描线、百叶窗）需要先开启 GPU 显示后端，并关闭「改用原厂显示算法」。	Anything but Instant stops being the stock jump. Waveform styles (ink, dots, scan, blind) require the GPU backend and require the stock display algorithm to be off.
+系统做“清晰全刷”去残影时，整屏会同时闪一下黑。开启后改成从一侧扫向另一侧，闪黑像一道光带扫过。需要 GPU 显示后端，并关闭「改用原厂显示算法」。	A stock Clear refresh flashes the whole screen black. This sweeps that black phase across the screen. Requires the GPU backend and requires the stock display algorithm to be off.
+打开时各模式自己保存的算法与迟滞只保留在配置里、不生效，关掉立刻按原设置恢复。适合对照排查「换了算法之后残影变重」这类问题。本开关不需要先开启 GPU 显示后端；但开启期间波形动画（墨迹/网点/扫描线/百叶窗）与「全刷扫过」都无法生效，因为 GPU 的逐像素波形时序会被一并停用。	While on, the per-mode algorithm and hysteresis choices stay saved but inactive; turning it off restores them immediately. No GPU backend is needed, but waveform animations and the Full-refresh sweep cannot work while it is on, because the GPU per-pixel wave timing is disabled too.
+需要 GPU 显示后端，并关闭「改用原厂显示算法」	Requires the GPU backend, and the stock display algorithm must be off

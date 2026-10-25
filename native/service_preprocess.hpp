@@ -27,6 +27,13 @@ static unsigned videoDither(){
     if(std::strcmp(last,v)){std::strcpy(last,v);LOG("VIDEO_DITHER value='%s' n=%d",v,n);}
     return !std::strcmp(v,"stock")?0u:!std::strcmp(v,"bayer")?2u:1u;
 }
+// 「改用原厂显示算法」总开关（后端下发 debug.eink.alg.stock=1）。
+// 优先级高于 GPU 后端的一切算法接管：A2/DU 二值候选与灰阶（含 stock16）全部让位，
+// 像素量化走原厂 CPU 路径；全刷复用、取帧与触摸响应不受影响。
+static bool stockOverride(){
+    char v[PROP_VALUE_MAX]={};__system_property_get("debug.eink.alg.stock",v);
+    return v[0]=='1'&&v[1]=='\0';
+}
 struct PixelPolicy {
     einkalg::Group group=einkalg::Group::None;
     einkalg::Algorithm algorithm=einkalg::Algorithm::Default;
@@ -199,6 +206,7 @@ static inline void bridgePreparedGrayLevels(void*ctl,bool includeMixed=false){
 // DU/A2/REGAL selection and all transitions remain the main integrator's job.
 static inline bool prepareGrayLevels(void*ctl,int mode,int selected,void*rgba){
     preparedGray={};
+    if(stockOverride())return false;   // 原厂算法总开关：灰阶量化交回原厂 CPU 路径
     if((!gpuSource&&(!rgba||configuredMode<2))||gpuFailed||field<int>(ctl,0xbc)!=1440||field<int>(ctl,0xc0)!=720||
        field<int>(ctl,0x280)!=0)return false;
     unsigned internal=field<uint8_t>(ctl,0x15c),algorithm=unsigned(selected)&255u;
@@ -296,7 +304,7 @@ static int hookPreprocess(void*rgba,void*ctl,int mode,int selected){
     // DU4 takeover moves the DU wave class to the real four-level path below
     // (hookMixRegal integrator); the binary A2 candidate must not grab it.
     bool du4Takeover=du4Enabled()&&field<uint8_t>(ctl,0x15c)==1&&(unsigned(selected)&255u)==1u;
-    bool candidate=configuredMode>=2&&!gpuFailed&&field<int>(ctl,0xbc)==1440&&field<int>(ctl,0xc0)==720&&
+    bool candidate=configuredMode>=2&&!gpuFailed&&!stockOverride()&&field<int>(ctl,0xbc)==1440&&field<int>(ctl,0xc0)==720&&
         ((field<uint8_t>(ctl,0x15c)==8&&(unsigned(selected)&255u)==8u)||
          (field<uint8_t>(ctl,0x15c)==1&&(unsigned(selected)&255u)==1u&&!du4Takeover))&&
         field<int>(ctl,0x270)==0&&field<int>(ctl,0x280)==0&&

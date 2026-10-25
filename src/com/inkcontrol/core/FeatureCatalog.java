@@ -19,18 +19,19 @@ public final class FeatureCatalog {
             if (!gray) add("display.hyst." + scope, "显示", DisplayAlgorithms.name(scope) + "迟滞", "独立控制 Bayer、蓝噪声和固定阈值的历史稳定；原厂算法不适用", "backend", "display.gpu", HOT, true,
                     "default,on,off", "跟随默认,开启,关闭");
         }
-        add("display.alg.stock", "显示", "改用原厂显示算法", "开启后清晰/阅读/快速/极速/视频全部退回原厂算法与迟滞；GPU 后端与全刷动画照常工作", "backend", "display.gpu", HOT, true, "default", "原厂算法");
+        add("display.alg.stock", "显示", "改用原厂显示算法", "优先级高于 GPU 显示后端：开启后所有模式的像素量化全部交回原厂，GPU 只保留触摸响应与全刷复用", "backend", "", HOT, true, "default", "原厂算法");
         add("display.sampling", "显示", "触摸响应加速", "队列余量降至两张再采样", "backend", "display.gpu", HOT, false, "2", "余量两张");
         add("display.idle", "显示", "停顿后首次响应加速", "关闭时恢复原厂空闲断电代码", "backend", "display.gpu", REBOOT, false, "10", "空闲十秒");
         add("display.dynamic", "显示", "滑动时减少系统查询", "关闭重复触摸查询，关闭功能时条件恢复", "backend", "", HOT, false, "0", "关闭原厂动态切换");
         add("display.apps", "显示", "阅读类应用改用极速刷新", "阅读模式515调整为521；启动前应用，停用时字段级恢复", "backend", "", REBOOT, false, "521", "515 → 521");
-        add("motion.master", "动画", "过渡动画总开关", "各场景仍可单独选择", "system", "", HOT, true, "default", "按场景应用");
+        add("motion.master", "动画", "过渡动画总开关", "各场景仍可单独选择", "system", "", HOT, false, "default", "按场景应用");
         String[] scenes = {"app_open", "app_close", "in_app_forward", "in_app_back", "dialog", "gc_clear", "lock", "unlock"};
         String[] names = {"打开应用", "返回桌面", "应用内前进", "应用内后退", "对话框与菜单", "全刷扫过", "进入锁屏", "唤醒过渡"};
         for (int i = 0; i < scenes.length; i++) {
             String values = i == 5 ? "gcsweep" : i >= 6 ? "scan,ink,dots,blind" : "kiris,kwipe,ink,dots,scan,blind";
             String labels = i == 5 ? "全刷扫过" : i >= 6 ? "扫描线,墨迹晕开,网点长大,百叶窗" : "方形展开,关键帧擦除,墨迹晕开,网点长大,扫描线,百叶窗";
-            add("motion." + scenes[i], "动画", names[i], "关闭此场景即恢复系统过渡", "system", "motion.master", HOT, true, values, labels);
+            // 总开关与全刷扫过不再标「实验」，其余场景保留
+            add("motion." + scenes[i], "动画", names[i], "关闭此场景即恢复系统过渡", "system", "motion.master", HOT, i != 5, values, labels);
         }
         add("motion.dim", "动画", "去掉对话框背景变暗", "独立于动画总开关", "system", "", HOT, false, "default", "移除变暗");
         add("motion.steps", "动画", "关键帧数", "关闭此选项时使用两步", "system", "motion.master", HOT, false, "2,3,4", "两步,三步,四步");
@@ -41,8 +42,7 @@ public final class FeatureCatalog {
         add("motion.scale", "动画", "应用内小动画", "关闭时恢复原厂倍率", "system", "", HOT, false, "0,0.5,1", "关闭动画,半速时长,原时长");
         add("lock.style", "锁屏", "自定义锁屏", "关闭时恢复有效的原厂样式", "systemui", "", HOT, false, "5,6,7,9,10,8", "编辑排版,瑞士网格,像素,编辑排版-横,编辑排版-横-逆,液态玻璃");
         add("lock.weather", "锁屏", "锁屏天气", "跟随原厂桌面组件，或直接读取系统预装的天气App", "systemui", "lock.style", HOT, false, "default,moji", "原厂桌面组件,天气App");
-        add("lock.notify", "锁屏", "锁屏通知来源", "默认统计系统通知，可切换到微信未读数", "systemui", "lock.style", HOT, false, "system,wechat", "系统通知,微信");
-        add("lock.notifyhide", "锁屏", "隐藏锁屏通知", "开启后锁屏主题里不再显示通知区（通知条与通知条数）；GPU 与刷新不受影响", "systemui", "lock.style", HOT, false, "default", "不显示通知");
+        add("lock.notify", "锁屏", "锁屏通知", "关闭后锁屏不显示通知；开启后统计系统通知，可切换到微信未读数", "systemui", "lock.style", HOT, false, "system,wechat", "系统通知,微信");
         add("lock.countdown", "锁屏", "锁屏倒数日", "锁屏右侧显示事项倒数，最多三个，事项名可留空", "systemui", "lock.style", HOT, false, "default", "显示倒数日");
         add("lock.countdowns", "锁屏", "倒数日事项", "每组一个事项和日期；日期为空则该组停用", "systemui", "lock.countdown", HOT, false, "@countdowns", "编辑事项");
         add("lock.lyric", "锁屏", "锁屏歌词", "支持现有媒体歌词与 Lyric Getter 广播", "systemui", "", HOT, false, "default", "显示歌词");
@@ -52,9 +52,10 @@ public final class FeatureCatalog {
         add("lock.lyricmode", "锁屏", "歌词的刷新方式", "关闭时沿用系统模式", "systemui", "lock.lyric", HOT, true, "3,2,9", "阅读模式3,清晰全刷2,极速模式9");
         add("lock.delay", "锁屏", "锁屏画面出现时机", "最低300ms，避免过早送图", "systemui", "", HOT, false, "300,400,500", "300ms,400ms,500ms");
         add("lock.dither", "锁屏", "消除锁屏细线", "使用点量化，字体灰阶需实屏观察", "backend", "display.gpu", HOT, true, "nearest", "点量化");
-        add("wave.master", "体感", "体感息屏唤醒", "遮挡近距离传感器息屏、移开唤醒；需在系统无障碍中启用「墨控体感」服务", "system", "", HOT, true, "default", "启用体感");
-        add("wave.lock", "体感", "遮挡息屏", "近距离传感器被持续遮挡一段时间后锁定并关闭屏幕", "system", "wave.master", HOT, false, "default", "遮挡息屏");
-        add("wave.wake", "体感", "移开唤醒", "遮挡结束（移出口袋/移开手掌）后点亮屏幕并尝试退出锁屏", "system", "wave.master", HOT, false, "default", "移开唤醒");
+        // 「体感息屏唤醒」总开关已下线：遮挡息屏 / 移开唤醒各自就是开关，
+        // 两个都关时体感服务不监听传感器。无障碍里的「墨控体感」服务仍需启用。
+        add("wave.lock", "体感", "遮挡息屏", "近距离传感器被持续遮挡一段时间后锁定并关闭屏幕；需在系统无障碍中启用「墨控体感」服务", "system", "", HOT, false, "default", "遮挡息屏");
+        add("wave.wake", "体感", "移开唤醒", "遮挡结束（移出口袋/移开手掌）后点亮屏幕并尝试退出锁屏；需在系统无障碍中启用「墨控体感」服务", "system", "", HOT, false, "default", "移开唤醒");
         add("wave.coverDelay", "体感", "遮挡延时", "遮挡持续多久才息屏，避免误触", "system", "wave.lock", HOT, false, "1000,500,2000,3000", "1秒,500毫秒,2秒,3秒");
         add("desktop.theme", "桌面", "桌面主题", "保留原厂桌面位置与布局", "launcher", "", HOT, false, "glass,paper,ink", "流光玻璃,纸间,墨构");
         add("desktop.icons", "桌面", "图标换肤", "独立恢复原厂图标", "launcher", "desktop.theme", HOT, false, "default", "主题图标");
@@ -70,7 +71,6 @@ public final class FeatureCatalog {
         add("fix.video", "系统增强", "看完视频恢复正常刷新", "生命周期计数候选，待整合后实机验证", "system", "", HOT, true, "default", "生命周期清理");
         add("fix.permissions", "系统增强", "限制其他应用改刷新方式", "按UID及证书校验调用方，候选", "system", "", HOT, true, "default", "调用方校验");
         add("guard.config", "系统增强", "刷新配置损坏自动还原", "启动前检查，备份保留供恢复", "backend", "", REBOOT, false, "default", "配置守护");
-        add("fix.google", "系统增强", "Google 设置图标修复", "资源覆盖，重启后生效", "backend", "", REBOOT, false, "default", "黑色图标");
         add("experiment.cache", "实验室", "GPU 参数缓存", "提交阶段局部优化，不承诺整机提速", "backend", "display.gpu", HOT, true, "default", "缓存uniform位置");
         add("experiment.video", "实验室", "视频抖动算法", "关闭时使用 GPU 蓝噪声；可改用原厂误差扩散对比", "backend", "display.gpu", HOT, true, "blue,stock", "蓝噪声与迟滞,原厂误差扩散");
         add("refresh.master", "自动刷新", "自动刷新总开关", "按点击、按键或阅读界面判断何时刷新", "system", "", HOT, true, "default", "启用自动刷新");

@@ -18,7 +18,6 @@ case "$1" in
         echo "abi=$(getprop ro.product.cpu.abi)"
         echo "firmware=$(getprop ro.build.display.id)"
         echo "dynamic_current=$(settings get global dynamic_refresh_mode)"
-        echo "google_overlay_active=$(cmd overlay list --user 0 2>/dev/null | awk '$1=="[x]" && $2=="com.inkcontrol.overlay.google" {active=1} END {print active+0}')"
         ic_ready && echo 'ready=1' || echo 'ready=0'
         echo "hwc=$(sha256sum "$IC_VENDOR/hwcomposer.ums512.so" | cut -d' ' -f1)"
         echo "boot_id=$(cat /proc/sys/kernel/random/boot_id)"

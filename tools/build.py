@@ -128,15 +128,6 @@ def main():
     default = bytearray(motion); default[0x92bcc:0x92bd4] = stock[0x92bcc:0x92bd4]
     (payload/'hwcomposer.default.so').write_bytes(default)
     (payload/'hwcomposer.idle10.so').write_bytes(motion)
-    step('overlay 资源编译', tree_stamp([ROOT/'overlay/res'], 'aapt2|'+bt.name), {'overlay-res.zip': work/'overlay-res.zip'}, lambda: run(bt/('aapt2'+exe), 'compile', '--dir', ROOT/'overlay/res', '-o', work/'overlay-res.zip'), not args.no_cache)
-    run(bt/('aapt2'+exe), 'link', '-I', android, '--manifest', ROOT/'overlay/AndroidManifest.xml', '-o', work/'overlay-unsigned.apk', work/'overlay-res.zip')
-    run(bt/('zipalign'+exe), '-f', '4', work/'overlay-unsigned.apk', work/'overlay-aligned.apk')
-    overlay = payload/'GmsSettingsIconFix.apk'
-    if args.unsigned:
-        shutil.copy2(work/'overlay-aligned.apk', overlay)
-    else:
-        run(java, '-jar', bt/'lib/apksigner.jar', 'sign', '--v4-signing-enabled', 'false', '--ks', args.keystore, '--ks-key-alias', args.key_alias, '--ks-pass', 'env:INKCONTROL_STORE_PASSWORD', '--key-pass', 'env:INKCONTROL_KEY_PASSWORD', '--out', overlay, work/'overlay-aligned.apk')
-        run(java, '-jar', bt/'lib/apksigner.jar', 'verify', '--verbose', overlay)
     (module/'module.prop').write_text('id=inkcontrol_backend\nname=墨控显示后端\nversion='+VERSION+'\nversionCode=17\nauthor=InkControl contributors\ndescription=墨控统一后端；增强默认关闭，通过App逐项开启。\n', encoding='utf-8', newline='\n')
     (module/'checksums.sha256').write_text(''.join(sha(p)+'  '+p.relative_to(module).as_posix()+'\n' for p in sorted(module.rglob('*')) if p.is_file() and p.name != 'customize.sh' and 'META-INF' not in p.parts), encoding='utf-8', newline='\n')
     assert b'\r' not in (module/'module.prop').read_bytes() + (module/'checksums.sha256').read_bytes()

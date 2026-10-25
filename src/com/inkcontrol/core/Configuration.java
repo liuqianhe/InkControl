@@ -79,9 +79,16 @@ public final class Configuration {
             flags.put(feature.id, "1".equals(flag));
             values.put(feature.id, value);
         }
-        // 旧版「字体2」（font2.*）已并入「字体」（font.*）：容忍旧配置里的残留键，
-        // 否则升级后 parse 抛「存在未知配置字段」→ 整个界面只剩错误卡、连「模块设置」都进不去。
-        fields.keySet().removeIf(key -> key.startsWith("font2."));
+        // 旧版残留键已删除：「字体2」（font2.*）并入「字体」（font.*）；
+        // 「Google 设置图标修复」（fix.google）、「隐藏锁屏通知」（lock.notifyhide）并入「锁屏通知」、
+        // 「体感息屏唤醒」（wave.master）整体下线。容忍旧配置里的残留键，
+        // 否则升级后 parse 抛「存在未知配置字段」
+        // → 整个界面只剩错误卡、连「模块设置」都进不去。
+        fields.keySet().removeIf(key -> {
+            String name = key.endsWith(".value") ? key.substring(0, key.length() - 6) : key;
+            return name.startsWith("font2.") || name.startsWith("fix.google")
+                    || name.equals("lock.notifyhide") || name.equals("wave.master");
+        });
         if (!fields.isEmpty()) throw new IllegalArgumentException("存在未知配置字段");
         return new Configuration(Long.parseLong(rev), flags, values);
     }

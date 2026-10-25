@@ -41,6 +41,9 @@ public final class FeatureService {
         boolean wanted = config.enabled(id);
         if (config.requested(id) && !wanted) return "依赖未满足";
         if (wanted && needsWaveBackend(id, config.value(id)) && !config.enabled("display.gpu")) return "依赖未满足";
+        // 波形动画与全刷扫过都靠 GPU 逐像素波形时序实现；「改用原厂显示算法」要求像素量化全部交回原厂
+        // CPU 路径，GPU 波形管线随之停用，这两类效果不可能同时生效，必须如实标出来。
+        if (wanted && needsWaveBackend(id, config.value(id)) && config.enabled("display.alg.stock")) return "依赖未满足";
         String runtimeDependency = needsWaveBackend(id, config.value(id)) ? "display.gpu" : feature.dependency;
         if (wanted && !runtimeDependency.isEmpty()) {
             FeatureDefinition dependency = FeatureCatalog.get(runtimeDependency);
