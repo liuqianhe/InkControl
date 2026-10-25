@@ -29,9 +29,9 @@ import java.util.Map;
  * 墨水屏锁屏（编辑排版 / 编辑排版-横 / 编辑排版-横-逆 / 瑞士网格 / 1-bit 像素 / 液态玻璃）的绘制器。
  * 竖版样式按样张的 360 × 720 逻辑坐标作画，整体放大到实际尺寸（A5 为 720 × 1440，正好 2 倍）。
  * 「编辑排版-横」按 720 × 360 横版逻辑坐标作画，绘制时整体旋转 90° 铺满竖屏面板：
- * 锁屏图本身就是横版画面（顶部合并日期表头 / 中右大号时间 / 底部电池与天气一行 / 左下格言 /
+ * 锁屏图本身就是横版画面（顶部合并日期表头 / 中右大号时间 / 底部电量与天气一行 / 左下格言 /
  * 右下通知与倒数日，横转手机阅读）；「编辑排版-横-逆」在此基础上再旋转 180°，用于反向横转阅读。
- * 横版画布高度只有 360（竖版是 720），纵向排不下竖版的三列信息带，电池与天气在横版压成两行。
+ * 横版画布高度只有 360（竖版是 720），纵向排不下竖版的三列信息带，电量与天气在横版压成两行。
  * 天气区仅在有真实数据时绘制（lock.weather 开关默认关，故默认不显示）；无数据时留空。
  * 前三种以黑白图形为主；玻璃用 16 级灰阶材质，配合清晰全刷保留明暗层次。
  */
@@ -204,6 +204,38 @@ final class LockCanvas extends View {
         // 字间距会在末尾多留一个间距，居中时扣掉
         float w = tp.measureText(s) - tp.getLetterSpacing() * tp.getTextSize();
         text(s, cx - w / 2f, top, 0);
+    }
+
+    /** 以基线居中绘制一行字，超宽按 maxW 横向压缩（数据格内居中用）。 */
+    private void textCenterBase(String s, float cx, float baseline, float maxW) {
+        if (s == null || s.isEmpty()) return;
+        float w = tp.measureText(s) - tp.getLetterSpacing() * tp.getTextSize();
+        if (maxW > 0 && w > maxW) {
+            tp.setTextScaleX(maxW / w);
+            w = maxW;
+        }
+        c.drawText(s, cx - w / 2f, baseline, tp);
+        tp.setTextScaleX(1f);
+    }
+
+    /**
+     * 竖版三列数据格（天气 / 气温 / 电量）：小标题与数值各自水平居中，两行作为一块在格内垂直居中。
+     * 数值超宽按格宽压缩，不会串到相邻格。x/top/w/h 为格子左沿、顶沿、宽、高。
+     */
+    private void metricCell(String label, String value, float x, float top, float w, float h) {
+        final float cy = x + w / 2f;
+        font(sSerif, 14, 0.2f, INK, true);
+        Paint.FontMetrics lfm = tp.getFontMetrics();
+        float lh = lfm.descent - lfm.ascent;
+        font(sSerif, 22, 0, INK, true);
+        Paint.FontMetrics vfm = tp.getFontMetrics();
+        float vh = vfm.descent - vfm.ascent;
+        final float gap = 4;
+        float blockTop = top + (h - (lh + gap + vh)) / 2f;
+        font(sSerif, 14, 0.2f, INK, true);
+        textCenterBase(label, cy, blockTop - lfm.ascent, w - 12);
+        font(sSerif, 22, 0, INK, true);
+        textCenterBase(value, cy, blockTop + lh + gap - vfm.ascent, w - 12);
     }
 
     /** 居中绘制，超宽时按 maxW 等比压缩（倒数日长事项名自适应框宽）。top 为字身顶（与 text 一致）。 */
@@ -391,59 +423,61 @@ final class LockCanvas extends View {
     private void editorial() {
         final float L = 24, R = 336, CW = R - L;
 
-        font(sSerif, 11, 0.18f, INK, true);
-        text(fmt("EEE · dd MMM yyyy").toUpperCase(Locale.US), L, 28, 220);
-        font(sSerif, 11, 0.18f, INK, true);
-        textRight("第 " + data.now.get(Calendar.DAY_OF_YEAR) + " 日", R + 2, 28, 90);
-        rect(L, 52, CW, 3, INK);
-        rect(L, 58, CW, 1, INK);
+        // ── 顶部表头：换用「编辑排版-横」同一串信息，但竖版版心只有 312 宽（横版 720），
+        // 一行塞不下 26 号字，拆两行：主行「第N日 | 中文日期·星期」18 号，
+        // 副行「农历 九月十六」16 号；无农历日期时只剩主行，分隔线下移量随之变化。
+        // 字号也按实际宽度兜底：主行超宽就等比缩（下限 13），保证不被裁切。
+        String head = "第" + data.now.get(Calendar.DAY_OF_YEAR) + "日 | " + chineseDate() + "·" + weekCn();
+        float hSize = 18;
+        font(sSerif, hSize, 0.04f, INK, true);
+        float hw = tp.measureText(head);
+        if (hw > CW) {
+            hSize = Math.max(13f, hSize * CW / hw);
+            font(sSerif, hSize, 0.04f, INK, true);
+        }
+        textBase(head, L, 34, CW);
+        float headBottom = 34;
+        if (almanac() != null) {
+            font(sSerif, 18, 0.06f, INK, true);
+            headBottom = 62;
+            textBase("农历 " + almanac(), L, headBottom, CW);
+        }
+        rect(L, headBottom + 10, CW, 1, INK);
 
         // 大号时间：衬线体横向收窄铺满版心，接近样张里 Instrument Serif 的瘦长比例
+        // 日期行上移到表头后下方留白收紧，基线 200 → 194
         font(sSerif, 136, -0.03f, INK, true);
         float tw = tp.measureText(time());
         tp.setTextScaleX(Math.max(0.7f, Math.min(1f, (CW + 4) / tw)));
-        c.drawText(time(), L - 4, 200, tp);
+        c.drawText(time(), L - 4, 194, tp);
         tp.setTextScaleX(1f);
 
-        font(sSerifBold, 22, 0, INK, true);
-        textBase(chineseDate(), L, 252, 150);
-        String sub = weekCn() + (almanac() == null ? "" : " · " + almanac());
-        font(sSerif, 14, 0, INK, true);
-        float sw = Math.min(tp.measureText(sub), CW - 150);
-        textBase(sub, R - sw, 252, CW - 150);
-
-        float gy = 284;
+        // 原「中文日期 + 星期·农历」那一行已并入表头，这里不再重复；表格上移补位
+        float gy = 234;
         rect(L, gy, CW, 1, INK);
         rect(L, gy + 66, CW, 1, INK);
         if (hasWeather()) {
             rect(L + 104, gy, 1, 66, INK);
             rect(L + 208, gy, 1, 66, INK);
-            String[] labels = {"天气", "气温", "电量"};
-            for (int i = 0; i < 3; i++) {
-                float x = L + i * 104 + (i == 0 ? 0 : 12);
-                font(sSerif, 10, 0.24f, INK, true);
-                text(labels[i], x, gy + 11, 90);
-            }
-            font(sSerif, 18, 0, INK, true);
-            textBase(dash(data.weather), L, gy + 51, 92);
-            font(sSerif, 22, 0, INK, true);
+            // 三个格子等宽 104：小标题与数值都在各自格内居中（2026-10-25 用户要求，原来靠左沿排）
             String temp = data.high != null ? data.high + " / " + data.low : dash(data.temperature);
-            textBase(temp, L + 116, gy + 52, 88);
-            textBase(data.battery < 0 ? "—" : data.battery + "%", L + 220, gy + 52, 88);
+            metricCell("天气", dash(data.weather), L, gy, 104, 66);
+            metricCell("气温", temp, L + 104, gy, 104, 66);
+            metricCell("电量", data.battery < 0 ? "—" : data.battery + "%", L + 208, gy, 104, 66);
         } else {
-            font(sSerif, 10, 0.24f, INK, true);
-            text("电量", L, gy + 11, 0);
+            font(sSerif, 14, 0.2f, INK, true);
+            textBase("电量", L, gy + 23, 0);
             font(sSerif, 22, 0, INK, true);
             String battery = data.battery < 0 ? "—" : data.battery + "%";
-            textBase(battery + (data.charging ? " · 充电中" : ""), L, gy + 52, CW - 150);
+            textBase(battery + (data.charging ? " · 充电中" : ""), L, gy + 48, CW - 150);
             if (data.notifications > 0) {
                 font(sSerif, 14, 0, INK, true);
-                textRight(notificationText(), R, gy + 52, 160);
+                textRight(notificationText(), R, gy + 48, 160);
             }
         }
 
-        // 正在播放 / 今日格言
-        float py = 384;
+        // 正在播放 / 今日格言（整体上移 50，承接上移后的表格）
+        float py = 334;
         font(sSerif, 10, 0.3f, INK, true);
         text(data.playing ? "正在播放" : "今日格言", L, py, 0);
         font(sSerif, 64, 0, INK, true);
@@ -461,13 +495,44 @@ final class LockCanvas extends View {
             paragraph(data.subText, L, py + 50 + ph + 8, CW, 1.5f, 3);
         }
 
-        // 底部：通知提醒条 + 上滑解锁
+        // 底部：倒数日（通知条上方）→ 通知提醒条 → 上滑解锁
+        // 倒数日沿用横版那套呈现：上方「倒数日」小标题 + 细方框，框内每组的「事项名 / 剩 N 日」两行。
+        // 竖版比横版宽得多，横版竖排的清单在这里横过来排：一/二/三组按格均分、各自在格内居中，
+        // 组间不画竖线（用户 2026-10-25：竖线分割难看，两组时也不好分配）；只有一组时正好落在正中。
+        // 「显示」关闭的组不绘制；无任何可见组时整块不出现，通知条位置保持不变。
+        List<FeatureDefinition.CountdownItem> shown = shownCountdowns();
+        if (!shown.isEmpty()) {
+            font(sSerifBold, 18, 0.12f, INK, true);
+            textCenter("倒数日", W / 2f, 511);
+            final float CY = 536, CH = 64;
+            frame(L, CY, CW, CH, 1);
+            int n = Math.min(shown.size(), FeatureDefinition.COUNTDOWNS_MAX);
+            final float cellW = CW / n;
+            final float lineH = 18, gapIn = 4;
+            for (int i = 0; i < n; i++) {
+                FeatureDefinition.CountdownItem entry = shown.get(i);
+                float cx = L + cellW * (i + 0.5f);
+                long days = daysUntil(entry);
+                String left = (days >= 0 ? "剩 " : "过 ") + Math.abs(days) + " 日";
+                if (!entry.item.isEmpty()) {
+                    float top = CY + (CH - (lineH * 2 + gapIn)) / 2f;
+                    font(sSerifBold, 15, 0, INK, true);
+                    textCenterFit(entry.item, cx, top, cellW - 14);
+                    font(sSerif, 13, 0, INK, true);
+                    textCenterFit(left, cx, top + lineH + gapIn, cellW - 14);
+                } else {
+                    font(sSerif, 13, 0, INK, true);
+                    textCenterFit(left, cx, CY + (CH - 13) / 2f + 1, cellW - 14);
+                }
+            }
+        }
+
         float hintTop = 671;
         if (data.notifications > 0) {
-            rect(L, 613, CW, 42, INK);
-            font(sSerifBold, 14, 0, PAPER, true);
+            frame(L, 613, CW, 42, 1);
+            font(sSerifBold, 14, 0, INK, true);
             float w = textBase(data.notificationLabel, L + 14, 639, 0);
-            font(sSerif, 14, 0, PAPER, true);
+            font(sSerif, 14, 0, INK, true);
             textBase("　" + data.notifications + " 条", L + 14 + w, 639, CW - 40);
         } else if (data.notifications == 0) {
             frame(L, 613, CW, 42, 1);
@@ -487,13 +552,13 @@ final class LockCanvas extends View {
      * 表头「第N日 | 中文日期·星期 | 农历 | 农历日期」+ 上划线自 x=42 起（为左缘提示列让位）；
      * 大号横版时间 + 细方框（方框宽贴合时间实际宽度）同列 x=40；时间右侧倒数日框（横排标签在框子上方，
      * 事项+日期最多 3 组，框高与时间方框一致）；格言（中英加粗）与通知框整体下沉至下划线下方、
-     * 与电池同水平带；电池在右下、天气位在电池正下方（仅原厂控件有真实天气数据时绘制，
-     * 左沿与电池对齐，无数据留空不显示占位）。
+     * 与电量同水平带；电量在右下、天气位在电量正下方（仅原厂控件有真实天气数据时绘制，
+     * 左沿与电量对齐，无数据留空不显示占位）。
      * 天气仅在有真实数据时绘制；倒数日只占位不取数：无数据显示的组不绘制。
      */
     private void editorialLand() {
         final float LX = 42;                      // 左栏左沿（样张：表头/方框/格言均锚定此列；左缘让给解锁提示列）
-        final float QW = 375;                     // 格言栏宽（x 42-417；横版下方不够高，右侧带整块左移让给电池/天气）
+        final float QW = 375;                     // 格言栏宽（x 42-417；横版下方不够高，右侧带整块左移让给电量/天气）
         final float BX = 605;                     // 通知框左沿（右下角，与格言栏右端 417 错开）
 
         // ── 顶部：合并表头（第N日 | 中文日期·星期 | 农历 | 农历日期；y 参考样张 ≈60）──
@@ -504,14 +569,14 @@ final class LockCanvas extends View {
         float hw = textBase(head, LX, 60, 640);
         rect(LX, 70, hw, 1, INK);
 
-        // ── 底部中：电池 + 天气（样张移至右下方，与格言同一水平带）──
-        // 横版只有 360 高，竖版的三列网格放不下：这一带压成两行——电池一行、天气一行。
-        // 左沿贴住格言栏右端（417 后留 3px）；电池行右界 BATT_R2 要给通知框（BX=605）让位，
+        // ── 底部中：电量 + 天气（样张移至右下方，与格言同一水平带）──
+        // 横版只有 360 高，竖版的三列网格放不下：这一带压成两行——电量一行、天气一行。
+        // 左沿贴住格言栏右端（417 后留 3px）；电量行右界 BATT_R2 要给通知框（BX=605）让位，
         // 天气行在通知框下方，可以一直用到倒数日框右缘 WEA_R2，宽度足够写下长天气名。
-        final float BATT_X = 420f;                 // 电池/天气共用左沿（格言栏右端 417 后留 3px）
-        final float BATT_R2 = 600f;                // 电池行右界（通知框 BX=605 前留 5px）
+        final float BATT_X = 420f;                 // 电量/天气共用左沿（格言栏右端 417 后留 3px）
+        final float BATT_R2 = 600f;                // 电量行右界（通知框 BX=605 前留 5px）
         final float WEA_R2 = 700f;                 // 天气行右界（在通知框下方，占满到倒数日框右缘）
-        String label = data.charging ? "充电中" : "电池";
+        String label = data.charging ? "充电中" : "电量";
         String val = data.battery < 0 ? "—" : data.battery + "%";
         font(sSerif, 24, 0.1f, INK, true);
         float labelW = tp.measureText(label);
@@ -520,7 +585,7 @@ final class LockCanvas extends View {
         font(sSerifBold, 24, -0.02f, INK, true);
         textBase(val, BATT_X + Math.min(labelW, labelMax) + 8f, 310, 0);
 
-        // ── 电池正下方：天气行（仅原厂控件有真实数据时绘制；无数据整行不留空）──
+        // ── 电量正下方：天气行（仅原厂控件有真实数据时绘制；无数据整行不留空）──
         // 竖版把「天气 / 气温 / 电量」拆成三列，横版没有纵向空间，压成一行：
         // 「天气 阴 26°/18°」——只留「天气」一个标签，天气与高低温同字号顺排，
         // 不再单列「气温」（两个标签太占横向空间，数据本身已经带度数符号）。
@@ -532,7 +597,7 @@ final class LockCanvas extends View {
             pair("天气", value, BATT_X, 345, WEA_R2);
         }
 
-        // ── 左下：中英格言（整体下沉；中文加粗，英文同电池数据加黑加粗）──
+        // ── 左下：中英格言（整体下沉；中文加粗，英文同电量数据加黑加粗）──
         float my = 282;
         if (data.text != null) {
             font(sSerifBold, 16, 0, INK, true);
@@ -546,10 +611,10 @@ final class LockCanvas extends View {
             paragraph(data.subText, LX, my, QW, 1.35f, 2);
         }
 
-        // ── 通知框（样张：右下角细框，整体左移与电池成组；白底细框黑字）──
+        // ── 通知框（样张：右下角细框，整体左移与电量成组；白底细框黑字）──
         final float BH = 40;
         final float BW = 95;                          // 外框宽（x 605-700，右缘与倒数日框对齐）
-        final float boxY = 280;                        // 框顶（垂直居中对齐电池/格言带）
+        final float boxY = 280;                        // 框顶（垂直居中对齐电量/格言带）
         if (data.notifications > 0) {
             frame(BX, boxY, BW, BH, 1);
             font(sSerifBold, 15, 0, INK, true);
@@ -603,10 +668,7 @@ final class LockCanvas extends View {
         // 横排「倒数日」标签置于框子上方（居中于框 X 中心）；框内每组两行（事项名 / 剩 N 日），
         // 事项为空只画天数行；整体按框 Y 轴中心居中：1 组居中，2/3 组以固定组间距排布后整体居中。
         // 「显示」开关关闭的组不绘制；农历组的目标日按所选农历年/月/日换算公历后再算天数。
-        List<FeatureDefinition.CountdownItem> shown = new ArrayList<>();
-        if (data.countdowns != null)
-            for (FeatureDefinition.CountdownItem it : data.countdowns)
-                if (it.shown) shown.add(it);
+        List<FeatureDefinition.CountdownItem> shown = shownCountdowns();
         if (!shown.isEmpty()) {
             final float FX = 625, FW = 75;            // 框 x 625-700（与时间方框右缘 605 错开 20）
             final float FY = 90, FH = 155;            // 框 y 90-245（拉高至与时间方框同高）
@@ -651,6 +713,15 @@ final class LockCanvas extends View {
         text(arrow, VX, 123f, 0f);       // 上表针
         textVertical("上滑解锁", VX, 141, 18);
         text(arrow, VX, 213f, 0f);       // 下表针
+    }
+
+    /** 勾选了「显示」的倒数日组（竖版横版共用；最多 COUNTDOWNS_MAX 组，已在配置层排好序）。 */
+    private List<FeatureDefinition.CountdownItem> shownCountdowns() {
+        List<FeatureDefinition.CountdownItem> shown = new ArrayList<>();
+        if (data.countdowns != null)
+            for (FeatureDefinition.CountdownItem it : data.countdowns)
+                if (it.shown && shown.size() < FeatureDefinition.COUNTDOWNS_MAX) shown.add(it);
+        return shown;
     }
 
     /**
