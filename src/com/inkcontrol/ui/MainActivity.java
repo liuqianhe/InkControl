@@ -61,6 +61,8 @@ public final class MainActivity extends Activity {
     private String fontProblem = "";
     private String fontAppliedMark = "";
     private String fontQuery = "";
+    /** 字体页当前目录：列表读取失败时「重新加载」按它重扫。 */
+    private String fontDir = FONT_DIR_DEFAULT;
     private TextView fontHintView;
     private LinearLayout fontListViews;
     private boolean autoplay;
@@ -98,6 +100,12 @@ public final class MainActivity extends Activity {
             if (!featureId.isEmpty()) {
                 featureId = Guide.destination(featureId);
                 category = FeatureCatalog.get(featureId).group;
+                // 单项分类（字体）没有分类页：首页点卡片是 navigate("", 单项) 直进功能页，
+                // 返回也该直接回大功能列表。进程重建若把 category 恢复成 group=「字体」，
+                // 系统返回就会落到一个平时根本不会显示的「字体」分区页，得多按一次返回；
+                // 这里对齐首页入口的状态（旧方案多分类时代的遗留，分类砍到只剩一个后暴露）。
+                Guide.Category restored = Guide.CATEGORIES.get(category);
+                if (restored != null && singleItem(restored) != null) category = "";
             }
         }
         load();
@@ -111,7 +119,14 @@ public final class MainActivity extends Activity {
     @Override public void onConfigurationChanged(Configuration configuration) { super.onConfigurationChanged(configuration); render(); }
     @Override protected void onDestroy() { dismissNotice(); super.onDestroy(); }
     @Override public void onBackPressed() {
-        if (!featureId.isEmpty()) navigate(category, "");
+        if (!featureId.isEmpty()) {
+            // 单项分类（字体）没有分类页可回：无论 category 因什么路径被设成它，
+            // 系统返回都直接回大功能列表，不落在平时不会显示的「字体」分区页。
+            String back = category;
+            Guide.Category from = Guide.CATEGORIES.get(back);
+            if (from != null && singleItem(from) != null) back = "";
+            navigate(back, "");
+        }
         else if (!category.isEmpty()) {
             // 实验室 / 名词解释 从「模块设置」进入，返回时回到模块设置入口。
             if (category.equals("实验室") || category.equals(TERMS)) {
@@ -1335,6 +1350,12 @@ public final class MainActivity extends Activity {
         String dir = saved == null || saved.isEmpty() ? FONT_DIR_DEFAULT : saved;
         String applied = s.config.value("font.pick");
 
+        // 页面每次重渲（应用字体、保存目录等操作都会整页重建）搜索框都是新建的、内容为空，
+        // 过滤词若不清空，就会出现「框看着是空的、列表却被上一次的词过滤到一行不剩」的假死，
+        // 用户无字可删、清不掉，只能以为字体列表坏了。进入/重建页面一律回到「显示全部」。
+        fontQuery = "";
+        fontDir = dir;
+
         body.addView(spaced(paragraph("点「应用」把字体写进系统槽位后，状态栏、通知栏、锁屏、桌面与正在运行的应用会立刻一起换成新字体（全局替换，桌面应用字体也会变），不用重启。", 14), 4));
 
         LinearLayout box = column();
@@ -1415,10 +1436,12 @@ public final class MainActivity extends Activity {
         fontListViews.removeAllViews();
         if (!fontProblem.isEmpty()) {
             fontHintView.setText("读取目录失败：" + fontProblem + "\n可以用「从文件选择」直接挑一个字体文件。");
+            fontListViews.addView(spaced(reloadFontsButton(), 8));
             return;
         }
         if (fontItems.isEmpty()) {
             fontHintView.setText("这个目录里没找到字体文件。换一个目录，或用「从文件选择」。");
+            fontListViews.addView(spaced(reloadFontsButton(), 8));
             return;
         }
         String q = fontQuery == null ? "" : fontQuery.trim().toLowerCase(Locale.ROOT);
@@ -1426,9 +1449,17 @@ public final class MainActivity extends Activity {
         for (String[] font : fontItems)
             if (q.isEmpty() || font[1].toLowerCase(Locale.ROOT).contains(q)) shown.add(font);
         if (q.isEmpty()) fontHintView.setText("共 " + fontItems.size() + " 个字体");
-        else if (shown.isEmpty()) fontHintView.setText("没有匹配「" + fontQuery.trim() + "」的字体");
+        else if (shown.isEmpty()) fontHintView.setText("没有匹配「" + fontQuery.trim() + "」的字体，清空搜索框显示全部");
         else fontHintView.setText("匹配 " + shown.size() + " / 共 " + fontItems.size() + " 个字体");
         for (String[] font : shown) fontListViews.addView(spaced(fontRow(font, fontAppliedMark), 8));
+    }
+
+    /** 列表读取失败或目录为空时的重试入口：按当前目录重新走一遍 root 列表 + 兜底扫描。 */
+    private View reloadFontsButton() {
+        return ink.button("重新加载列表", Ink.Kind.SECONDARY, v -> {
+            fontHintView.setText("正在扫描…");
+            loadFonts(fontDir, fontAppliedMark);
+        });
     }
 
     /** 扫描目录里的 TTF/OTF（含无扩展名的主题字体包），返回 {绝对路径, 文件名, 大小文本}。 */
