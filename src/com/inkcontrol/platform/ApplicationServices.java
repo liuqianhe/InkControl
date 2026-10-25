@@ -59,19 +59,10 @@ public final class ApplicationServices {
         features.change(id, enabled, value);
         inspect();
     }
-    /** 把字体文件写入系统当前字体槽位（原子替换，不会让正在渲染的进程崩溃）；需要刷新界面或重启生效。 */
+    /** 把字体写进系统槽位并立刻全局激活（独立路径 + persist.sys.font* + 微扰 font_scale + 重启 SystemUI）；不需要重启系统框架。 */
     public String applyFont(String source) throws Exception { return root.applyFont(source); }
-    /** 把原厂字体备份写回当前槽位。 */
+    /** 恢复原厂字体并立刻全局激活。 */
     public String restoreFont() throws Exception { return root.restoreFont(); }
-    /** 让新字体立刻生效：false 只重启系统界面，true 走 zygote 软重启（不关机）。 */
-    public String reloadFont(boolean full) throws Exception {
-        try { return root.reloadFont(full); }
-        catch (Exception error) {
-            // 软重启会把调用链一起带走，返回通道断掉属正常现象
-            if (full) return "正在重启系统框架，约 30 秒后自动回来。";
-            throw error;
-        }
-    }
     /** 列出目录里的字体：{绝对路径, 文件名, 字节数}；root 读取，不受 App 存储权限限制。 */
     public java.util.List<String[]> listFonts(String directory) throws Exception {
         java.util.List<String[]> result = new java.util.ArrayList<>();

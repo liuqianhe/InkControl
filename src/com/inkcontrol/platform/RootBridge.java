@@ -41,7 +41,7 @@ final class RootBridge {
         }
     }
     String run(String command, String input) throws Exception {
-        if (!command.matches("status|apply|applyfont|fontlist|restorefont|reloadfont")) throw new IllegalArgumentException("命令未注册");
+        if (!command.matches("status|apply|applyfont|fontlist|restorefont")) throw new IllegalArgumentException("命令未注册");
         String controller = new File(payload(), "bin/inkctl").getCanonicalPath();
         if (!controller.matches("[a-zA-Z0-9_./-]+")) throw new SecurityException("控制器路径无效");
         Process process;
@@ -62,7 +62,7 @@ final class RootBridge {
         if (process.exitValue() != 0) throw new IOException(text.isEmpty() ? "Root 未授权或控制器不可用" : text);
         return text;
     }
-    /** 应用系统字体：只接受绝对路径，写入与校验由后端固定脚本负责；调用方负责提示完整重启。 */
+    /** 应用系统字体：独立路径写入（按内容 hash 命名，避免框架按路径缓存不重载），由后端自动全局激活。 */
     String applyFont(String source) throws Exception {
         if (source == null || !source.startsWith("/") || source.length() > 300
                 || source.indexOf('\n') >= 0 || source.indexOf('\r') >= 0)
@@ -76,8 +76,6 @@ final class RootBridge {
             throw new IllegalArgumentException("字体目录无效");
         return run("fontlist", directory + "\n");
     }
-    /** 把原厂字体备份写回槽位。 */
+    /** 把原厂字体写回槽位并激活。 */
     String restoreFont() throws Exception { return run("restorefont", ""); }
-    /** 让新字体立刻生效：soft 只重启系统界面，full 走 zygote 软重启（不关机）。 */
-    String reloadFont(boolean full) throws Exception { return run("reloadfont", (full ? "full" : "soft") + "\n"); }
 }

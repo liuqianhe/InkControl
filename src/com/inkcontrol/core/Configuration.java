@@ -79,6 +79,9 @@ public final class Configuration {
             flags.put(feature.id, "1".equals(flag));
             values.put(feature.id, value);
         }
+        // 旧版「字体2」（font2.*）已并入「字体」（font.*）：容忍旧配置里的残留键，
+        // 否则升级后 parse 抛「存在未知配置字段」→ 整个界面只剩错误卡、连「模块设置」都进不去。
+        fields.keySet().removeIf(key -> key.startsWith("font2."));
         if (!fields.isEmpty()) throw new IllegalArgumentException("存在未知配置字段");
         return new Configuration(Long.parseLong(rev), flags, values);
     }

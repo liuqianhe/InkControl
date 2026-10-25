@@ -56,6 +56,13 @@ public final class MainActivity extends Activity {
     private boolean pendingEnabled;
     /** 详情页里正在预览、尚未使用的选项；空表示与当前设置相同。 */
     private String preview = "";
+    /** 字体页的完整列表、过滤词与渲染控件：搜索框只过滤显示，不重新扫描目录。 */
+    private List<String[]> fontItems = new ArrayList<>();
+    private String fontProblem = "";
+    private String fontAppliedMark = "";
+    private String fontQuery = "";
+    private TextView fontHintView;
+    private LinearLayout fontListViews;
     private boolean autoplay;
     /** 停留曲线编辑中的草稿。 */
     private String holdMode = "";
@@ -166,16 +173,25 @@ public final class MainActivity extends Activity {
         setContentView(root);
 
         if (snapshot == null && loadError.isEmpty()) body.addView(note("正在读取配置…"));
-        else if (!loadError.isEmpty()) body.addView(card(column(heading("配置读取失败", 18), paragraph("原文件已保留，未做任何修改。\n" + loadError, 14))));
-        else if (tab.equals(MODULE)) {
-            if (modulePage.equals(INSTALL)) installation();
-            else if (modulePage.equals(DIAGNOSE)) diagnostics();
-            else moduleSettings();
+        else {
+            // 配置读取失败也要能进「模块设置」（导出 ZIP、诊断都靠它）：先给错误卡，再照常渲染页面。
+            // 此前出错时整页只剩错误卡，「模块设置」/「功能」全都不渲染，用户连安装包都导不出来。
+            if (!loadError.isEmpty())
+                body.addView(card(column(heading("配置读取失败", 18),
+                        paragraph("原文件已保留，未做任何修改。\n" + loadError, 14))));
+            if (tab.equals(MODULE)) {
+                if (modulePage.equals(INSTALL)) installation();
+                else if (modulePage.equals(DIAGNOSE)) diagnostics();
+                else moduleSettings();
+            } else if (!loadError.isEmpty()) {
+                body.addView(spaced(paragraph("出错了先从这里处理：进「诊断」查看详情，或在「安装」重新导出 Magisk 模块 ZIP。", 14), 12));
+                moduleSettings();
+            }
+            else if (category.equals(TERMS)) glossary();
+            else if (!featureId.isEmpty()) featurePage(FeatureCatalog.get(featureId));
+            else if (!category.isEmpty()) categoryPage(Guide.CATEGORIES.get(category));
+            else home();
         }
-        else if (category.equals(TERMS)) glossary();
-        else if (!featureId.isEmpty()) featurePage(FeatureCatalog.get(featureId));
-        else if (!category.isEmpty()) categoryPage(Guide.CATEGORIES.get(category));
-        else home();
 
         // 在首次绘制前恢复滚动位置；post 会先画顶部再跳回，墨水屏上多一次整屏刷新。
         Integer saved = scrollPositions.get(pageKey());
@@ -1319,7 +1335,7 @@ public final class MainActivity extends Activity {
         String dir = saved == null || saved.isEmpty() ? FONT_DIR_DEFAULT : saved;
         String applied = s.config.value("font.pick");
 
-        body.addView(spaced(paragraph("点「应用」写入字体后，状态栏、通知栏、锁屏立即换成新字体，不用重新开机；墨控自己和其他已经打开的应用要重新打开才换（系统只在进程启动时读字体）。", 14), 4));
+        body.addView(spaced(paragraph("点「应用」把字体写进系统槽位后，状态栏、通知栏、锁屏、桌面与正在运行的应用会立刻一起换成新字体（全局替换，桌面应用字体也会变），不用重启。", 14), 4));
 
         LinearLayout box = column();
         EditText field = new EditText(this);
@@ -1329,7 +1345,7 @@ public final class MainActivity extends Activity {
         field.setBackground(ink.box(Ink.PAPER, Ink.INK, 1.5f, 8));
         field.setPadding(ink.dp(10), ink.dp(8), ink.dp(10), ink.dp(8));
         box.addView(spaced(field, 12));
-        box.addView(spaced(ink.button("保存并刷新列表", Ink.Kind.PRIMARY, v -> saveFontDir(f.id, field.getText().toString())), 10));
+        box.addView(spaced(ink.button("保存并刷新列表", Ink.Kind.PRIMARY, v -> saveFontDir("font.dir", field.getText().toString())), 10));
 
         LinearLayout actions = new LinearLayout(this);
         actions.addView(ink.button("选择目录", Ink.Kind.SECONDARY, v -> pickFontDir()), new LinearLayout.LayoutParams(0, -2, 1));
@@ -1338,26 +1354,38 @@ public final class MainActivity extends Activity {
         actions.addView(ink.button("从文件选择", Ink.Kind.SECONDARY, v -> pickFontFile()), rightParams);
         box.addView(spaced(actions, 12));
 
-        LinearLayout tools = new LinearLayout(this);
-        tools.addView(ink.button("恢复原厂字体", Ink.Kind.SECONDARY, v -> restoreFont()), new LinearLayout.LayoutParams(0, -2, 1));
-        LinearLayout.LayoutParams reloadParams = new LinearLayout.LayoutParams(0, -2, 1);
-        reloadParams.leftMargin = ink.dp(10);
-        tools.addView(ink.button("重启系统框架", Ink.Kind.SECONDARY, v -> askReloadFramework()), reloadParams);
-        box.addView(spaced(tools, 10));
-        box.addView(spaced(paragraph("「重启系统框架」= 只重启安卓系统进程（zygote 与全部应用），不重新开机、不卸载数据，约 30 秒自动回到桌面；写入字体后系统界面已自动刷新，只有想让所有应用立刻统一字体时才需要它。", 12), 8));
+        box.addView(spaced(ink.button("恢复原厂字体", Ink.Kind.SECONDARY, v -> restoreFont()), 10));
+        box.addView(spaced(paragraph("字体是全局替换：状态栏、锁屏、桌面与所有应用一起换字，不存在「桌面不变」的情况。字体缺少中文字形时部分界面会出现方块，点上面的「恢复原厂字体」即可退回系统默认字体。", 12), 8));
         box.addView(spaced(ink.text("默认：" + FONT_DIR_DEFAULT, 12, Ink.MEDIUM), 8));
         if (applied != null && !applied.isEmpty())
             box.addView(spaced(ink.text("上次应用：" + applied, 13, Ink.BOLD), 12));
         body.addView(spaced(box, 16));
 
-        TextView hint = ink.text("正在扫描…", 13, Ink.MEDIUM);
-        body.addView(hint);
-        LinearLayout list = column();
-        body.addView(spaced(list, 8));
-        loadFonts(dir, hint, list, applied);
+        // 搜索框：只过滤下方列表的显示，不重新扫描目录
+        EditText search = new EditText(this);
+        search.setSingleLine(true);
+        search.setHint("搜索字体名…");
+        search.setBackground(ink.box(Ink.PAPER, Ink.INK, 1.5f, 8));
+        search.setPadding(ink.dp(10), ink.dp(8), ink.dp(10), ink.dp(8));
+        search.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) { }
+            @Override public void onTextChanged(CharSequence s, int a, int b, int c) { }
+            @Override public void afterTextChanged(android.text.Editable s) {
+                fontQuery = s == null ? "" : s.toString();
+                renderFontList();
+            }
+        });
+        body.addView(spaced(search, 12));
+
+        fontAppliedMark = applied;
+        fontHintView = ink.text("正在扫描…", 13, Ink.MEDIUM);
+        body.addView(fontHintView);
+        fontListViews = column();
+        body.addView(spaced(fontListViews, 8));
+        loadFonts(dir, applied);
     }
 
-    private void loadFonts(String dir, TextView hint, LinearLayout list, String applied) {
+    private void loadFonts(String dir, String applied) {
         WORKER.execute(() -> {
             List<String[]> fonts = new ArrayList<>();
             String failure = "";
@@ -1373,15 +1401,34 @@ public final class MainActivity extends Activity {
             String problem = failure;
             runOnUiThread(() -> {
                 if (isFinishing() || isDestroyed()) return;
-                list.removeAllViews();
-                hint.setText(!problem.isEmpty()
-                        ? "读取目录失败：" + problem + "\n可以用「从文件选择」直接挑一个字体文件。"
-                        : found.isEmpty()
-                        ? "这个目录里没找到字体文件。换一个目录，或用「从文件选择」。"
-                        : "共 " + found.size() + " 个字体");
-                for (String[] font : found) list.addView(spaced(fontRow(font, applied), 8));
+                fontItems = found;
+                fontProblem = problem;
+                fontAppliedMark = applied;
+                renderFontList();
             });
         });
+    }
+
+    /** 按搜索词过滤并重画字体列表；过滤词为空时显示全部。 */
+    private void renderFontList() {
+        if (fontListViews == null || fontHintView == null) return;
+        fontListViews.removeAllViews();
+        if (!fontProblem.isEmpty()) {
+            fontHintView.setText("读取目录失败：" + fontProblem + "\n可以用「从文件选择」直接挑一个字体文件。");
+            return;
+        }
+        if (fontItems.isEmpty()) {
+            fontHintView.setText("这个目录里没找到字体文件。换一个目录，或用「从文件选择」。");
+            return;
+        }
+        String q = fontQuery == null ? "" : fontQuery.trim().toLowerCase(Locale.ROOT);
+        List<String[]> shown = new ArrayList<>();
+        for (String[] font : fontItems)
+            if (q.isEmpty() || font[1].toLowerCase(Locale.ROOT).contains(q)) shown.add(font);
+        if (q.isEmpty()) fontHintView.setText("共 " + fontItems.size() + " 个字体");
+        else if (shown.isEmpty()) fontHintView.setText("没有匹配「" + fontQuery.trim() + "」的字体");
+        else fontHintView.setText("匹配 " + shown.size() + " / 共 " + fontItems.size() + " 个字体");
+        for (String[] font : shown) fontListViews.addView(spaced(fontRow(font, fontAppliedMark), 8));
     }
 
     /** 扫描目录里的 TTF/OTF（含无扩展名的主题字体包），返回 {绝对路径, 文件名, 大小文本}。 */
@@ -1410,20 +1457,30 @@ public final class MainActivity extends Activity {
                 ? String.format(Locale.ROOT, "%.1f MB", bytes / 1048576f) : (bytes / 1024) + " KB";
     }
 
-    /** 一个字体占两行：名字独占整行（再长也换行显示），下面一行放大小与「应用」。 */
+    /** 一个字体一个卡片：左侧名字+大小，「应用」按钮独立一列、在整个卡片内垂直居中。 */
     private View fontRow(String[] font, String applied) {
         boolean current = font[1].equals(applied);
         TextView name = ink.text(font[1], 15, Ink.BOLD);
         name.setSingleLine(false);
-        LinearLayout row = column(name);
-        LinearLayout meta = new LinearLayout(this);
-        meta.setGravity(Gravity.CENTER_VERTICAL);
-        meta.addView(ink.text(font[2] + (current ? " · 上次已应用" : ""), 12, Ink.REGULAR),
-                new LinearLayout.LayoutParams(0, -2, 1));
-        meta.addView(ink.button("应用", Ink.Kind.SECONDARY, v -> applyFontFile(font[0], font[1])));
-        row.addView(spaced(meta, 6));
+        TextView size = ink.text(font[2] + (current ? " · 上次已应用" : ""), 12, Ink.REGULAR);
+        // 紧凑「应用」按钮：高度压到与字号相当
+        TextView apply = ink.button("应用", Ink.Kind.SECONDARY, v -> applyFontFile(font[0], font[1]));
+        apply.setTextSize(13);
+        apply.setMinHeight(ink.dp(30));
+        apply.setPadding(ink.dp(14), ink.dp(4), ink.dp(14), ink.dp(4));
+        LinearLayout textCol = new LinearLayout(this);
+        textCol.setOrientation(LinearLayout.VERTICAL);
+        textCol.addView(name);
+        textCol.addView(spaced(size, 2));
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.addView(textCol, new LinearLayout.LayoutParams(0, -2, 1));
+        LinearLayout.LayoutParams button = new LinearLayout.LayoutParams(-2, -2);
+        button.leftMargin = ink.dp(8);
+        row.addView(apply, button);
         row.setBackground(ink.outline(12));
-        row.setPadding(ink.dp(14), ink.dp(12), ink.dp(10), ink.dp(10));
+        row.setPadding(ink.dp(14), ink.dp(10), ink.dp(10), ink.dp(10));
         return row;
     }
 
@@ -1476,10 +1533,7 @@ public final class MainActivity extends Activity {
         perform(ink.t("应用字体"), () -> {
             String result = services.applyFont(path);
             rememberFont(name);
-            String reload;
-            try { reload = services.reloadFont(false); }
-            catch (Exception error) { reload = "系统界面刷新失败：" + reason(error) + "，请点「重启系统框架」。"; }
-            return result + "\n" + reload + "\n\n墨控自己、桌面和其他已打开的应用仍是旧字体——系统只在进程重启时才重新读字体。想让它们立刻也换，点「重启系统框架」。";
+            return result;
         }, true);
     }
 
@@ -1502,10 +1556,7 @@ public final class MainActivity extends Activity {
             }
             String result = services.applyFont(copy.getAbsolutePath());
             rememberFont(fontName(uri));
-            String reload;
-            try { reload = services.reloadFont(false); }
-            catch (Exception error) { reload = "系统界面刷新失败：" + reason(error) + "，请点「重启系统框架」。"; }
-            return result + "\n" + reload;
+            return result;
         }, true);
     }
 
@@ -1518,20 +1569,8 @@ public final class MainActivity extends Activity {
 
     private void restoreFont() {
         if (busy) { Toast.makeText(this, ink.t("请等待当前操作完成"), Toast.LENGTH_SHORT).show(); return; }
-        confirm("恢复原厂字体", "把首次替换前备份的原厂字体写回当前槽位，然后刷新系统界面。",
-                () -> perform(ink.t("恢复原厂字体"), () -> {
-                    String result = services.restoreFont();
-                    String reload;
-                    try { reload = services.reloadFont(false); }
-                    catch (Exception error) { reload = "系统界面刷新失败：" + reason(error) + "，请点「重启系统框架」。"; }
-                    return result + "\n" + reload;
-                }, true));
-    }
-
-    private void askReloadFramework() {
-        if (busy) { Toast.makeText(this, ink.t("请等待当前操作完成"), Toast.LENGTH_SHORT).show(); return; }
-        confirm("重启系统框架", "不是重新开机：只重启安卓系统进程（zygote 与全部应用），屏幕黑一下，约 30 秒自动回到桌面；数据、设置和已装的模块都不受影响。",
-                () -> perform(ink.t("重启系统框架"), () -> services.reloadFont(true), false));
+        confirm("恢复原厂字体", "把系统原厂默认字体（Roboto-Medium）重新指向当前槽位——也就是系统「字体样式」里的「默认字体」。写完界面自动刷新（全局界面一起换，包括桌面），不用重启。",
+                () -> perform(ink.t("恢复原厂字体"), () -> services.restoreFont(), true));
     }
 
     /** 编辑器行内小开关：无动画黑白开关图形，状态由调用方读取。
@@ -1721,17 +1760,18 @@ public final class MainActivity extends Activity {
 
     private void installation() {
         ApplicationServices.Snapshot s = snapshot;
-        Map<String, String> env = s.environment;
+        // 配置读取失败时 snapshot 可能是 null：安装页必须照样打开（导出 ZIP 就在这里）
+        Map<String, String> env = s == null ? Collections.emptyMap() : s.environment;
         body.addView(card(column(
                 heading("开始使用", 20),
                 spaced(paragraph("适用于 HLTE203T · Android 10 · 固件 L1732.6.01.02，需要 Magisk 与 LSPosed 类框架（如 Vector）。"
                         + "没有 Root 也能浏览功能说明、观看演示和导出安装包。", 14), 8))));
 
-        boolean checked = s.checked();
+        boolean checked = s != null && s.checked();
         boolean supported = checked && "HLTE203T".equals(env.get("device")) && "29".equals(env.get("sdk"));
         boolean installed = "1".equals(env.get("installed")) && BuildInfo.VERSION.equals(env.get("backend_version"));
         String conflict = env.getOrDefault("conflict", "");
-        int hooks = s.hooked.size();
+        int hooks = s == null ? 0 : s.hooked.size();
 
         String checkText = "授予 Root 后读取设备型号、固件和后端状态。";
         if (checked && !supported) checkText += "\n当前设备 " + env.getOrDefault("device", "?") + " 不在适配范围内，增强不会生效。";
@@ -1750,7 +1790,7 @@ public final class MainActivity extends Activity {
         if (checked && installed && hooks > 0 && hooks < 3) hookText += "\n目前只有 " + hooks + " / 3 个作用域已加载，请检查勾选后重启。";
         body.addView(step(3, hooks == 3, "启用框架模块", hookText, null));
 
-        body.addView(step(4, s.ready() && hooks == 3, "重启并开启功能",
+        body.addView(step(4, s != null && s.ready() && hooks == 3, "重启并开启功能",
                 "完成以上步骤后完整重启手机，回到这里重新检查环境，然后到「功能」按需开启。所有增强默认关闭，可随时一键全部关闭。",
                 ink.button("前往功能", Ink.Kind.SECONDARY, v -> { category = ""; featureId = ""; switchTab(FEATURES); })));
     }
@@ -1776,10 +1816,12 @@ public final class MainActivity extends Activity {
 
     private void diagnostics() {
         ApplicationServices.Snapshot s = snapshot;
-        Map<String, String> env = s.environment;
+        // 配置读取失败时 snapshot 可能是 null：诊断页必须照样打开
+        Map<String, String> env = s == null ? Collections.emptyMap() : s.environment;
         LinearLayout summary = column(heading("运行环境", 20));
-        if (!s.checked()) {
-            summary.addView(spaced(paragraph(s.failure.equals("尚未检查环境") ? "尚未检查。点击下方按钮会申请 Root，并读取当前进程与后端状态。"
+        if (s == null || !s.checked()) {
+            summary.addView(spaced(paragraph(s == null ? "环境还没读到（配置读取失败）。检查动作依赖 Root；仍可在「安装」导出 ZIP。"
+                    : s.failure.equals("尚未检查环境") ? "尚未检查。点击下方按钮会申请 Root，并读取当前进程与后端状态。"
                     : "检查未完成：" + s.failure + "\n仍可浏览说明和导出 ZIP。", 14), 10));
         } else {
             summary.addView(spaced(fact("设备", env.getOrDefault("device", "?") + " · SDK " + env.getOrDefault("sdk", "?")), 12));
@@ -1860,9 +1902,11 @@ public final class MainActivity extends Activity {
 
     /**
      * 后台执行并刷新快照。dialog 为 true 时总是弹出完整结果；否则只在失败时弹出。
-     * 返回 false 表示已有操作在执行，本次未提交。
+     * 返回 false 表示已有操作在执行，本次未提交。onSuccess 在成功收尾后回主线程执行。
      */
-    private boolean perform(String label, Work work, boolean dialog) {
+    private boolean perform(String label, Work work, boolean dialog) { return perform(label, work, dialog, null); }
+
+    private boolean perform(String label, Work work, boolean dialog, Runnable onSuccess) {
         if (busy) { Toast.makeText(this, ink.t("请等待当前操作完成"), Toast.LENGTH_SHORT).show(); return false; }
         // 新操作开始前撤掉上一条结果的自动消失计时，免得中途把新提示清掉。
         dismissNotice();
@@ -1894,6 +1938,7 @@ public final class MainActivity extends Activity {
                 render();
                 scheduleNoticeDismiss();
                 if (dialog || failure) showText(failure ? "未完成" : "操作结果", text);
+                if (!failure && onSuccess != null) onSuccess.run();
             });
         });
         return true;

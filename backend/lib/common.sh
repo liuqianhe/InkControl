@@ -97,13 +97,14 @@ ic_validate() {
       {if (NF!=2 || seen[$1]++) bad=1}
       $1=="version" {if($2!="1") bad=1; next}
       $1=="revision" {if($2!~/^[0-9]+$/ || length($2)>15) bad=1; next}
-      {key=$1; if(sub(/\.value$/,"",key)) {if(!known[key] || $2=="@curve" || $2=="@number" || $2=="@apps" || $2=="@countdowns" || $2=="@path" || $2=="@font" || (index("," choices[key] ",", "," $2 ",")==0 && !curve(choices[key], $2) && !number(choices[key], $2) && !apps(choices[key], $2) && !countdowns(choices[key], $2) && !fontpath($2))) bad=1}
-       else if(!known[key] || ($2!="0" && $2!="1")) bad=1}
+      # 旧版「字体2」（font2.*）已并入「字体」（font.*）；容忍旧配置里的残留键，升级不卡开机
+      {key=$1; if(sub(/\.value$/,"",key)) {legacy=(key ~ /^font2\.(dir|pick|saf)$/) ? 1 : 0; if((!known[key] && !legacy) || $2=="@curve" || $2=="@number" || $2=="@apps" || $2=="@countdowns" || $2=="@path" || $2=="@font" || (index("," choices[key] ",", "," $2 ",")==0 && !curve(choices[key], $2) && !number(choices[key], $2) && !apps(choices[key], $2) && !countdowns(choices[key], $2) && !fontpath($2))) bad=1}
+       else {legacy=(key ~ /^font2\.(dir|pick|saf)$/) ? 1 : 0; if((!known[key] && !legacy) || ($2!="0" && $2!="1")) bad=1}}
       END {
         if(!seen["version"] || !seen["revision"]) bad=1
         for(key in known) {
           # 旧版配置没有分模式选项、自动刷新项与后来新增的开关；仅允许这些新增字段整对缺省，其他字段仍严格检查。
-          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^font\.(dir|pick|saf)$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/)
+          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^font\.(dir|pick|saf)$/ || key ~ /^font2\.(dir|pick|saf)$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/)
           if(optional && !seen[key] && !seen[key ".value"]) continue
           if(!seen[key] || !seen[key ".value"]) bad=1
         }
@@ -165,8 +166,9 @@ ic_properties() {
     done
 }
 # ── 系统字体替换 ──────────────────────────────────────────────────────────
-# 只写当前生效的字体槽位：/data/fonts/HmctFont.ttf 指向的 <主题字体id>.ttf。
-# 换字体必须完整重启才生效；写入前把原文件备份到 $IC_STATE/font-backup.ttf。
+# 槽位链：/system/fonts/SysFont.ttf -> /data/fonts/HmctFont.ttf -> 当前字体文件。
+# 换字体＝改写 HmctFont.ttf 的指向 + 写 persist.sys.fontfile/fontname，再让界面重建（见 ic_font_activate）。
+# 写入前把槽位里原有的字体备份到 $IC_STATE/font-backup.ttf（只备份一次）。
 IC_FONT_DIR=${IC_FONT_DIR:-/data/fonts}
 ic_font_slot() {
     [ -L "$IC_FONT_DIR/HmctFont.ttf" ] || return 1
@@ -212,6 +214,64 @@ ic_font_write() {
     mv -f "$tmp" "$dst" || { rm -f "$tmp"; echo '替换字体槽位失败' >&2; return 1; }
     return 0
 }
+# 微扰 font_scale 触发全局 Activity 重建：每个进程重跑 updateDefaultTypeface() 读新字体。
+# 每次把 scale 改成「用户设定值 + 计数器*1.2e-7」再写回原值，既强制重建、又不改变用户实际缩放。
+# 已实测（2026-10-25 18:54:15）launcher 在 font_scale 变化后重跑 updateDefaultTypeface。
+ic_font_perturb_scale() {
+    fs=$(settings get system font_scale 2>/dev/null)
+    [ -n "$fs" ] || return 0
+    case "$fs" in *.*) ;; *) fs="${fs}.0" ;; esac
+    counter=$(cat "$IC_STATE/font_scale_counter" 2>/dev/null || echo 0)
+    counter=$((counter + 1))
+    new=$(awk -v f="$fs" -v c="$counter" 'BEGIN{printf "%.9f", int(f*100+0.5)/100 + c*0.00000012}')
+    settings put system font_scale "$new" 2>/dev/null
+    settings put system font_scale "$fs" 2>/dev/null
+    echo "$counter" > "$IC_STATE/font_scale_counter"
+}
+# 让新字体立刻全局生效，不需要重启 zygote——这是海信主题商店「换字体不用重启」的真实做法
+# （系统服务 com.android.fontOnline 的 setFont()；2026-10-25 抓日志 + 反编译 framework 核实）：
+#   ① HmctFont.ttf 软链指向新字体（每个字体按内容 md5 前缀落到独立路径 inkcontrol2_<hash>.ttf）
+#   ② persist.sys.fontfile / fontname / fontchange 三个属性指向它
+#   ③ 微扰 font_scale 强制全局 Activity 重建（实测 launcher 重跑 updateDefaultTypeface），
+#      桌面、锁屏、状态栏与正在运行的应用全部重读新字体；再发 FONT_CONFIG_CHANGED 广播、重启 SystemUI。
+# 框架 Typeface.updateDefaultTypeface() 按 persist.sys.fontfile 的「路径字符串」判断是否重载：路径不变
+# 就直接跳过，所以每个字体必须落到不同路径（md5 前缀），否则换了字体框架也不重新加载、看起来“没生效”。
+# 字体是全局替换：状态栏、锁屏、桌面与所有应用一起换，不存在“桌面不变”的情况（旧结论是把“整段失效”
+# 错当成“局部限制”）。
+# 注意：fontname 必须是字体文件名去掉扩展名（系统的取值就是 "193" 这种）；默认字体特例是 sans-serif-medium。
+ic_font_activate() {
+    target=$1
+    [ -f "$target" ] || { echo '字体文件不存在' >&2; return 1; }
+    case "$target" in
+        /system/*) name=sans-serif-medium ;;
+        *) name=$(basename "$target"); name=${name%.*} ;;
+    esac
+    ln -sfn "$target" "$IC_FONT_DIR/HmctFont.ttf" || { echo '更新字体软链失败' >&2; return 1; }
+    chown -h system:system "$IC_FONT_DIR/HmctFont.ttf" 2>/dev/null
+    setprop persist.sys.fontfile "$target" || { echo '写入字体属性失败' >&2; return 1; }
+    setprop persist.sys.fontname "$name" || { echo '写入字体名失败' >&2; return 1; }
+    setprop persist.sys.fontchange 1
+    ic_log "font: 激活 $target (name=$name)"
+    # 让正在运行的界面也换字：微扰 font_scale 触发全局 Activity 重建（已实测 launcher 重跑 updateDefaultTypeface）
+    ic_font_perturb_scale
+    # 通知主题服务配置变化（海信 fontOnline 监听此广播重建字体相关资源）
+    am broadcast -a hmct.intent.action.FONT_CONFIG_CHANGED >/dev/null 2>&1
+    # 系统界面重生：状态栏、通知栏、锁屏立刻换字（它会被系统自动拉起）
+    pids=$(pidof com.android.systemui 2>/dev/null)
+    [ -n "$pids" ] && kill $pids 2>/dev/null
+    return 0
+}
+# 回到原厂字体。这里**不靠备份内容**判断原厂：首次备份时槽位里装的未必是原厂字体
+# （比如用户已经用主题商店换过字体，备份到的就是那个第三方字体）。
+# 系统「默认字体」的取值是确定的：fonts_vision.xml 里 sans-serif 走 SysFont.ttf，
+# 而 SysFont.ttf -> HmctFont.ttf，切回默认字体就是把软链指回 /system/fonts/Roboto-Medium.ttf。
+# 所以直接指回去；备份文件仍保留，作为 /system 那份被改过时的兜底。
+IC_FONT_STOCK=/system/fonts/Roboto-Medium.ttf
+# 应用字体：字体文件按内容 md5 前缀落到独立路径（inkcontrol2_<hash>.ttf）——
+# 框架 Typeface.updateDefaultTypeface() 按 persist.sys.fontfile 的「路径字符串」判重，
+# 同一路径就不重载；独立路径保证每次换字体框架都真正重新加载，再由 ic_font_activate
+# 全局激活（微扰 font_scale + 广播 + 重启 SystemUI），状态栏、锁屏、桌面与正在运行的
+# 应用立刻一起换字，不用重启。
 ic_apply_font() {
     src=$1
     [ -n "$src" ] && [ -f "$src" ] || { echo '找不到字体文件' >&2; return 1; }
@@ -223,43 +283,45 @@ ic_apply_font() {
     # TTF(00010000)、OTF(OTTO)、'true'、TTC(ttcf) 四种合法字体头
     head -c 4 "$src" | xxd -p | grep -Eq '^(00010000|4f54544f|74727565|74746366)$' || {
         echo '不是有效的字体文件（需要 TTF 或 OTF）' >&2; return 1; }
-    dst=$(ic_font_slot) || { echo '找不到当前字体槽位；请先在系统设置里应用过一次字体' >&2; return 1; }
-    [ -f "$dst" ] || { echo '当前字体文件不存在' >&2; return 1; }
+    h=$(md5sum "$src" 2>/dev/null | cut -c1-8)
+    dst=$IC_FONT_DIR/inkcontrol2_$h.ttf
     mkdir -p "$IC_STATE" || return 1
+    if [ ! -f "$dst" ]; then
+        # 新槽位从当前字体复制一份做基底，继承系统的属主、权限与 SELinux 标签
+        slot=$(ic_font_slot 2>/dev/null); [ -f "$slot" ] || slot=$IC_FONT_STOCK
+        cp -f "$slot" "$dst" 2>/dev/null || return 1
+        chmod 666 "$dst" 2>/dev/null
+        chcon u:object_r:fonts_app_data_file:s0 "$dst" 2>/dev/null
+    fi
     ic_font_backup "$dst" || { echo '备份原厂字体失败' >&2; return 1; }
     ic_font_write "$src" "$dst" || return 1
+    ic_font_activate "$dst" || return 1
     size=$(stat -c %s "$dst")
     ic_log "font: $src -> $dst ($size)"
-    echo "已写入 $(basename "$dst")（$((size / 1024 / 1024)) MB）"
+    echo "已应用 $(basename "$src")（$((size / 1024 / 1024)) MB），全局界面（状态栏、锁屏、桌面与正在运行的应用）立即换字，不用重启。"
 }
-# 把原厂备份写回当前槽位
 ic_restore_font() {
+    if [ -f "$IC_FONT_STOCK" ]; then
+        ic_font_activate "$IC_FONT_STOCK" || return 1
+        ic_log "font: 恢复原厂字体 -> $IC_FONT_STOCK"
+        echo "已恢复原厂字体（$(basename "$IC_FONT_STOCK")），界面已刷新。"
+        return 0
+    fi
     [ -s "$IC_FONT_BACKUP" ] || { echo '没有原厂字体备份' >&2; return 1; }
-    dst=$(ic_font_slot) || { echo '找不到当前字体槽位' >&2; return 1; }
     tmp="$IC_STATE/font-restore.tmp"
     cp -f "$IC_FONT_BACKUP" "$tmp" || { echo '读取备份失败' >&2; return 1; }
+    dst=$IC_FONT_DIR/inkcontrol2_restore.ttf
+    if [ ! -f "$dst" ]; then
+        slot=$(ic_font_slot 2>/dev/null); [ -f "$slot" ] || slot=$IC_FONT_STOCK
+        cp -f "$slot" "$dst" 2>/dev/null || return 1
+        chmod 666 "$dst" 2>/dev/null
+        chcon u:object_r:fonts_app_data_file:s0 "$dst" 2>/dev/null
+    fi
     ic_font_write "$tmp" "$dst" || { rm -f "$tmp"; return 1; }
     rm -f "$tmp"
-    ic_log "font: 恢复原厂字体 -> $dst"
-    echo "已恢复原厂字体（$(( $(stat -c %s "$dst") / 1024 / 1024 )) MB）"
-}
-# 让新字体立刻生效：重启系统界面（SystemUI 会被系统自动拉起），不必重启整机。
-# full 走 zygote 软重启，全部应用一致，但不卸载 data、不需要重新开机。
-ic_reload_font() {
-    case "$1" in
-        full)
-            ic_log "font: 重启系统框架"
-            echo '正在重启系统框架，约 30 秒后自动回来；不需要重新开机。'
-            ( sleep 1; setprop ctl.restart zygote ) >/dev/null 2>&1 &
-            ;;
-        *)
-            pids=$(pidof com.android.systemui 2>/dev/null)
-            [ -n "$pids" ] || { echo '系统界面没有在运行' >&2; return 1; }
-            kill $pids 2>/dev/null
-            ic_log "font: 重启系统界面 ($pids)"
-            echo '已刷新系统界面：状态栏、通知栏、锁屏立即使用新字体。'
-            ;;
-    esac
+    ic_font_activate "$dst" || return 1
+    ic_log "font: 恢复原厂字体（来自备份） -> $dst"
+    echo "已恢复原厂字体（$(( $(stat -c %s "$dst") / 1024 / 1024 )) MB），界面已刷新。"
 }
 # 自动刷新依赖随 App 提供的无障碍服务；只按刷新总开关增删该组件，关闭时不改写系统设置。
 ic_accessibility() {

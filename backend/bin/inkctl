@@ -58,10 +58,5 @@ case "$1" in
         ic_list_fonts "$dir" ;;
     restorefont)
         ic_restore_font ;;
-    reloadfont)
-        # soft（默认）只重启系统界面；full 走 zygote 软重启，等效不关机的重启
-        IFS= read -r mode || true
-        [ -n "$mode" ] || mode=$2
-        ic_reload_font "${mode:-soft}" ;;
-    *) echo '仅支持 status/apply/applyfont/fontlist/restorefont/reloadfont' >&2; exit 2 ;;
+    *) echo '仅支持 status/apply/applyfont/fontlist/restorefont' >&2; exit 2 ;;
 esac
