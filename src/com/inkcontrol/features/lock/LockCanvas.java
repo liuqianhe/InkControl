@@ -29,8 +29,9 @@ import java.util.Map;
  * 墨水屏锁屏（编辑排版 / 编辑排版-横 / 编辑排版-横-逆 / 瑞士网格 / 1-bit 像素 / 液态玻璃）的绘制器。
  * 竖版样式按样张的 360 × 720 逻辑坐标作画，整体放大到实际尺寸（A5 为 720 × 1440，正好 2 倍）。
  * 「编辑排版-横」按 720 × 360 横版逻辑坐标作画，绘制时整体旋转 90° 铺满竖屏面板：
- * 锁屏图本身就是横版画面（顶部合并日期表头 / 左上电池与天气位 / 左下格言与通知 /
- * 最右侧大号时间，横转手机阅读）；「编辑排版-横-逆」在此基础上再旋转 180°，用于反向横转阅读。
+ * 锁屏图本身就是横版画面（顶部合并日期表头 / 中右大号时间 / 底部电池与天气一行 / 左下格言 /
+ * 右下通知与倒数日，横转手机阅读）；「编辑排版-横-逆」在此基础上再旋转 180°，用于反向横转阅读。
+ * 横版画布高度只有 360（竖版是 720），纵向排不下竖版的三列信息带，电池与天气在横版压成两行。
  * 天气区仅在有真实数据时绘制（lock.weather 开关默认关，故默认不显示）；无数据时留空。
  * 前三种以黑白图形为主；玻璃用 16 级灰阶材质，配合清晰全刷保留明暗层次。
  */
@@ -215,6 +216,19 @@ final class LockCanvas extends View {
         }
         c.drawText(s, cx - w / 2f, top - tp.ascent(), tp);
         tp.setTextScaleX(1f);
+    }
+
+    /**
+     * 一行里的「标签 + 数值」（横版信息带用：竖版按列排，横版只能压成一行）。
+     * 标签比数值大一号、同样加粗，缩略图下也能一眼分出字段名与数据；
+     * 数值超宽时横向压缩到 right 以内。返回这一段右端的 x。
+     */
+    private float pair(String label, String value, float x, float baseline, float right) {
+        font(sSerifBold, 21, 0.12f, INK, true);
+        float width = textBase(label, x, baseline, 0);
+        float valueX = x + width + 10;
+        font(sSerifBold, 18, 0, INK, true);
+        return valueX + textBase(value, valueX, baseline, right > valueX ? right - valueX : 0);
     }
 
     /** 多行段落，lineHeight 为 CSS 式的行高（倍数）。返回高度 */
@@ -479,8 +493,8 @@ final class LockCanvas extends View {
      */
     private void editorialLand() {
         final float LX = 42;                      // 左栏左沿（样张：表头/方框/格言均锚定此列；左缘让给解锁提示列）
-        final float QW = 390;                     // 格言栏宽（x 42-432，让开右下方电池区）
-        final float BX = 605;                     // 通知框左沿（右下角，与格言栏右端 432 错开）
+        final float QW = 375;                     // 格言栏宽（x 42-417；横版下方不够高，右侧带整块左移让给电池/天气）
+        final float BX = 605;                     // 通知框左沿（右下角，与格言栏右端 417 错开）
 
         // ── 顶部：合并表头（第N日 | 中文日期·星期 | 农历 | 农历日期；y 参考样张 ≈60）──
         // 「|」小间隔分隔；农历日期缺失时只保留「第 N 日 | 中文日期·星期」。
@@ -490,12 +504,13 @@ final class LockCanvas extends View {
         float hw = textBase(head, LX, 60, 640);
         rect(LX, 70, hw, 1, INK);
 
-        // ── 底部中：电池 + 天气占位（样张移至右下方，与格言同一水平带）──
-        // 电池标签与数值同字号同基线近距排布；数值加粗（与表头数据同风格）。
-        // 充电时标签改短词「充电中」；整行右界 BATT_R2（通知框左缘前留 5px），
-        // 超宽时压缩标签，保证数值不越过右界。
-        final float BATT_X = 435f;                 // 电池行左缘（略让开格言栏右端 432）
+        // ── 底部中：电池 + 天气（样张移至右下方，与格言同一水平带）──
+        // 横版只有 360 高，竖版的三列网格放不下：这一带压成两行——电池一行、天气一行。
+        // 左沿贴住格言栏右端（417 后留 3px）；电池行右界 BATT_R2 要给通知框（BX=605）让位，
+        // 天气行在通知框下方，可以一直用到倒数日框右缘 WEA_R2，宽度足够写下长天气名。
+        final float BATT_X = 420f;                 // 电池/天气共用左沿（格言栏右端 417 后留 3px）
         final float BATT_R2 = 600f;                // 电池行右界（通知框 BX=605 前留 5px）
+        final float WEA_R2 = 700f;                 // 天气行右界（在通知框下方，占满到倒数日框右缘）
         String label = data.charging ? "充电中" : "电池";
         String val = data.battery < 0 ? "—" : data.battery + "%";
         font(sSerif, 24, 0.1f, INK, true);
@@ -505,17 +520,16 @@ final class LockCanvas extends View {
         font(sSerifBold, 24, -0.02f, INK, true);
         textBase(val, BATT_X + Math.min(labelW, labelMax) + 8f, 310, 0);
 
-        // ── 电池正下方：天气位（仅原厂控件有真实数据时绘制；无数据留空，不再显示占位文字）──
+        // ── 电池正下方：天气行（仅原厂控件有真实数据时绘制；无数据整行不留空）──
+        // 竖版把「天气 / 气温 / 电量」拆成三列，横版没有纵向空间，压成一行：
+        // 「天气 阴 26°/18°」——只留「天气」一个标签，天气与高低温同字号顺排，
+        // 不再单列「气温」（两个标签太占横向空间，数据本身已经带度数符号）。
+        // 基线 345，descender 到 350，距画布底沿还有 10px（旧版排到 y=392，整块被裁掉）。
         if (hasWeather()) {
-            font(sSerif, 11, 0.2f, INK, true);
-            text("天气", BATT_X, 322, 120);
-            font(sSerif, 16, 0, INK, true);
-            textBase(dash(data.weather), BATT_X, 346, 120);
-            font(sSerif, 11, 0.2f, INK, true);
-            text("气温", BATT_X, 368, 120);
-            font(sSerif, 16, 0, INK, true);
-            String temp = data.high != null ? data.high + " / " + data.low : dash(data.temperature);
-            textBase(temp, BATT_X, 392, 120);
+            String temp = data.high != null ? data.high + "/" + data.low : data.temperature;
+            String value = dash(data.weather);
+            if (!TextUtils.isEmpty(temp)) value += " " + temp;
+            pair("天气", value, BATT_X, 345, WEA_R2);
         }
 
         // ── 左下：中英格言（整体下沉；中文加粗，英文同电池数据加黑加粗）──

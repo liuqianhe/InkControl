@@ -73,7 +73,7 @@ final class LockData {
                 d.notifications = LockNotifications.count();
             }
         }
-        if (RuntimeConfig.enabled("lock.weather")) readWeather(d, controller);
+        if (RuntimeConfig.enabled("lock.weather")) readWeather(d, c, controller);
         readLunar(d, controller);
         // 倒数日：仅当「锁屏 → 倒数日」开关开启时读取 App 配置的事项与日期；
         // 开关关闭、或未配置任何事项时不绘制（测试期硬编码样张已移除，编辑器可正常配置）。
@@ -103,11 +103,31 @@ final class LockData {
     }
 
     /**
+     * 两种数据源：默认跟随原厂锁屏的天气控件；选择「天气App」时直接读系统预装的墨迹天气。
+     * 天气App 还没取到（首次查询在后台进行）或它本身没有数据时，退回原厂数据，避免整块留空。
+     */
+    private static void readWeather(LockData d, Context c, Object controller) {
+        if ("moji".equals(RuntimeConfig.value("lock.weather"))) {
+            android.os.Bundle app = MojiWeatherSource.get(c);
+            if (app != null && !TextUtils.isEmpty(app.getString("temperature"))) {
+                d.weather = app.getString("weather");
+                d.temperature = app.getString("temperature");
+                d.high = app.getString("high");
+                d.low = app.getString("low");
+                return;
+            }
+        }
+        readSystemWeather(d, controller);
+    }
+
+    /**
      * 海信锁屏的天气控件在后台读天气库，这里只取它已有的结果（控件隐藏 = 原版判定无数据/过期，跟着不显示）。
      * 国行用的是 MojiWeatherView：mCityData.dataMap 里有 weatherCode（中文天气）、temperature、
      * temperatureUnit、weather（JSON 预报，第 0 天含 highTemp/lowTemp）。
+     * 注意这条链路的源头是桌面时钟/天气小组件（com.hmct.clock.systemwidget 的 DataProvider），
+     * 桌面上没放小组件时通常没有数据；需要不依赖桌面时可把锁屏天气切到「天气App」。
      */
-    private static void readWeather(LockData d, Object controller) {
+    private static void readSystemWeather(LockData d, Object controller) {
         try {
             Object view = Reflect.get(Reflect.get(controller, "mFWClockArea"), "mWeather");
             if (!(view instanceof View) || ((View) view).getVisibility() != View.VISIBLE) return;

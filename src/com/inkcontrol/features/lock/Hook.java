@@ -167,6 +167,8 @@ public class Hook implements IXposedHookLoadPackage {
             boolean active = RuntimeConfig.enabled("lock.lyric") || RuntimeConfig.enabled("lock.style");
             requestRefresh(sHadVisual && !active);
             sHadVisual = active;
+            // 切到「天气App」后立即取一次，下一次出图就有数据
+            if (appWeather()) MojiWeatherSource.prefetch(sContext);
         });
         sHandler = new Handler(Looper.getMainLooper());
         sRefreshMethod = findRefreshMethod(controller.getClass());
@@ -199,7 +201,13 @@ public class Hook implements IXposedHookLoadPackage {
         if (com.inkcontrol.platform.BuildInfo.DEBUG) SystemLockStyles.registerDebug(context, controller, sHandler);
         RuntimeConfig.markReady();
         MediaLyric.start(context, sHandler);
+        if (appWeather()) MojiWeatherSource.prefetch(context);
         XposedBridge.log(TAG + "receiver registered");
+    }
+
+    /** 锁屏天气选了「天气App」＝直接读系统预装的墨迹天气，而不是原厂桌面小组件那条链路。 */
+    private static boolean appWeather() {
+        return RuntimeConfig.enabled("lock.weather") && "moji".equals(RuntimeConfig.value("lock.weather"));
     }
 
     private static Method findRefreshMethod(Class<?> c) {

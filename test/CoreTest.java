@@ -241,6 +241,10 @@ public final class CoreTest {
         check(lockStyle.values.contains("10"));
         check(lockStyle.values.size() == lockStyle.labels.size());
         check(lockStyle.labels.get(lockStyle.values.indexOf("10")).equals("编辑排版-横-逆"));
+        // 锁屏天气：默认沿用原厂（桌面小组件）数据，另可切换为直接读系统预装的天气App
+        FeatureDefinition lockWeather = FeatureCatalog.get("lock.weather");
+        check(lockWeather.values.equals(Arrays.asList("default", "moji")));
+        check(lockWeather.labels.get(lockWeather.values.indexOf("moji")).equals("天气App"));
         check(CallerPolicy.read(10100, 10100, 10139, 10063)); check(CallerPolicy.read(1000, 10100, 10139, 10063));
         check(CallerPolicy.read(10139, 10100, 10139, 10063)); check(CallerPolicy.read(10063, 10100, 10139, 10063));
         check(!CallerPolicy.read(10199, 10100, 10139, 10063)); check(!CallerPolicy.read(0, 10100, -1, -1));
