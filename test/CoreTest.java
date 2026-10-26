@@ -52,7 +52,7 @@ public final class CoreTest {
             check(DisplayAlgorithms.algorithmFeature(id) && DisplayAlgorithms.scope(id).equals(scope));
             check(DisplayAlgorithms.algorithmProperty(scope).equals("debug.eink.alg." + scope));
             List<String> allowed = DisplayAlgorithms.gray(scope) ? Arrays.asList("default", "stock", "nearest", "bayer16")
-                    : scope.equals("video") ? Arrays.asList("default", "blue", "bayer", "stock", "threshold") : Arrays.asList("default", "bayer", "blue", "threshold");
+                    : scope.equals("video") ? Arrays.asList("default", "blue", "bayer", "stock", "threshold") : Arrays.asList("default", "stock", "bayer", "blue", "threshold");
             check(f.values.equals(allowed));
             for (String value : Arrays.asList("default", "stock", "nearest", "bayer16", "bayer", "blue", "threshold", "on"))
                 if (!allowed.contains(value)) reject(() -> gpu.change(id, true, value));
@@ -130,7 +130,9 @@ public final class CoreTest {
             check(gray.enabled("lock.dither") && gray.value("lock.dither").equals("nearest"));
             check(DisplayAlgorithms.algorithm(gray, scope).equals("default"));
         }
-        reject(() -> Configuration.parse(gpu.text().replace("display.alg.fast.value=default", "display.alg.fast.value=stock")));
+        // 快速/极速现在支持「原厂」(stock)；灰度专属的点量化仍应被拒绝
+        check(Configuration.parse(gpu.text().replace("display.alg.fast.value=default", "display.alg.fast.value=stock")).value("display.alg.fast").equals("stock"));
+        reject(() -> Configuration.parse(gpu.text().replace("display.alg.fast.value=default", "display.alg.fast.value=nearest")));
         reject(() -> Configuration.parse(gpu.text() + "display.alg.fast.value=blue\n"));
         reject(() -> Configuration.parse(gpu.text() + "display.hyst.clear=1\n"));
     }

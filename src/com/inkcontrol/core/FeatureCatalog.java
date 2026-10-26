@@ -12,9 +12,9 @@ public final class FeatureCatalog {
         for (String scope : DisplayAlgorithms.SCOPES) {
             boolean gray = DisplayAlgorithms.gray(scope);
             String values = gray ? "default,stock,nearest,bayer16" : scope.equals("video")
-                    ? "default,blue,bayer,stock,threshold" : "default,bayer,blue,threshold";
+                    ? "default,blue,bayer,stock,threshold" : "default,stock,bayer,blue,threshold";
             String labels = gray ? "保持现状,原厂误差扩散,点量化,16级 Bayer" : scope.equals("video")
-                    ? "保持现状,蓝噪声,Bayer,原厂误差扩散,固定阈值" : "保持现状,Bayer,蓝噪声,固定阈值";
+                    ? "保持现状,蓝噪声,Bayer,原厂误差扩散,固定阈值" : "保持现状,原厂算法,Bayer,蓝噪声,固定阈值";
             add("display.alg." + scope, "显示", DisplayAlgorithms.name(scope) + "算法", "只调整本模式的量化算法，不切换刷新模式", "backend", "display.gpu", HOT, true, values, labels);
             if (!gray) add("display.hyst." + scope, "显示", DisplayAlgorithms.name(scope) + "迟滞", "独立控制 Bayer、蓝噪声和固定阈值的历史稳定；原厂算法不适用", "backend", "display.gpu", HOT, true,
                     "default,on,off", "跟随默认,开启,关闭");
