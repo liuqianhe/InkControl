@@ -74,6 +74,20 @@ public final class ApplicationServices {
         return result;
     }
     public void disableAll() throws Exception { features.disableAll(); }    public void restoreGroup(String group) throws Exception { features.restoreGroup(group); }
+
+    /** 系统应用在机主账号里的状态：installed / removed / absent，附带安装位置。 */
+    public String[] sysAppState(String pkg) throws Exception {
+        String state = "absent", path = "";
+        for (String line : root.sysAppState(pkg).split("\n")) {
+            if (line.startsWith("state=")) state = line.substring(6).trim();
+            else if (line.startsWith("path=")) path = line.substring(5).trim();
+        }
+        return new String[]{state, path};
+    }
+    /** 从机主账号卸载（分区里的原始 APK 保留，可随时还原）。 */
+    public String sysAppRemove(String pkg) throws Exception { return root.sysAppRemove(pkg); }
+    /** 还原到机主账号，仍是系统应用身份。 */
+    public String sysAppRestore(String pkg) throws Exception { return root.sysAppRestore(pkg); }
     public String retry() throws Exception { features.retryApply(); return inspect(); }
     public String inspect() {
         try {

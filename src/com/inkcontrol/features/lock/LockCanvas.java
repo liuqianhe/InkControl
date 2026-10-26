@@ -7,6 +7,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
@@ -51,6 +52,10 @@ final class LockCanvas extends View {
     // 每次 draw() 时有效
     private Canvas c;
     private final Paint fill = new Paint();
+    private final Paint line = new Paint();
+    private final Path path = new Path();
+    private final Matrix mat = new Matrix();
+    private final RectF box = new RectF();
     private final TextPaint tp = new TextPaint();
 
     LockCanvas(Context context) {
@@ -528,7 +533,10 @@ final class LockCanvas extends View {
         }
 
         float hintTop = 671;
-        if (!data.hideNotify) {
+        if (data.extMode) {
+            // 「显示设备状态」开着：同一块位置（613 起、高 42）把通知换成四项开关状态
+            extBar(L, 613, CW, 42);
+        } else if (!data.hideNotify) {
             if (data.notifications > 0) {
                 frame(L, 613, CW, 42, 1);
                 font(sSerifBold, 14, 0, INK, true);
@@ -544,6 +552,133 @@ final class LockCanvas extends View {
         rect(L, hintTop, CW, 1, INK);
         font(sSerif, 11, 0.6f, INK, true);
         textCenter("上滑解锁", W / 2f, hintTop + 10);
+    }
+
+    /**
+     * 「设备状态」条：与通知条同一块位置（y 613、高 42）。四项均分版心宽度、各自居中：
+     * 左边一个类别图标（16×16 逻辑框内矢量作画，不引外部图片），右边是该类别当前状态，
+     * 图标与文字按同一视觉中线对齐、文字统一 13sp 加粗。不画竖线（与倒数日同一套观感）。
+     * 四项固定全显示，没有逐项开关。
+     */
+    private void extBar(float x, float top, float w, float h) {
+        List<Integer> types = new ArrayList<>();
+        List<String> values = new ArrayList<>();
+        if (data.showWifi) { types.add(IC_WIFI); values.add(data.wifi ? "开" : "关"); }
+        if (data.showBt) { types.add(IC_BT); values.add(data.bt ? "开" : "关"); }
+        if (data.showAudio) { types.add(IC_AUDIO); values.add(data.silent ? "静音" : "有声"); }
+        if (data.showAirplane) { types.add(IC_AIRPLANE); values.add(data.airplane ? "开" : "关"); }
+        final int n = types.size();
+        if (n == 0) return;
+        frame(x, top, w, h, 1);
+        final float cellW = w / n;
+        final float baseline = top + h / 2f + 4.5f;
+        // 图标对齐的是「文字墨迹」，不是 16×16 方框：13sp 中文墨迹约 11.5 高、视觉中线在基线上方 5。
+        // 每个图标的墨迹在 16 空间里占的纵向范围不同（wifi 天生扁、飞机最高），
+        // 所以逐个把墨迹等比缩放到同一高度、墨迹中心压到 textMid，四格看上去才是齐的。
+        final float textMid = baseline - 5f, gap = 4;
+        for (int i = 0; i < n; i++) {
+            String value = values.get(i);
+            int type = types.get(i);
+            float[] ink = INK_BOX[type - 1];
+            float inkW = ink[2] - ink[0];
+            float k = INK_H[type - 1] / (ink[3] - ink[1]);
+            font(sSerifBold, 13, 0, INK, true);
+            float vw = tp.measureText(value);
+            float total = inkW * k + gap + vw;
+            if (total > cellW - 4) {                 // 极窄格子兜底：图标让位，只留文字
+                textCenterBase(value, x + cellW * (i + 0.5f), baseline, cellW - 6);
+                continue;
+            }
+            float start = x + cellW * (i + 0.5f) - total / 2f;
+            // 把图标的墨迹左沿/中线接到 start、textMid 上，方框位置按墨迹反推
+            drawIcon(type, start - ink[0] * k, textMid - (ink[1] + ink[3]) / 2f * k, 16 * k);
+            font(sSerifBold, 13, 0, INK, true);
+            c.drawText(value, start + inkW * k + gap, baseline, tp);
+        }
+    }
+
+    /** 每个图标在 16 空间里墨迹的实际外框 {左, 上, 右, 下}：用来把墨迹对齐到文字，而不是对齐 16 方框 */
+    private static final float[][] INK_BOX = {
+            {0.10f, 4.70f, 15.90f, 14.55f},   // IC_WIFI（三段弧 + 圆点）
+            {4.20f, 2.60f, 11.80f, 13.40f},   // IC_BT
+            {1.80f, 2.20f, 13.80f, 13.80f},   // IC_AUDIO（喇叭 + 声波）
+            {0.80f, 1.20f, 15.20f, 14.60f},   // IC_AIRPLANE
+    };
+
+    /** 图标的目标墨迹高度：细线图标按 11.5 与文字等重；实心图标视觉重量小，要摸到 12.8～13.2 才不显小 */
+    private static final float[] INK_H = {11.5f, 11.5f, 12.8f, 13.2f};
+
+    private static final int IC_WIFI = 1, IC_BT = 2, IC_AUDIO = 3, IC_AIRPLANE = 4;
+
+    /**
+     * 16×16 逻辑框内的单色图标：x/y 为左上角，s 为边长，按比例缩放。
+     * 全部现画矢量，不打包 PNG/SVG —— 墨水屏只有黑白，矢量在任意尺寸都不糊，也免得为外部图标库背许可证。
+     */
+    private void drawIcon(int type, float x, float y, float s) {
+        final float k = s / 16f;
+        line.reset();
+        line.setAntiAlias(true);
+        line.setStyle(Paint.Style.STROKE);
+        line.setColor(INK);
+        line.setStrokeWidth(1.5f * k);
+        line.setStrokeCap(Paint.Cap.ROUND);
+        line.setStrokeJoin(Paint.Join.ROUND);
+        fill.reset();
+        fill.setAntiAlias(true);
+        fill.setStyle(Paint.Style.FILL);
+        fill.setColor(INK);
+        if (type == IC_WIFI) {
+            // 三段同心圆弧（从 225° 扫 90°，即正上方那段）+ 中心实心圆点
+            path.reset();
+            arc(8, 12.6f, 7.9f); arc(8, 12.6f, 5.4f); arc(8, 12.6f, 2.9f);
+            stamp(x, y, k); c.drawPath(path, line);
+            path.reset(); path.addCircle(8, 13.4f, 1.15f, Path.Direction.CW);
+            stamp(x, y, k); c.drawPath(path, fill);
+            return;
+        }
+        path.reset();
+        if (type == IC_BT) {
+            // 蓝牙符号就是卢恩字母 Bjarkan：一条竖线 + 两组交叉斜线
+            path.moveTo(8, 2.6f); path.lineTo(8, 13.4f);
+            path.moveTo(8, 2.6f); path.lineTo(11.8f, 5.7f); path.lineTo(4.2f, 10.3f);
+            path.moveTo(8, 13.4f); path.lineTo(11.8f, 10.3f); path.lineTo(4.2f, 5.7f);
+        } else if (type == IC_AUDIO) {
+            // 实心喇叭 + 两道声波（有无声音由右侧状态文字表达）
+            path.moveTo(1.8f, 5.4f); path.lineTo(4.9f, 5.4f); path.lineTo(8.2f, 2.2f);
+            path.lineTo(8.2f, 13.8f); path.lineTo(4.9f, 10.6f); path.lineTo(1.8f, 10.6f);
+            path.close();
+        } else if (type == IC_AIRPLANE) {
+            // 俯视飞机：机头朝上，机翼几乎横平（16px 下翅膀不够宽会读成箭头），窄机身 + 小平尾
+            float[] pts = {8, 1.2f, 8.9f, 4.6f, 15.2f, 7.0f, 15.2f, 8.6f, 8.9f, 7.5f,
+                    8.9f, 11.0f, 11.4f, 12.4f, 11.4f, 13.4f, 8.9f, 13.0f, 8.9f, 14.6f,
+                    7.1f, 14.6f, 7.1f, 13.0f, 4.6f, 13.4f, 4.6f, 12.4f, 7.1f, 11.0f,
+                    7.1f, 7.5f, 0.8f, 8.6f, 0.8f, 7.0f, 7.1f, 4.6f};
+            path.moveTo(pts[0], pts[1]);
+            for (int i = 2; i < pts.length; i += 2) path.lineTo(pts[i], pts[i + 1]);
+            path.close();
+        } else return;
+        stamp(x, y, k);
+        c.drawPath(path, type == IC_BT ? line : fill);
+        if (type == IC_AUDIO) {                 // 喇叭右侧两道声波弧
+            path.reset();
+            arc(8.6f, 8.0f, 3.0f); arc(8.6f, 8.0f, 5.0f);
+            stamp(x, y, k);
+            c.drawPath(path, line);
+        }
+    }
+
+    /** 把 16×16 逻辑坐标下的 path 放大 k 倍并平移到 (x, y) */
+    private void stamp(float x, float y, float k) {
+        mat.reset();
+        mat.setScale(k, k);
+        mat.postTranslate(x, y);
+        path.transform(mat);
+    }
+
+    /** 以 (cx, cy) 为圆心、r 为半径，追加正上方 90°（225°→315°）的圆弧到当前 path */
+    private void arc(float cx, float cy, float r) {
+        box.set(cx - r, cy - r, cx + r, cy + r);
+        path.addArc(box, 225, 90);
     }
 
     // ───────────────────────── A' · 编辑排版-横（横版构图） ─────────────────────────

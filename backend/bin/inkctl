@@ -57,5 +57,17 @@ case "$1" in
         ic_list_fonts "$dir" ;;
     restorefont)
         ic_restore_font ;;
-    *) echo '仅支持 status/apply/applyfont/fontlist/restorefont' >&2; exit 2 ;;
+    sysapp)
+        # 子动作 state|remove|restore，包名从第三个参数或 stdin 读（App 侧先校验格式，这里再校验一次）
+        action=$2
+        pkg=$3
+        [ -n "$pkg" ] || IFS= read -r pkg || true
+        case "$action" in
+            state) ic_sysapp_state "$pkg" ;;
+            remove) ic_sysapp_remove "$pkg" ;;
+            restore) ic_sysapp_restore "$pkg" ;;
+            *) echo '仅支持 state/remove/restore' >&2; exit 2 ;;
+        esac
+        exit $? ;;
+    *) echo '仅支持 status/apply/applyfont/fontlist/restorefont/sysapp' >&2; exit 2 ;;
 esac

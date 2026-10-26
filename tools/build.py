@@ -9,13 +9,18 @@ import subprocess
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '0.2.0-r18'
+VERSION = '0.2.1-r18'
 INPUTS = {
     'hwcomposer.stock.so': 'a95b9f92df5c4c37633fae5e15aa216359d314f58a214375a07a5a83e26e6502',
     'hwcomposer.motion.so': 'adbdf9aeb1868e1fb9bf01394a8f67942adb9b3c97a93d6ec2d168f83e60a675',
 }
 # 工具链是逐段手工调用（aapt2 / javac / d8 / zipalign / apksigner），每一步都会留下文件。
-# 这些逐段产物统一写在 out/<name>/work/ 下：默认构建结束即删除，--keep-intermediates 时保留。
+# 逐段产物全部落在 out/.work/<name>/（不再塞进产物目录），构建前后各清一次：
+# 即使收尾清理失败，下一次构建开头也会整体清空，不会像旧版那样每个版本攒一份 13 MiB 的 work/。
+OUT_ROOT = ROOT/'out'
+SCRATCH = OUT_ROOT/'.work'
+CACHE_BUDGET = 160   # 缓存上限 MiB；超出按「最久没命中」先删，0 表示不限制
+KEEP_BUILDS = 3      # 默认只留最近 3 个产物目录
 
 def sha(path): return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -25,14 +30,62 @@ def run(*args, cwd=ROOT):
     argv = [str(a.relative_to(cwd)) if isinstance(a, Path) and a.is_relative_to(cwd) else str(a) for a in args]
     subprocess.run(argv, check=True, cwd=cwd, env=env)
 
+def size_of(path):
+    if path.is_file(): return path.stat().st_size
+    return sum(p.stat().st_size for p in path.rglob('*') if p.is_file())
+
+def mib(value): return f'{value/1048576:.1f} MiB'
+
+def clear_scratch():
+    """构建前的兜底：中间文件根目录整体清空。清不掉就停下报错，绝不静默累积。"""
+    if not SCRATCH.exists(): return
+    try: shutil.rmtree(SCRATCH)
+    except OSError as error:
+        raise SystemExit('无法清理中间文件目录，请手动删除后重试：'+SCRATCH.as_posix()+'\n'+str(error))
+
 def tidy(work, keep):
-    """work/ 只服务构建过程；默认整目录清掉，排查时保留。"""
+    """work/ 只服务构建过程；默认整目录清掉，排查时保留。失败不影响产物，下次构建开头会兜底。"""
     if keep: return
-    try: shutil.rmtree(work)
-    except OSError as error: print('中间文件清理失败，可手动删除 '+work.as_posix()+'：'+str(error))
+    try:
+        shutil.rmtree(work)
+        if SCRATCH.exists() and not any(SCRATCH.iterdir()): SCRATCH.rmdir()
+    except OSError as error: print('中间文件清理失败（下次构建会自动清空）：'+work.as_posix()+' '+str(error))
+
+def prune_builds(keep, protect=None):
+    """产物目录按时间只留最近 keep 个；旧版遗留在产物目录里的 work/ 也一并清掉。"""
+    if keep < 0 or not OUT_ROOT.is_dir(): return
+    builds = sorted((p for p in OUT_ROOT.iterdir() if p.is_dir() and not p.name.startswith('.')),
+                    key=lambda p: p.stat().st_mtime, reverse=True)
+    doomed = [p for p in builds[keep:] if p.name != protect]   # 本次构建的目录永远保留
+    freed = 0
+    for path in doomed:
+        size = size_of(path)
+        try: shutil.rmtree(path); freed += size
+        except OSError as error: print('旧产物清理失败：'+path.name+' '+str(error))
+    if doomed: print('清理旧产物 '+str(len(doomed))+' 个，回收 '+mib(freed)+'：'+'、'.join(p.name for p in doomed))
+    for path in builds:
+        if path.name == protect: continue
+        legacy = path/'work'
+        if legacy.is_dir():
+            size = size_of(legacy)
+            try: shutil.rmtree(legacy); print('清掉旧版残留中间文件 '+path.name+'/work（'+mib(size)+'）')
+            except OSError as error: print('残留清理失败：'+legacy.as_posix()+' '+str(error))
+
+def prune_cache(budget):
+    """缓存按命中时间淘汰：命中的条目刷新 mtime，最久没用的先删，总占用收在预算内。"""
+    if budget <= 0 or not CACHE.is_dir(): return
+    entries = [p for p in CACHE.iterdir() if p.is_dir()]
+    entries.sort(key=lambda p: (p/'ok').stat().st_mtime if (p/'ok').exists() else 0)
+    sizes = {p: size_of(p) for p in entries}
+    total, limit, freed, removed = sum(sizes.values()), budget*1048576, 0, 0
+    for entry in entries:
+        if total <= limit: break
+        try: shutil.rmtree(entry); total -= sizes[entry]; freed += sizes[entry]; removed += 1
+        except OSError: pass
+    if removed: print('构建缓存淘汰 '+str(removed)+' 项，回收 '+mib(freed)+'（现 '+mib(total)+'）')
 
 # 内容寻址缓存：输入相同就复用上次的编译产物，跨构建共享；条目与 work/ 之间用硬链接，不额外占盘。
-CACHE = ROOT/'out'/'.build-cache'
+CACHE = OUT_ROOT/'.build-cache'
 HITS = []
 
 def _link(source, target):
@@ -90,18 +143,34 @@ def main():
     parser.add_argument('--test-only', action='store_true')
     parser.add_argument('--unsigned', action='store_true', help='生成不可安装的待签名候选，不读取签名密码')
     parser.add_argument('--certificate', type=Path, help='待签名构建使用的现有 DER 公钥证书，不是私钥')
-    parser.add_argument('--keep-intermediates', action='store_true', help='保留 work/ 下的逐段中间文件，默认构建结束即删除')
+    parser.add_argument('--keep-intermediates', action='store_true', help='保留 out/.work/<name>/ 下的逐段中间文件，默认构建结束即删除')
     parser.add_argument('--no-cache', action='store_true', help='不读也不写 out/.build-cache，强制全部重新编译')
+    parser.add_argument('--keep-builds', type=int, default=KEEP_BUILDS, help='构建后产物目录只留最近 N 个（默认 3；负值表示不清理）')
+    parser.add_argument('--cache-budget', type=int, default=CACHE_BUDGET, help='构建缓存上限 MiB（默认 160；0 表示不限制）')
+    parser.add_argument('--clean', action='store_true', help='只清理（旧产物目录、残留 work/、超限缓存），不构建')
     args = parser.parse_args()
     if Path(args.name).name != args.name or args.name in ('.', '..'): raise ValueError('invalid build name')
+    if args.clean:
+        prune_builds(args.keep_builds); prune_cache(args.cache_budget)
+        total = size_of(OUT_ROOT) if OUT_ROOT.exists() else 0
+        print('out/ 现占用 '+mib(total))
+        return
     if not args.jdk: raise ValueError('请设置 JAVA_HOME 或 --jdk')
     jdk = Path(args.jdk)/'bin'
     exe = '.exe' if os.name == 'nt' else ''
     java, javac = jdk/('java'+exe), jdk/('javac'+exe)
-    out = ROOT/'out'/args.name
+    out = OUT_ROOT/args.name
     out.mkdir(parents=True, exist_ok=False)
-    work = out/'work'; work.mkdir()
+    clear_scratch()
+    work = SCRATCH/args.name; work.mkdir(parents=True)
     host = work/'host'
+
+    def drop(*paths):
+        """用完即弃的中间产物；--keep-intermediates 时全部保留供排查。"""
+        if args.keep_intermediates: return
+        for path in paths:
+            try: shutil.rmtree(path) if path.is_dir() else path.unlink()
+            except OSError: pass
     step('核心类编译', tree_stamp([ROOT/'src/com/inkcontrol/core', ROOT/'test/CoreTest.java', ROOT/'test/CatalogExport.java'], 'javac8|'+Path(args.jdk).name), {'host': host}, lambda: run(javac, '-encoding', 'UTF-8', '--release', '8', '-d', host, *sorted((ROOT/'src/com/inkcontrol/core').glob('*.java')), ROOT/'test/CoreTest.java', ROOT/'test/CatalogExport.java'), not args.no_cache)
     run(java, '-cp', host, 'CoreTest')
     module = work/'module'; shutil.copytree(ROOT/'backend', module)
@@ -133,6 +202,7 @@ def main():
     assert b'\r' not in (module/'module.prop').read_bytes() + (module/'checksums.sha256').read_bytes()
     suffix = '-unsigned' if args.unsigned else ''
     backend = out/('inkcontrol_backend-v'+VERSION+suffix+'.zip'); zip_tree(module, backend)
+    drop(module)   # 模块树已打进 zip，之后再无引用
     cert = out/'cert.der'
     if args.unsigned: shutil.copy2(args.certificate, cert)
     else: run(jdk/('keytool'+exe), '-exportcert', '-keystore', args.keystore, '-alias', args.key_alias, '-storepass:env', 'INKCONTROL_STORE_PASSWORD', '-file', cert)
@@ -155,6 +225,7 @@ def main():
         (work/'dex').mkdir()
         run(java, '-cp', bt/'lib/d8.jar', 'com.android.tools.r8.D8', '--release', '--min-api', '29', '--lib', android, '--classpath', work/'stubs', '--output', work/'dex', classes)
     step('dex 转换', 'd8|'+android_salt+'|'+sha(classes), {'dex': work/'dex'}, build_dex, not args.no_cache)
+    drop(work/'classes', classes)   # d8 之后 class 文件不再被引用（缓存里另有硬链接副本）
     step('应用资源编译', tree_stamp([ROOT/'res'], 'aapt2|'+bt.name), {'res.zip': work/'res.zip'}, lambda: run(bt/('aapt2'+exe), 'compile', '--dir', ROOT/'res', '-o', work/'res.zip'), not args.no_cache)
     run(bt/('aapt2'+exe), 'link', '-I', android, '--manifest', ROOT/'AndroidManifest.xml', '-o', work/'unsigned.apk', work/'res.zip')
     with zipfile.ZipFile(work/'unsigned.apk', 'a', zipfile.ZIP_DEFLATED) as archive:
@@ -166,7 +237,9 @@ def main():
     # 统一 ZIP 头部与编码，避免 aapt2/Python 组合 ZIP 的 header mismatch。
     with zipfile.ZipFile(work/'unsigned.apk') as source, zipfile.ZipFile(work/'normalized.apk', 'w', zipfile.ZIP_DEFLATED) as target:
         for info in source.infolist(): target.writestr(info.filename, source.read(info.filename))
+    drop(work/'unsigned.apk')   # 上一段产物已经用完，立刻释放，峰值少 2 MiB
     run(bt/('zipalign'+exe), '-f', '4', work/'normalized.apk', work/'aligned.apk')
+    drop(work/'normalized.apk')
     apk = out/('InkControl-v'+VERSION+suffix+'.apk')
     if args.unsigned: shutil.copy2(work/'aligned.apk', apk)
     else:
@@ -186,9 +259,12 @@ def main():
     (out/'build-manifest.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
     (out/'SHA256SUMS').write_text(''.join(sha(p)+'  '+p.name+'\n' for p in (apk, backend)), encoding='utf-8')
     tidy(work, args.keep_intermediates)
+    prune_builds(args.keep_builds, protect=args.name)
+    prune_cache(args.cache_budget)
     print('缓存复用 '+str(len(HITS))+' 项'+(('：'+'、'.join(HITS)) if HITS else '（本次全部重新编译）'))
-    print('构建输出 '+out.relative_to(ROOT).as_posix()+'（'+('含 work/ 中间文件' if args.keep_intermediates else '仅可交付产物')+'）：')
+    print('构建输出 '+out.relative_to(ROOT).as_posix()+'（'+('含 out/.work 中间文件' if args.keep_intermediates else '仅可交付产物')+'）：')
     for path in sorted(p for p in out.iterdir() if p.is_file()):
         print('  ' + path.name + '  ' + f'{path.stat().st_size/1048576:.2f} MiB')
+    print('out/ 现占用 '+mib(size_of(OUT_ROOT)))
 
 if __name__ == '__main__': main()

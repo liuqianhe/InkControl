@@ -99,15 +99,19 @@ ic_validate() {
       $1=="revision" {if($2!~/^[0-9]+$/ || length($2)>15) bad=1; next}
       # 旧版残留键已删除：「字体2」（font2.*）并入「字体」；「Google 设置图标修复」（fix.google）、
       # 「隐藏锁屏通知」（lock.notifyhide）并入「锁屏通知」、「过渡动画总开关」（motion.master）、
-      # 「全刷扫过」（motion.gc_clear）、「体感息屏唤醒」（wave.master）下线。
+      # 「全刷扫过」（motion.gc_clear）、「体感息屏唤醒」（wave.master）下线；
+      # 「设备状态」四项逐项开关（lock.ext.wifi/bt/audio/airplane）合并成一个 lock.ext 总开关。
+      # 旧配置的 lock.notify.value=ext 也照旧放行（ext 是纯字母，走 fontpath 兜底即通过）；
+      # App 侧解析时会把它迁成 lock.ext=1 并在下次保存时重写。
       # 容忍旧配置里的残留键，升级不卡开机
-      {key=$1; if(sub(/\.value$/,"",key)) {legacy=(key ~ /^(font2\.(dir|pick|saf)|fix\.google|lock\.notifyhide|wave\.master)$/) ? 1 : 0; if((!known[key] && !legacy) || $2=="@curve" || $2=="@number" || $2=="@apps" || $2=="@countdowns" || $2=="@path" || $2=="@font" || (index("," choices[key] ",", "," $2 ",")==0 && !curve(choices[key], $2) && !number(choices[key], $2) && !apps(choices[key], $2) && !countdowns(choices[key], $2) && !fontpath($2))) bad=1}
-       else {legacy=(key ~ /^(font2\.(dir|pick|saf)|fix\.google|lock\.notifyhide|wave\.master)$/) ? 1 : 0; if((!known[key] && !legacy) || ($2!="0" && $2!="1")) bad=1}}
+      {key=$1; if(sub(/\.value$/,"",key)) {legacy=(key ~ /^(font2\.(dir|pick|saf)|fix\.google|lock\.notifyhide|wave\.master|lock\.ext\.(wifi|bt|audio|airplane))$/) ? 1 : 0; if((!known[key] && !legacy) || $2=="@curve" || $2=="@number" || $2=="@apps" || $2=="@countdowns" || $2=="@path" || $2=="@font" || (index("," choices[key] ",", "," $2 ",")==0 && !curve(choices[key], $2) && !number(choices[key], $2) && !apps(choices[key], $2) && !countdowns(choices[key], $2) && !fontpath($2))) bad=1}
+       else {legacy=(key ~ /^(font2\.(dir|pick|saf)|fix\.google|lock\.notifyhide|wave\.master|lock\.ext\.(wifi|bt|audio|airplane))$/) ? 1 : 0; if((!known[key] && !legacy) || ($2!="0" && $2!="1")) bad=1}}
       END {
         if(!seen["version"] || !seen["revision"]) bad=1
         for(key in known) {
-          # 旧版配置没有分模式选项、自动刷新项与后来新增的开关；仅允许这些新增字段整对缺省，其他字段仍严格检查。
-          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^font\.(dir|pick|saf)$/ || key ~ /^font2\.(dir|pick|saf)$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/)
+          # 旧版配置没有分模式选项、自动刷新项、设备状态总开关与后来新增的开关；仅允许这些新增字段整对缺省，其他字段仍严格检查。
+          # lock.ext 是「显示设备状态」总开关，旧配置里没有，缺省按关闭处理。
+          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^lock\.ext$/ || key ~ /^font\.(dir|pick|saf)$/ || key ~ /^font2\.(dir|pick|saf)$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/)
           if(optional && !seen[key] && !seen[key ".value"]) continue
           if(!seen[key] || !seen[key ".value"]) bad=1
         }
@@ -121,7 +125,7 @@ ic_supported() {
 }
 ic_ready() {
     ic_supported && [ -f "$IC_MODULE/module.prop" ] && [ ! -f "$IC_MODULE/disable" ] && [ ! -f "$IC_MODULE/remove" ] &&
-        [ "$(sed -n 's/^version=//p' "$IC_MODULE/module.prop")" = '0.2.0-r18' ] && [ ! -f "$IC_STATE/error" ] || return 1
+        [ "$(sed -n 's/^version=//p' "$IC_MODULE/module.prop")" = '0.2.1-r18' ] && [ ! -f "$IC_STATE/error" ] || return 1
     ! ic_module_conflict >/dev/null
 }
 # 同样替换显示库或配置守护的 Magisk 模块会与墨控争用同一文件；启用时拒绝加载。
@@ -398,4 +402,47 @@ ic_apply_hot() {
     cp "$IC_CONFIG" "$IC_APPLIED.tmp" && mv "$IC_APPLIED.tmp" "$IC_APPLIED" || return 1
     ic_ready && setprop sys.inkcontrol.ready 1
     return 0
+}
+
+# ── 系统应用卸载 / 还原 ───────────────────────────────────────────────
+# 只对机主（user 0）卸载：分区里的原始 APK 保留，pm install-existing 即可原样收回，
+# 还原后仍是系统应用身份（priv-app 的特权权限不会丢）。包名只允许字母数字点下划线，
+# 避免把用户输入拼进 shell 命令。
+ic_sysapp_valid() {
+    case "$1" in
+        ''|*[!A-Za-z0-9._]*) return 1 ;;
+    esac
+    [ ${#1} -le 200 ]
+}
+ic_sysapp_state() {
+    ic_sysapp_valid "$1" || { echo '包名无效' >&2; return 2; }
+    if pm list packages --user 0 2>/dev/null | grep -qx "package:$1"; then
+        echo 'state=installed'
+        pm path "$1" 2>/dev/null | sed -n 's/^package:/path=/p'
+    elif pm list packages -u 2>/dev/null | grep -qx "package:$1"; then
+        # 系统里还在、但没给机主装：正是 uninstall --user 0 的结果
+        echo 'state=removed'
+    else
+        echo 'state=absent'
+    fi
+}
+ic_sysapp_remove() {
+    ic_sysapp_valid "$1" || { echo '包名无效' >&2; return 2; }
+    if out=$(pm uninstall --user 0 "$1" 2>&1); then
+        echo 'state=removed'
+        echo "$out"
+        return 0
+    fi
+    echo "$out" >&2
+    return 1
+}
+ic_sysapp_restore() {
+    ic_sysapp_valid "$1" || { echo '包名无效' >&2; return 2; }
+    if out=$(pm install-existing --user 0 "$1" 2>&1); then
+        echo 'state=installed'
+        echo "$out"
+        return 0
+    fi
+    echo "$out" >&2
+    return 1
 }

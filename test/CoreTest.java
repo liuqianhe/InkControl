@@ -39,11 +39,15 @@ public final class CoreTest {
         check(DisplayAlgorithms.hysteresisOverride(stockOnly, "fast").equals("default"));
         // 总开关独立于 GPU 后端：不开 GPU 也能开启并生效
         check(DisplayAlgorithms.stock(empty.change("display.alg.stock", true, "default")));
-        // 「锁屏通知」单一开关挂在锁屏样式下：关闭即不显示通知，开启后可选系统 / 微信来源
+        // 锁屏底部那一块位置的两个总开关：「显示通知」与「显示设备状态」，都挂在锁屏样式下
         FeatureDefinition notify = FeatureCatalog.get("lock.notify");
         check(notify.role.equals("systemui") && notify.dependency.equals("lock.style"));
         check(notify.values.equals(Arrays.asList("system", "wechat")));
         check(!new Configuration().enabled("lock.notify"));
+        // 设备状态合并成一个总开关，本身没有子项；默认关闭
+        FeatureDefinition ext = FeatureCatalog.get("lock.ext");
+        check(ext.role.equals("systemui") && ext.dependency.equals("lock.style"));
+        check(ext.values.equals(Arrays.asList("default")) && !new Configuration().enabled("lock.ext"));
         for (String scope : DisplayAlgorithms.SCOPES) {
             String id = "display.alg." + scope;
             FeatureDefinition f = FeatureCatalog.get(id);
@@ -150,6 +154,14 @@ public final class CoreTest {
                 + "font2.pick=1\nfont2.pick.value=x\nfix.google=1\nfix.google.value=default\n"
                 + "lock.notifyhide=1\nlock.notifyhide.value=default\nwave.master=1\nwave.master.value=default\n");
         check(tolerated.revision == 0 && !tolerated.requested("motion.lock") && !tolerated.requested("wave.lock"));
+        // 旧配置的「拓展显示 = 设备状态」迁到独立的 lock.ext：通知关掉、设备状态打开；
+        // 设备状态那四个逐项开关（lock.ext.wifi 等）作为残留键丢弃
+        Configuration migrated = Configuration.parse("version=1\nrevision=3\n"
+                + "lock.notify=1\nlock.notify.value=ext\n"
+                + "lock.ext.wifi=1\nlock.ext.wifi.value=default\n"
+                + "lock.ext.bt=1\nlock.ext.bt.value=default\n");
+        check(migrated.requested("lock.ext") && !migrated.requested("lock.notify"));
+        check(migrated.value("lock.notify").equals("system"));
         FeatureDefinition hold = FeatureCatalog.get("motion.hold");
         String curve = FeatureDefinition.curveValue(new int[]{420, 400, 360, 320, 280, 230, 210, 175, 150});
         hold.validate(curve); check(Configuration.parse(config.change("motion.hold", true, curve).text()).value("motion.hold").equals(curve));

@@ -76,8 +76,9 @@ final class Guide {
                 {"原厂四模式 · 算法", "display.alg.clear", "display.alg.reading", "display.alg.fast", "display.alg.extreme"},
                 {"独立视频场景", "display.alg.video"},
                 {"触摸与响应", "display.sampling", "display.idle"}, {"系统刷新设置", "display.dynamic", "display.apps"}});
-        cat("锁屏", "锁屏样式、天气、通知、倒数日与锁屏刷新，以及歌词相关设置。", new String[][]{
-                {"样式", "lock.style", "lock.weather"}, {"通知", "lock.notify"},
+        cat("锁屏", "锁屏样式、天气、拓展显示、倒数日与锁屏刷新，以及歌词相关设置。", new String[][]{
+                {"样式", "lock.style", "lock.weather"},
+                {"拓展显示", "lock.notify", "lock.ext"},
                 {"倒数日", "lock.countdown"},
                 {"锁屏刷新", "lock.first", "lock.update", "lock.delay", "lock.dither"},
                 {"歌词", "lock.lyric", "lock.statusbar", "lock.lyricmode"}});
@@ -96,6 +97,8 @@ final class Guide {
                 {"行为", "wave.lock", "wave.coverDelay", "wave.wake"}});
         cat("桌面", "原厂桌面的主题、图标、字体与组件；不改动图标位置和布局。", new String[][]{
                 {"主题", "desktop.theme"}, {"换肤项目", "desktop.icons", "desktop.font", "desktop.wallpaper", "desktop.widget"}});
+        // 这一页是独立界面（不走功能开关列表），sections 留空；渲染由 MainActivity 特判。
+        cat("系统应用卸载/还原", "把用不到的系统应用从机主账号里卸掉，随时可以还原；系统分区里的原始文件始终保留，还原后仍是系统应用身份。", new String[][]{});
         cat("系统增强", "修复原厂墨水屏服务的几个问题：偶发重启、卡开机、多余刷新。", new String[][]{
                 {"稳定性", "fix.exceptions", "fix.configlock", "guard.config"}, {"刷新行为", "fix.modes", "fix.video"},
                 {"安全", "fix.permissions"}});
@@ -257,9 +260,11 @@ final class Guide {
                 .cost("「天气App」用的是天气软件最后一次下载的结果；开机后没打开过天气软件、长期不打开它、或把它冻结，都可能取不到，此时自动退回原厂数据。")
                 .option("default", "原厂桌面组件", "沿用原厂锁屏天气，数据来自桌面时钟/天气小组件；没有放小组件时通常取不到。")
                 .option("moji", "天气App", "直接读取系统预装的天气软件（墨迹天气）已下载的数据，不需要桌面小组件。");
-        put("lock.notify").summary("锁屏通知：一个开关管显示与来源").what("关闭后，六种锁屏样式都不再画通知区：编辑排版的「通知 N 条」框、横版的右下通知框、瑞士与液态玻璃右下角的通知数、像素样式的通知数和通知一格都会消失，腾出的位置不会再摆空框。开启后统计通知并显示，来源可在下面二选一：系统通知或微信未读。")
-                .cost("只影响显示，开启时通知照常统计；关掉再打开马上恢复，不用等新的通知。").option("system", "系统通知", "统计可清除的系统通知，不依赖微信。")
+        put("lock.notify").summary("锁屏底部显示通知条").what("锁屏倒数日下方那一块位置只有一处，本页是「显示通知」这个总开关。开启后在来源里二选一：系统通知或微信未读。关闭则整块都不画：编辑排版的「通知 N 条」框、横版的右下通知框、瑞士与液态玻璃右下角的通知数、像素样式的通知数和通知一格都会消失，腾出的位置不会再摆空框。")
+                .cost("只影响显示，通知照常统计；关掉再打开马上恢复，不用等新的通知。想在那块位置显示无线、蓝牙等开关情况，请开启「显示设备状态」——两者互斥，开一个会自动关掉另一个。").option("system", "系统通知", "统计可清除的系统通知，不依赖微信。")
                 .option("wechat", "微信", "只统计微信未读消息，适合安装了微信的设备。");
+        put("lock.ext").summary("锁屏底部改显示设备开关状态").what("同一块位置（倒数日下方、上滑解锁提示上方）改画设备状态：无线网络、蓝牙、声音模式（静音 / 非静音）、飞行模式是否开启，四项各占一格均分宽度，不画分隔线。四项一次全部显示，不再需要单独挑选。")
+                .cost("只读显示，不会改动无线、蓝牙、飞行模式或铃声音量。与「显示通知」互斥：开启本项会自动关闭「显示通知」，反之亦然；两项都关时那块位置留空。").option("default", "显示设备状态", "");
         put("lock.countdown").summary("一个开关管显示，本页直接编辑事项").what("打开后在锁屏上显示事项倒数日：最多三个，每组一个事项和日期，多个按目标日先后排列。下方就是事项编辑器——事项名可留空；日期为空该组停用。")
                 .cost("关闭后锁屏不再显示倒数日，已填的事项和日期仍保留，再打开即恢复。").option("default", "显示倒数日", "");
         put("lock.countdowns").summary("倒数日事项的数据存储位置").what("最多三个倒数日，每组有独立的「农历日期」和「显示」开关：开启农历后按农历年/月/日计算（如选 2027-01-01 即 2027 年春节）；关闭显示可暂时隐藏该组而不删除。编辑入口已并入上一页「锁屏倒数日」，这里是它的数据保存位置，旧配置继续有效。")

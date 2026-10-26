@@ -66,6 +66,10 @@ public final class Configuration {
         if (rev == null || !rev.matches("[0-9]{1,15}")) throw new IllegalArgumentException("配置修订号无效");
         Map<String, Boolean> flags = new LinkedHashMap<>();
         Map<String, String> values = new LinkedHashMap<>();
+        // 旧配置的「拓展显示」是三选一（system / wechat / ext）。ext 现在独立成
+        // 「显示设备状态」开关，收到旧值时把那个开关补上（新配置里已经有 lock.ext 就以新值为准）。
+        boolean legacyExt = false;
+        boolean hasExtKey = fields.containsKey("lock.ext");
         for (FeatureDefinition feature : FeatureCatalog.all()) {
             String flag = fields.remove(feature.id), value = fields.remove(feature.id + ".value");
             if (flag == null) flag = "0";
@@ -75,19 +79,27 @@ public final class Configuration {
                 value = feature.defaultValue();
                 flag = "0";
             }
+            if ("lock.notify".equals(feature.id) && "ext".equals(value)) {
+                legacyExt = true;
+                value = feature.defaultValue();
+                flag = "0";
+            }
             feature.validate(value);
             flags.put(feature.id, "1".equals(flag));
             values.put(feature.id, value);
         }
+        if (legacyExt && !hasExtKey) flags.put("lock.ext", true);
         // 旧版残留键已删除：「字体2」（font2.*）并入「字体」（font.*）；
         // 「Google 设置图标修复」（fix.google）、「隐藏锁屏通知」（lock.notifyhide）并入「锁屏通知」、
-        // 「体感息屏唤醒」（wave.master）整体下线。容忍旧配置里的残留键，
+        // 「体感息屏唤醒」（wave.master）整体下线；「设备状态」四项逐项开关（lock.ext.wifi/bt/audio/airplane）
+        // 合并成一个「显示设备状态」总开关。容忍旧配置里的残留键，
         // 否则升级后 parse 抛「存在未知配置字段」
         // → 整个界面只剩错误卡、连「模块设置」都进不去。
         fields.keySet().removeIf(key -> {
             String name = key.endsWith(".value") ? key.substring(0, key.length() - 6) : key;
             return name.startsWith("font2.") || name.startsWith("fix.google")
-                    || name.equals("lock.notifyhide") || name.equals("wave.master");
+                    || name.equals("lock.notifyhide") || name.equals("wave.master")
+                    || name.matches("lock\\.ext\\.(wifi|bt|audio|airplane)");
         });
         if (!fields.isEmpty()) throw new IllegalArgumentException("存在未知配置字段");
         return new Configuration(Long.parseLong(rev), flags, values);

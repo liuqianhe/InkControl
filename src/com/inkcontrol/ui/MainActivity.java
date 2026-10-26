@@ -592,10 +592,99 @@ public final class MainActivity extends Activity {
 
     // ───────────────────────── 功能：分类页 ─────────────────────────
 
+    // ───────────────────────── 系统应用卸载 / 还原 ─────────────────────────
+
+    /** 首页分类名；这一页是独立界面，不走功能开关列表（sections 为空，渲染在此特判）。 */
+    private static final String SYSAPP_CATEGORY = "系统应用卸载/还原";
+    /** 预置的系统应用：{包名, 显示名}，顺序即页面顺序。 */
+    private static final String[][] SYS_APPS = {
+            {"com.hmct.updater", "系统更新"},
+            {"com.tencent.android.location", "腾讯位置服务"},
+    };
+    /** 包名 → installed / removed / absent；没有条目表示还没读到。 */
+    private final Map<String, String> sysAppStates = new java.util.HashMap<>();
+    private String sysAppPageKey = "";
+
+    private void sysAppPage() {
+        String key = pageKey();
+        if (!key.equals(sysAppPageKey)) {
+            // 每次重新进入这一页都重读一遍，避免看到离开前的旧状态
+            sysAppPageKey = key;
+            sysAppStates.clear();
+            body.postDelayed(() -> { if (!busy) perform("读取卸载状态", this::readSysAppStates, false); }, 60);
+        }
+        // 页头已经有分类名与 intro，这里只补一句「卸载到底做了什么」，不再重复标题
+        body.addView(card(column(paragraph("「卸载」只把应用从机主账号里移除，系统分区里的原始文件仍然保留，随时可以原样装回；装回后仍是系统应用身份，特权权限不会丢。", 14))));
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        list.setBackground(ink.outline(12));
+        for (int i = 0; i < SYS_APPS.length; i++) {
+            if (i > 0) list.addView(ink.rule(1));
+            list.addView(sysAppRow(SYS_APPS[i][0], SYS_APPS[i][1]));
+        }
+        body.addView(spaced(list, 18));
+        body.addView(spaced(paragraph("「腾讯位置服务」是系统预置的定位组件，卸载后依赖它的应用可能拿不到网络定位；需要时点「还原」即可。", 13), 10));
+        body.addView(spaced(ink.button("重新读取状态", Ink.Kind.SECONDARY,
+                v -> perform("读取卸载状态", this::readSysAppStates, false)), 14));
+    }
+
+    private View sysAppRow(String pkg, String name) {
+        String state = sysAppStates.get(pkg);
+        boolean installed = "installed".equals(state);
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(ink.dp(16), ink.dp(14), ink.dp(12), ink.dp(14));
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.addView(ink.text(name, 17, Ink.MEDIUM));
+        content.addView(spaced(paragraph(pkg, 12), 4));
+        content.addView(spaced(ink.text("状态：" + sysAppStateLabel(state), 13, installed ? Ink.BOLD : Ink.REGULAR), 5));
+        row.addView(content, new LinearLayout.LayoutParams(0, -2, 1));
+        TextView action = installed
+                ? ink.button("卸载", Ink.Kind.DANGER, v -> confirm("卸载「" + name + "」",
+                        "只从机主账号里移除，系统分区里的原始文件不动；以后在任何时候点「还原」都能原样装回。", () ->
+                                perform("卸载「" + name + "」", () -> sysAppChange(pkg, name, true), false)))
+                : ink.button("还原", Ink.Kind.SECONDARY, v ->
+                        perform("还原「" + name + "」", () -> sysAppChange(pkg, name, false), false));
+        row.addView(action);
+        return row;
+    }
+
+    /** 执行卸载或还原，并把新状态记下来；返回值直接作为顶部提示条。 */
+    private String sysAppChange(String pkg, String name, boolean remove) throws Exception {
+        if (remove) services.sysAppRemove(pkg); else services.sysAppRestore(pkg);
+        String state = services.sysAppState(pkg)[0];
+        sysAppStates.put(pkg, state);
+        return name + "：" + sysAppStateLabel(state);
+    }
+
+    /** 一次读完两个包的状态，返回给提示条；perform 成功后会自动重画页面。 */
+    private String readSysAppStates() throws Exception {
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < SYS_APPS.length; i++) {
+            String state;
+            try { state = services.sysAppState(SYS_APPS[i][0])[0]; } catch (Exception error) { state = ""; }
+            if (!state.isEmpty()) sysAppStates.put(SYS_APPS[i][0], state);
+            if (i > 0) out.append('\n');
+            out.append(SYS_APPS[i][1]).append('：').append(sysAppStateLabel(state));
+        }
+        return out.toString();
+    }
+
+    private static String sysAppStateLabel(String state) {
+        if ("installed".equals(state)) return "已安装";
+        if ("removed".equals(state)) return "已卸载";
+        if ("absent".equals(state)) return "设备上没有这个应用";
+        return "未读取";
+    }
+
     private void categoryPage(Guide.Category c) {
+        if (SYSAPP_CATEGORY.equals(c.name)) { sysAppPage(); return; }
         for (String[] section : c.sections) {
-            TextView head = ink.text(section[0], 14, Ink.BOLD);
-            head.setPadding(ink.dp(4), ink.dp(20), 0, ink.dp(8));
+            // 分区小标题：原来 14sp 在墨水屏上几乎和正文一样大，层级看不出来。
+            // 放大到 21sp（页面标题是 26sp）并保持加粗，形成「页标题 > 分区 > 功能名(17sp) > 说明(13sp)」的层级。
+            TextView head = ink.text(section[0], 21, Ink.BOLD);
+            head.setPadding(ink.dp(4), ink.dp(22), 0, ink.dp(10));
             body.addView(head);
             LinearLayout list = new LinearLayout(this);
             list.setOrientation(LinearLayout.VERTICAL);
@@ -1803,17 +1892,34 @@ public final class MainActivity extends Activity {
 
     // ───────────────────────── 大功能排序 ─────────────────────────
 
-    /** 首页大功能的显示顺序：按保存的顺序排列，未保存的新分类自动补在末尾；空表示默认顺序。 */
+    /** 首页大功能的显示顺序：按保存的顺序排列；空表示默认顺序。 */
     private List<Guide.Category> orderedCategories() {
+        Map<String, Guide.Category> pool = new LinkedHashMap<>();
+        for (Guide.Category c : Guide.CATEGORIES.values()) pool.put(c.name, c);
         List<Guide.Category> result = new ArrayList<>();
-        Map<String, Guide.Category> byName = new LinkedHashMap<>();
-        for (Guide.Category c : Guide.CATEGORIES.values()) byName.put(c.name, c);
         for (String name : UiCategoryOrder.saved(this).split(";", -1)) {
-            Guide.Category c = byName.remove(name);
+            Guide.Category c = pool.remove(name);
             if (c != null) result.add(c);
         }
-        result.addAll(byName.values());
+        if (pool.isEmpty()) return result;
+        // 保存的顺序里没有的分类（通常是升级后新加的）：插到默认顺序里它前一个「已排好」的分类后面，
+        // 而不是一律追加到末尾——否则用户排序过一次之后，以后新增的分类永远跑到最后。
+        List<String> defaults = new ArrayList<>(Guide.CATEGORIES.keySet());
+        for (Guide.Category c : Guide.CATEGORIES.values()) {
+            if (!pool.containsKey(c.name)) continue;
+            int insert = 0;
+            for (int i = defaults.indexOf(c.name) - 1; i >= 0; i--) {
+                int pos = indexOfCategory(result, defaults.get(i));
+                if (pos >= 0) { insert = pos + 1; break; }
+            }
+            result.add(insert, c);
+        }
         return result;
+    }
+
+    private static int indexOfCategory(List<Guide.Category> list, String name) {
+        for (int i = 0; i < list.size(); i++) if (list.get(i).name.equals(name)) return i;
+        return -1;
     }
 
     private void categoryOrderPage() {
@@ -1973,6 +2079,16 @@ public final class MainActivity extends Activity {
 
     /** 配置先保存再由 Root 应用；保存成功但应用失败时如实说明，而不是笼统报“未完成”。 */
     private void change(String id, boolean enabled, String value) throws Exception {
+        // 「显示通知」与「显示设备状态」共用锁屏底部那一块位置，界面层强制互斥：
+        // 开其中一个就先把另一个关掉。列表开关与详情页按钮都走这里，所以只在这一处保证即可；
+        // 关掉另一个时沿用它的现值，免得下次打开又要重选来源。
+        if (enabled) {
+            String other = id.equals("lock.notify") ? "lock.ext" : id.equals("lock.ext") ? "lock.notify" : "";
+            if (!other.isEmpty()) {
+                com.inkcontrol.core.Configuration current = services.configuration();
+                if (current.requested(other)) services.change(other, false, current.value(other));
+            }
+        }
         try { services.change(id, enabled, value); }
         catch (Exception error) {
             com.inkcontrol.core.Configuration saved = services.configuration();

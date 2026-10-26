@@ -43,6 +43,12 @@ final class LockData {
     String notificationLabel = "通知";
     /** 「隐藏锁屏通知」开关：开启后所有锁屏样式都不画通知区，但通知仍在正常统计（供回到开关时立即显示） */
     boolean hideNotify;
+    /** 「显示设备状态」开着：倒数日下方那一块位置改画设备开关状态，不再画通知条 */
+    boolean extMode;
+    /** 设备状态四项的当前值（extMode 为真时才有意义） */
+    boolean wifi, bt, airplane, silent;
+    /** 四项里哪几项要显示：设备状态条固定四项全显（不再提供逐项开关） */
+    boolean showWifi = true, showBt = true, showAudio = true, showAirplane = true;
     /** 正在播放：歌词（没有歌词时用曲名），否则是格言 */
     boolean playing;
     String text;
@@ -65,10 +71,14 @@ final class LockData {
             }
         } catch (Throwable ignored) {
         }
-        // 「锁屏通知」单一开关：关闭即不画通知区；开启后按来源统计（系统 / 微信）。
-        // 原来的「隐藏锁屏通知」（lock.notifyhide）已并入这里。
+        // 锁屏底部那一块位置只有一处，两个总开关二选一：「显示通知」与「显示设备状态」。
+        // 互斥由界面保证，这里再兜一层：万一两个都为开（例如从旧配置 lock.notify.value=ext
+        // 迁过来还没重新保存），按设备状态优先，不会两块都画。
         boolean notifyOn = RuntimeConfig.enabled("lock.notify");
-        if (notifyOn && Settings.Global.getInt(c.getContentResolver(), "eink_keyguard_notification_on", 1) != 0) {
+        d.extMode = RuntimeConfig.enabled("lock.ext")
+                || (notifyOn && "ext".equals(RuntimeConfig.value("lock.notify")));
+        boolean notifyVisible = notifyOn && !d.extMode;
+        if (notifyVisible && Settings.Global.getInt(c.getContentResolver(), "eink_keyguard_notification_on", 1) != 0) {
             if ("wechat".equals(RuntimeConfig.value("lock.notify"))) {
                 d.notifications = Math.max(0, Settings.System.getInt(c.getContentResolver(), "com_hs_wechat_mini", 0));
                 d.notificationLabel = "微信";
@@ -76,8 +86,9 @@ final class LockData {
                 d.notifications = LockNotifications.count();
             }
         }
+        if (d.extMode) readDeviceState(d, c);
         // 只是这一处不画，计数照旧；重新打开开关时不用等下一次通知事件
-        d.hideNotify = !notifyOn;
+        d.hideNotify = !notifyVisible;
         if (RuntimeConfig.enabled("lock.weather")) readWeather(d, c, controller);
         readLunar(d, controller);
         // 倒数日：仅当「锁屏 → 倒数日」开关开启时读取 App 配置的事项与日期；
@@ -105,6 +116,43 @@ final class LockData {
             }
         }
         return d;
+    }
+
+    /**
+     * 「显示设备状态」要读的四项，全部只读不改。
+     * 无线优先用 WifiManager（SystemUI 有 ACCESS_WIFI_STATE），拿不到退回全局设置；
+     * 蓝牙优先用 BluetoothAdapter，拿不到同样退回全局设置；飞行模式只有全局设置；
+     * 声音模式取铃声模式，只有「静音」算静音，响铃与振动都算非静音。
+     */
+    private static void readDeviceState(LockData d, Context c) {
+        boolean wifiDone = false;
+        try {
+            android.net.wifi.WifiManager wifi =
+                    (android.net.wifi.WifiManager) c.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            if (wifi != null) { d.wifi = wifi.isWifiEnabled(); wifiDone = true; }
+        } catch (Throwable ignored) {
+        }
+        if (!wifiDone) {
+            try { d.wifi = Settings.Global.getInt(c.getContentResolver(), Settings.Global.WIFI_ON, 0) != 0; } catch (Throwable ignored) { }
+        }
+        boolean btDone = false;
+        try {
+            android.bluetooth.BluetoothAdapter adapter = android.bluetooth.BluetoothAdapter.getDefaultAdapter();
+            if (adapter != null) { d.bt = adapter.isEnabled(); btDone = true; }
+        } catch (Throwable ignored) {
+        }
+        if (!btDone) {
+            try { d.bt = Settings.Global.getInt(c.getContentResolver(), Settings.Global.BLUETOOTH_ON, 0) != 0; } catch (Throwable ignored) { }
+        }
+        try {
+            d.airplane = Settings.Global.getInt(c.getContentResolver(), Settings.Global.AIRPLANE_MODE_ON, 0) != 0;
+        } catch (Throwable ignored) {
+        }
+        try {
+            android.media.AudioManager audio = (android.media.AudioManager) c.getSystemService(Context.AUDIO_SERVICE);
+            d.silent = audio != null && audio.getRingerMode() == android.media.AudioManager.RINGER_MODE_SILENT;
+        } catch (Throwable ignored) {
+        }
     }
 
     /**

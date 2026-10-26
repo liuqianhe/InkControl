@@ -41,7 +41,7 @@ final class RootBridge {
         }
     }
     String run(String command, String input) throws Exception {
-        if (!command.matches("status|apply|applyfont|fontlist|restorefont")) throw new IllegalArgumentException("命令未注册");
+        if (!command.matches("status|apply|applyfont|fontlist|restorefont|sysapp (state|remove|restore)")) throw new IllegalArgumentException("命令未注册");
         String controller = new File(payload(), "bin/inkctl").getCanonicalPath();
         if (!controller.matches("[a-zA-Z0-9_./-]+")) throw new SecurityException("控制器路径无效");
         Process process;
@@ -78,4 +78,19 @@ final class RootBridge {
     }
     /** 把原厂字体写回槽位并激活。 */
     String restoreFont() throws Exception { return run("restorefont", ""); }
+
+    /**
+     * 系统应用的机主级卸载与还原。包名只允许字母数字点下划线（后端还会再校验一次），
+     * 其它用户输入一律进不来，因此不会拼出额外命令。
+     */
+    private static String packageName(String pkg) {
+        if (pkg == null || !pkg.matches("[A-Za-z0-9._]{1,200}")) throw new IllegalArgumentException("包名无效");
+        return pkg;
+    }
+    /** 返回后端输出：「state=installed|removed|absent」，已安装时还带 path=… 行。 */
+    String sysAppState(String pkg) throws Exception { return run("sysapp state", packageName(pkg) + "\n"); }
+    /** pm uninstall --user 0：只从机主列表移除，分区里的 APK 保留，可随时还原。 */
+    String sysAppRemove(String pkg) throws Exception { return run("sysapp remove", packageName(pkg) + "\n"); }
+    /** pm install-existing --user 0：把系统里已有的包装回机主，权限身份不变。 */
+    String sysAppRestore(String pkg) throws Exception { return run("sysapp restore", packageName(pkg) + "\n"); }
 }

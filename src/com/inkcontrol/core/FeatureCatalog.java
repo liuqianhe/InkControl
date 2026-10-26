@@ -42,7 +42,11 @@ public final class FeatureCatalog {
         add("motion.scale", "动画", "应用内小动画", "关闭时恢复原厂倍率", "system", "", HOT, false, "0,0.5,1", "关闭动画,半速时长,原时长");
         add("lock.style", "锁屏", "自定义锁屏", "关闭时恢复有效的原厂样式", "systemui", "", HOT, false, "5,6,7,9,10,8", "编辑排版,瑞士网格,像素,编辑排版-横,编辑排版-横-逆,液态玻璃");
         add("lock.weather", "锁屏", "锁屏天气", "跟随原厂桌面组件，或直接读取系统预装的天气App", "systemui", "lock.style", HOT, false, "default,moji", "原厂桌面组件,天气App");
-        add("lock.notify", "锁屏", "锁屏通知", "关闭后锁屏不显示通知；开启后统计系统通知，可切换到微信未读数", "systemui", "lock.style", HOT, false, "system,wechat", "系统通知,微信");
+        // 锁屏底部那一块位置只有一处，两个总开关二选一：「显示通知」或「显示设备状态」。
+        // 互斥由界面统一保证（MainActivity.change 里开一个就自动关另一个），
+        // 所以配置里正常只会有一个为开；设备状态条固定显示无线、蓝牙、声音与飞行四项。
+        add("lock.notify", "锁屏", "显示通知", "锁屏底部显示通知条，来源可选系统通知或微信未读", "systemui", "lock.style", HOT, false, "system,wechat", "系统通知,微信");
+        add("lock.ext", "锁屏", "显示设备状态", "锁屏底部改显示无线网络、蓝牙、声音模式与飞行模式；开启后自动关闭「显示通知」", "systemui", "lock.style", HOT, false, "default", "显示设备状态");
         add("lock.countdown", "锁屏", "锁屏倒数日", "锁屏右侧显示事项倒数，最多三个，事项名可留空", "systemui", "lock.style", HOT, false, "default", "显示倒数日");
         add("lock.countdowns", "锁屏", "倒数日事项", "每组一个事项和日期；日期为空则该组停用", "systemui", "lock.countdown", HOT, false, "@countdowns", "编辑事项");
         add("lock.lyric", "锁屏", "锁屏歌词", "支持现有媒体歌词与 Lyric Getter 广播", "systemui", "", HOT, false, "default", "显示歌词");
