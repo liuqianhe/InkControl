@@ -44,9 +44,19 @@ public final class FeatureCatalog {
         add("lock.weather", "锁屏", "锁屏天气", "跟随原厂桌面组件，或直接读取系统预装的天气App", "systemui", "lock.style", HOT, false, "default,moji", "原厂桌面组件,天气App");
         // 锁屏底部那一块位置只有一处，两个总开关二选一：「显示通知」或「显示设备状态」。
         // 互斥由界面统一保证（MainActivity.change 里开一个就自动关另一个），
-        // 所以配置里正常只会有一个为开；设备状态条固定显示无线、蓝牙、声音与飞行四项。
+        // 所以配置里正常只会有一个为开；设备状态条的四项由 lock.ext.* 单独控制显示与否。
         add("lock.notify", "锁屏", "显示通知", "锁屏底部显示通知条，来源可选系统通知或微信未读", "systemui", "lock.style", HOT, false, "system,wechat", "系统通知,微信");
-        add("lock.ext", "锁屏", "显示设备状态", "锁屏底部改显示无线网络、蓝牙、声音模式与飞行模式；开启后自动关闭「显示通知」", "systemui", "lock.style", HOT, false, "default", "显示设备状态");
+        // 「显示设备状态」：auto 跟随样式（编辑排版/横版用图标，瑞士网格用文字），
+        // icon/text 强制一种。默认 auto 保持各样式原有的观感。
+        add("lock.ext", "锁屏", "显示设备状态", "锁屏底部改显示无线网络、蓝牙、声音模式与飞行模式；开启后自动关闭「显示通知」", "systemui", "lock.style", HOT, false, "auto,icon,text", "跟随样式,图标版,文字版");
+        // 「显示信息修改」是个纯页面（@panel）：自己没有开关，进去才改下面那四格。
+        // 四个开关仍是正式功能（各自写配置、可单独进详情页），只是不再铺在分类列表里。
+        add("lock.ext.edit", "锁屏", "显示信息修改", "选择设备状态里显示哪几项：无线网络、蓝牙、声音模式、飞行模式", "systemui", "lock.ext", HOT, false, "@panel", "修改");
+        // 四项显示开关：默认全开（旧配置里没有这几个键也按显示处理），各自关掉的才记住。
+        add("lock.ext.wifi", "锁屏", "显示无线网络", "锁屏设备状态里显示无线网络开关情况", "systemui", "lock.ext", HOT, false, "default", "显示无线", true);
+        add("lock.ext.bt", "锁屏", "显示蓝牙", "锁屏设备状态里显示蓝牙开关情况", "systemui", "lock.ext", HOT, false, "default", "显示蓝牙", true);
+        add("lock.ext.audio", "锁屏", "显示声音模式", "锁屏设备状态里显示静音 / 有声；只读，不改铃声音量", "systemui", "lock.ext", HOT, false, "default", "显示声音", true);
+        add("lock.ext.airplane", "锁屏", "显示飞行模式", "锁屏设备状态里显示飞行模式开关情况", "systemui", "lock.ext", HOT, false, "default", "显示飞行", true);
         add("lock.countdown", "锁屏", "锁屏倒数日", "锁屏右侧显示事项倒数，最多三个，事项名可留空", "systemui", "lock.style", HOT, false, "default", "显示倒数日");
         add("lock.countdowns", "锁屏", "倒数日事项", "每组一个事项和日期；日期为空则该组停用", "systemui", "lock.countdown", HOT, false, "@countdowns", "编辑事项");
         add("lock.lyric", "锁屏", "锁屏歌词", "支持现有媒体歌词与 Lyric Getter 广播", "systemui", "", HOT, false, "default", "显示歌词");
@@ -90,8 +100,15 @@ public final class FeatureCatalog {
 
     private static void add(String id, String group, String title, String description, String role,
             String dependency, FeatureDefinition.ApplyMode mode, boolean experimental, String values, String labels) {
+        add(id, group, title, description, role, dependency, mode, experimental, values, labels, false);
+    }
+
+    /** 同上；{@code defaultOn} 为真时配置里没有这个键就按开启处理（「显示设备状态」的四项显示开关）。 */
+    private static void add(String id, String group, String title, String description, String role,
+            String dependency, FeatureDefinition.ApplyMode mode, boolean experimental, String values, String labels,
+            boolean defaultOn) {
         FEATURES.add(new FeatureDefinition(id, group, title, description, role, dependency, mode,
-                experimental, values.split(","), labels.split(",")));
+                experimental, values.split(","), labels.split(","), defaultOn));
     }
     public static List<FeatureDefinition> all() { return Collections.unmodifiableList(FEATURES); }
     public static FeatureDefinition get(String id) {

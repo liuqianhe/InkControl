@@ -316,6 +316,15 @@ public final class MainActivity extends Activity {
     /** 字体条目是页内操作（目录、字体列表、应用），没有开关，也不计入开启数量。 */
     private static boolean isFontNode(String id) { return id.startsWith("font."); }
 
+    /**
+     * 没有开关、点进去只做修改的页内操作项：字体（挑字体、应用）与「显示信息修改」
+     * （把设备状态的四项显示开关收进一页）。它们不计入「已开启 / 总数」。
+     */
+    private static boolean isPageNode(String id) { return isFontNode(id) || id.equals("lock.ext.edit"); }
+
+    /** 「显示信息修改」页里的四项显示开关，顺序即锁屏上从左到右的顺序。 */
+    private static final String[] EXT_ITEMS = {"lock.ext.wifi", "lock.ext.bt", "lock.ext.audio", "lock.ext.airplane"};
+
     /** 分类里只有一个「页内操作」项时返回它（字体），调用方直接打开那一页。 */
     private static String singleItem(Guide.Category c) {
         String only = "";
@@ -330,8 +339,8 @@ public final class MainActivity extends Activity {
         int on = 0, pending = 0, faults = 0, total = 0;
         String firstFault = "";
         for (FeatureDefinition feature : FeatureCatalog.all()) {
-            // 字体是页内操作（选文件、应用），没有开关，不计入「已开启 / 总数」
-            if (isFontNode(feature.id)) continue;
+            // 字体与「显示信息修改」都是页内操作，没有开关，不计入「已开启 / 总数」
+            if (isPageNode(feature.id)) continue;
             total++;
             String status = status(feature.id);
             if (snapshot.config.requested(feature.id)) on++;
@@ -517,10 +526,16 @@ public final class MainActivity extends Activity {
             if (c.name.equals("实验室")) continue;   // 实验室入口移到「模块设置」
             int total = 0, enabled = 0, bad = 0;
             for (String[] section : c.sections) for (int i = 1; i < section.length; i++) {
-                if (isFontNode(section[i])) continue;   // 字体是页内操作，没有开关
+                if (isPageNode(section[i])) continue;   // 字体、显示信息修改：页内操作，没有开关
                 total++;
                 if (s.config.requested(section[i])) enabled++;
                 if (status(section[i]).startsWith("异常")) bad++;
+            }
+            // 收在子页里的开关（设备状态那四项）也要算进来，否则「锁屏」的已开启数会少四格
+            for (String id : c.nested) {
+                total++;
+                if (s.config.requested(id)) enabled++;
+                if (status(id).startsWith("异常")) bad++;
             }
             // 整类都是页内操作时（字体），不显示「0/0 已开启」，点卡片直接进那一页
             String single = singleItem(c);
@@ -701,7 +716,10 @@ public final class MainActivity extends Activity {
                         () -> perform("还原桌面设置", () -> { services.restoreGroup("桌面"); return "已提交还原；请回到桌面确认。"; }, true))), 20));
     }
 
-    private View featureRow(FeatureDefinition feature) {
+    private View featureRow(FeatureDefinition feature) { return featureRow(feature, true); }
+
+    /** {@code links} 为假时只留开关、不显示「›」也不可点（用于收在子页里的行）。 */
+    private View featureRow(FeatureDefinition feature, boolean links) {
         if (DisplayAlgorithms.algorithmFeature(feature.id)) {
             String scope = DisplayAlgorithms.scope(feature.id);
             String chosen = snapshot.config.requested(feature.id) ? snapshot.config.value(feature.id) : "default";
@@ -717,6 +735,15 @@ public final class MainActivity extends Activity {
             if (saved != null && !saved.isEmpty() && !saved.equals(FONT_DIR_DEFAULT)) meta += " · 自定义目录";
             return navCard(feature.title, Guide.get(feature.id).summary, meta, false,
                     feature.title + "，打开字体设置", v -> openFeature(feature.id));
+        }
+        // 「显示信息修改」同样是页内操作项：自己没有开关，进去逐项开关
+        if (feature.id.equals("lock.ext.edit")) {
+            int shown = 0;
+            for (String id : EXT_ITEMS) if (snapshot.config.enabled(id)) shown++;
+            String layout = Guide.optionName(FeatureCatalog.get("lock.ext"), snapshot.config.value("lock.ext"));
+            String meta = shown == 0 ? "四项都不显示" : shown + " / " + EXT_ITEMS.length + " 项 · " + layout;
+            return navCard(feature.title, Guide.get(feature.id).summary, meta, shown > 0,
+                    feature.title + "，选择显示哪几项", v -> openFeature(feature.id));
         }
         ApplicationServices.Snapshot s = snapshot;
         boolean requested = s.config.requested(feature.id);
@@ -744,7 +771,7 @@ public final class MainActivity extends Activity {
         content.addView(titleLine(feature, 17, rebootPending));
         String summary = Guide.get(feature.id).summary;
         content.addView(spaced(paragraph(summary.isEmpty() ? feature.description : summary, 13), 5));
-        if (child && shown && !s.config.enabled(feature.dependency))
+        if (child && shown && links && !s.config.enabled(feature.dependency))
             content.addView(spaced(ink.text("需先开启「" + FeatureCatalog.get(feature.dependency).title + "」", 13, Ink.MEDIUM), 5));
         String value = valueSummary(feature, pending ? pendingValue : s.config.value(feature.id), shown);
         content.addView(spaced(ink.text(glyph(status) + " " + status + (value.isEmpty() ? "" : " · " + value), 13, strong ? Ink.BOLD : Ink.REGULAR), 7));
@@ -754,9 +781,15 @@ public final class MainActivity extends Activity {
         LinearLayout.LayoutParams switchParams = new LinearLayout.LayoutParams(-2, -2);
         switchParams.setMargins(ink.dp(10), 0, 0, 0);
         row.addView(toggle, switchParams);
-        row.addView(withMargin(ink.text("›", 24, Ink.REGULAR), 8));
-        row.setContentDescription(ink.t(feature.title + "，打开详情"));
-        row.setOnClickListener(v -> openFeature(feature.id));
+        if (links) {
+            row.addView(withMargin(ink.text("›", 24, Ink.REGULAR), 8));
+            row.setContentDescription(ink.t(feature.title + "，打开详情"));
+            row.setOnClickListener(v -> openFeature(feature.id));
+        } else {
+            // 收在子页里的行：只留开关，点行不跳页（避免返回时跳出「收纳」回到分类页）
+            row.setPadding(ink.dp(child ? 12 : 16), ink.dp(12), ink.dp(16), ink.dp(12));
+            row.setContentDescription(ink.t(feature.title));
+        }
         return row;
     }
 
@@ -819,6 +852,8 @@ public final class MainActivity extends Activity {
         if (DisplayAlgorithms.algorithmFeature(f.id)) { displayAlgorithmPage(f); return; }
         // 字体是「页内操作」，没有开关：目录、字体列表、选择器、恢复与刷新全在一页
         if (isFontNode(f.id)) { fontPage(f); return; }
+        // 「显示信息修改」：四项显示开关收在一页，本页自己没有开关
+        if (f.id.equals("lock.ext.edit")) { extItemsPage(f); return; }
         ApplicationServices.Snapshot s = snapshot;
         Guide.Entry g = Guide.get(f.id);
         boolean requested = s.config.requested(f.id);
@@ -857,8 +892,11 @@ public final class MainActivity extends Activity {
         // 3. 说明
         if (!g.what.isEmpty()) body.addView(spaced(section("它做什么", paragraph(g.what, 15)), 20));
         // 4. 演示 / 示意图
+        // 锁屏样式的效果大图例外：那一页真正的「选项」是带缩略图的样式列表，
+        // 大图放在列表上面会先占一屏、滚过它才看得到能点的项。按用户要求挪到列表之后（见 5b）。
         View visual = visual(f, g, selected);
-        if (visual != null) {
+        boolean visualDeferred = visual != null && g.visual == Guide.Visual.LOCK_STYLE;
+        if (visual != null && !visualDeferred) {
             body.addView(spaced(visual, 16));
             visualView = visual;
             // 预览了别的选项时，在演示下方直接给出“使用”，不必再滚到列表底部。
@@ -870,6 +908,16 @@ public final class MainActivity extends Activity {
         // 5. 选项
         if (g.visual == Guide.Visual.HOLD_CURVE) holdEditor(f, requested, current);
         else if (realValues(f).size() > 1) options(f, g, requested, current, selected);
+        // 5b. 锁屏样式的大预览：挪到选项列表下方，选完往上对一眼效果
+        if (visualDeferred) {
+            body.addView(spaced(visual, 16));
+            visualView = visual;
+            if (realValues(f).size() > 1 && !selected.equals(current))
+                body.addView(spaced(useButton(f, requested, selected), 12));
+        }
+        // 5c. 「显示设备状态」页给出前往「显示信息修改」的入口：四项显示开关收在那一页
+        if (f.id.equals("lock.ext"))
+            body.addView(spaced(ink.button("选择显示哪几项", Ink.Kind.SECONDARY, v -> openFeature("lock.ext.edit")), 14));
         // 6. 注意
         if (!g.cost.isEmpty() || !g.note.isEmpty()) {
             LinearLayout notes = column();
@@ -883,6 +931,40 @@ public final class MainActivity extends Activity {
             for (int i = 0; i < g.terms.size(); i++) terms.addView(spaced(termView(g.terms.get(i)[0], g.terms.get(i)[1]), i == 0 ? 0 : 14));
             body.addView(spaced(section("名词解释", terms), 20));
         }
+    }
+
+    /**
+     * 「显示信息修改」：把设备状态条的四项显示开关收进一页。
+     * 本页自己没有开关（值是 {@code @panel}），改的都是 lock.ext.*。
+     */
+    private void extItemsPage(FeatureDefinition f) {
+        ApplicationServices.Snapshot s = snapshot;
+        Guide.Entry g = Guide.get(f.id);
+        int shown = 0;
+        for (String id : EXT_ITEMS) if (s.config.enabled(id)) shown++;
+        String layout = Guide.optionName(FeatureCatalog.get("lock.ext"), s.config.value("lock.ext"));
+        LinearLayout state = column(heading(shown + " / " + EXT_ITEMS.length + " 项显示 · " + layout, 18),
+                spaced(paragraph(shown == 0 ? "四项都关着，锁屏底部那块位置留空。"
+                        : "锁屏底部那块位置按这四项从左到右排，关掉的项不占位，其余各项自动均分宽度。", 14), 6));
+        // 总开关关着时四项都画不出来：这页只留提示和前往入口，开关仍可先设好
+        if (!s.config.enabled("lock.ext")) dependencyHint(state, "lock.ext", "「显示设备状态」没开时这四项都不显示，开关照常保存。");
+        body.addView(card(state));
+
+        if (!g.what.isEmpty()) body.addView(spaced(section("它做什么", paragraph(g.what, 15)), 20));
+
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        list.setBackground(ink.outline(12));
+        for (int i = 0; i < EXT_ITEMS.length; i++) {
+            if (i > 0) list.addView(ink.rule(1));
+            // 收在页里的行只留开关：点行不跳页，免得返回时跳出「收纳」回到分类列表
+            list.addView(featureRow(FeatureCatalog.get(EXT_ITEMS[i]), false));
+        }
+        body.addView(spaced(section("显示哪几项", list), 16));
+        body.addView(spaced(ink.button("画成图标版还是文字版（当前：" + layout + "）", Ink.Kind.SECONDARY,
+                v -> openFeature("lock.ext")), 14));
+
+        if (!g.cost.isEmpty()) body.addView(spaced(section("需要知道", paragraph(g.cost, 14)), 20));
     }
 
     /** 算法页直接选值，保持现状即撤下本页覆盖；不改旧视频、锁屏细线或独立迟滞。 */
@@ -1027,7 +1109,7 @@ public final class MainActivity extends Activity {
                         "实际全程约 " + seconds(Integer.parseInt(value) * 11.65 + 117) + " 秒。");
             case LOCK_STYLE: {
                 int frameWidth = Math.min(ink.dp(240), width());
-                View phone = phone(LockPreview.create(this, Integer.parseInt(value)), frameWidth);
+                View phone = phone(LockPreview.create(this, Integer.parseInt(value), snapshot.config), frameWidth);
                 return framed("效果图 · " + Guide.optionName(f, value), phone, "图中为样例数据，实际显示你的时间、天气和音乐。");
             }
             case DESKTOP_THEME: {
@@ -1133,7 +1215,7 @@ public final class MainActivity extends Activity {
             card.setBackground(ink.box(Ink.PAPER, Ink.INK, isSelected ? 3 : 1.5f, 12));
             if (thumbs) {
                 View thumb;
-                if (g.visual == Guide.Visual.LOCK_STYLE) thumb = LockPreview.create(this, Integer.parseInt(value));
+                if (g.visual == Guide.Visual.LOCK_STYLE) thumb = LockPreview.create(this, Integer.parseInt(value), snapshot.config);
                 else thumb = new MotionDemo(this, ink, true).configure(f.id.substring(7), value, steps(), origin(), direction(), spread());
                 FrameLayout frame = new FrameLayout(this);
                 frame.setPadding(ink.dp(2), ink.dp(2), ink.dp(2), ink.dp(2));

@@ -56,6 +56,7 @@ final class LockCanvas extends View {
     private final Path path = new Path();
     private final Matrix mat = new Matrix();
     private final RectF box = new RectF();
+    private final android.graphics.Rect inkRect = new android.graphics.Rect();
     private final TextPaint tp = new TextPaint();
 
     LockCanvas(Context context) {
@@ -253,6 +254,17 @@ final class LockCanvas extends View {
         }
         c.drawText(s, cx - w / 2f, top - tp.ascent(), tp);
         tp.setTextScaleX(1f);
+    }
+
+    /**
+     * 当前字体字号下 s 的墨迹中线相对基线的偏移（负值表示在基线上方）。
+     * 大小字混排时（例如「通知」13sp 配 26sp 的条数）靠它对齐视觉中线：
+     * 同一条基线只会让大字显得高、小字显得往下掉，看上去像两块东西。
+     */
+    private float inkMid(String s) {
+        inkRect.setEmpty();
+        tp.getTextBounds(s, 0, s.length(), inkRect);
+        return (inkRect.top + inkRect.bottom) / 2f;
     }
 
     /**
@@ -555,60 +567,166 @@ final class LockCanvas extends View {
     }
 
     /**
-     * 「设备状态」条：与通知条同一块位置（y 613、高 42）。四项均分版心宽度、各自居中：
-     * 左边一个类别图标（16×16 逻辑框内矢量作画，不引外部图片），右边是该类别当前状态，
-     * 图标与文字按同一视觉中线对齐、文字统一 13sp 加粗。不画竖线（与倒数日同一套观感）。
-     * 四项固定全显示，没有逐项开关。
+     * 「设备状态」条：左边一个类别图标（16×16 逻辑框内矢量作画，不引外部图片），
+     * 右边是该类别当前状态；图标与文字按同一视觉中线对齐、文字 13sp 加粗。
+     * 不画竖线（与倒数日同一套观感）。
+     *
+     * 画图标版还是文字版由「显示设备状态」的选项决定：auto 跟随样式（瑞士网格用文字版，
+     * 其余用图标版），icon / text 强制一种。文字版画成「无线|开」——类型与状态同为 13sp，
+     * 中间一条 1px 竖线，不用「无线 开」那种一大一小、看起来不像一组的排法。
+     * 画哪几项由 lock.ext.wifi/.bt/.audio/.airplane 决定，关掉的项不占位、其余各项重新均分。
+     *
+     * 竖版（x24 w312）单行四格，每格 78 宽；横版右下那块只有 155 宽，四格各 38.75，
+     * 图标 +「静音」这类两字值一定崩格，所以这里按实际测量自动降级成 2×2（上行两项、下行两项）。
+     * 判定用的是「每格装得下的最宽一项」，不是框总宽——总宽够但单格挤同样会串字。
      */
     private void extBar(float x, float top, float w, float h) {
-        List<Integer> types = new ArrayList<>();
-        List<String> values = new ArrayList<>();
-        if (data.showWifi) { types.add(IC_WIFI); values.add(data.wifi ? "开" : "关"); }
-        if (data.showBt) { types.add(IC_BT); values.add(data.bt ? "开" : "关"); }
-        if (data.showAudio) { types.add(IC_AUDIO); values.add(data.silent ? "静音" : "有声"); }
-        if (data.showAirplane) { types.add(IC_AIRPLANE); values.add(data.airplane ? "开" : "关"); }
-        final int n = types.size();
+        List<Integer> pick = extPicks();
+        final int n = pick.size();
         if (n == 0) return;
+        final boolean text = textLayout();
         frame(x, top, w, h, 1);
-        final float cellW = w / n;
-        final float baseline = top + h / 2f + 4.5f;
-        // 图标对齐的是「文字墨迹」，不是 16×16 方框：13sp 中文墨迹约 11.5 高、视觉中线在基线上方 5。
-        // 每个图标的墨迹在 16 空间里占的纵向范围不同（wifi 天生扁、飞机最高），
-        // 所以逐个把墨迹等比缩放到同一高度、墨迹中心压到 textMid，四格看上去才是齐的。
-        final float textMid = baseline - 5f, gap = 4;
-        for (int i = 0; i < n; i++) {
-            String value = values.get(i);
-            int type = types.get(i);
-            float[] ink = INK_BOX[type - 1];
-            float inkW = ink[2] - ink[0];
-            float k = INK_H[type - 1] / (ink[3] - ink[1]);
-            font(sSerifBold, 13, 0, INK, true);
-            float vw = tp.measureText(value);
-            float total = inkW * k + gap + vw;
-            if (total > cellW - 4) {                 // 极窄格子兜底：图标让位，只留文字
-                textCenterBase(value, x + cellW * (i + 0.5f), baseline, cellW - 6);
-                continue;
+        // 单行能否成立：逐项量「图标 / 类型名 + 间隔 + 状态值」，任何一项超过格宽就换 2×2
+        boolean single = true;
+        for (int i = 0; i < n && single; i++)
+            single = extItemWidth(pick.get(i), text) <= w / n - 4;
+        if (single) {
+            for (int i = 0; i < n; i++) extCell(pick.get(i), x + w * i / n, top, w / n, h, text);
+        } else {
+            // 降级成两列（行数按项数取整），按行优先填：四项正好上行两项、下行两项，三项是上二下一。
+            // 每列先按「该列最宽的左半 + 最宽的右半」拼一行再整列居中，图标左沿与文字左沿才对得上；
+            // 若各自居中，wifi 墨迹宽 18.4、喇叭 13.2，两行图标起点会错开 2-3px，看上去不齐。
+            final int rows = (n + 1) / 2;
+            final float cw = w / 2f, rh = h / rows, gap = extGap(text);
+            for (int col = 0; col < 2; col++) {
+                float lead = 0, tail = 0;
+                boolean any = false;
+                for (int r = 0; r < rows; r++) {
+                    final int i = r * 2 + col;
+                    if (i >= n) break;
+                    lead = any ? Math.max(lead, extLeadWidth(pick.get(i), text)) : extLeadWidth(pick.get(i), text);
+                    tail = any ? Math.max(tail, extTailWidth(pick.get(i), text)) : extTailWidth(pick.get(i), text);
+                    any = true;
+                }
+                if (!any) continue;
+                final float start = x + cw * col + (cw - (lead + gap + tail)) / 2f;
+                for (int r = 0; r < rows; r++) {
+                    final int i = r * 2 + col;
+                    if (i >= n) break;
+                    extCellAt(pick.get(i), start, lead, top + rh * r, rh, text);
+                }
             }
-            float start = x + cellW * (i + 0.5f) - total / 2f;
-            // 把图标的墨迹左沿/中线接到 start、textMid 上，方框位置按墨迹反推
-            drawIcon(type, start - ink[0] * k, textMid - (ink[1] + ink[3]) / 2f * k, 16 * k);
-            font(sSerifBold, 13, 0, INK, true);
-            c.drawText(value, start + inkW * k + gap, baseline, tp);
         }
+    }
+
+    /** 要显示的四项（下标即 EXT_TYPES 顺序），按配置里的四个显示开关过滤 */
+    private List<Integer> extPicks() {
+        List<Integer> pick = new ArrayList<>();
+        if (data.showWifi) pick.add(0);
+        if (data.showBt) pick.add(1);
+        if (data.showAudio) pick.add(2);
+        if (data.showAirplane) pick.add(3);
+        return pick;
+    }
+
+    /** 该项当前状态的白话值 */
+    private String extValue(int index) {
+        switch (index) {
+            case 0: return data.wifi ? "开" : "关";
+            case 1: return data.bt ? "开" : "关";
+            case 2: return data.silent ? "静音" : "有声";
+            default: return data.airplane ? "开" : "关";
+        }
+    }
+
+    /** 图标版还是文字版：auto 跟随样式，瑞士网格是纯文字排版，固定用文字版 */
+    private boolean textLayout() {
+        if ("text".equals(data.extLayout)) return true;
+        if ("icon".equals(data.extLayout)) return false;
+        return style == LockStyle.SWISS;
+    }
+
+    /** 左半部分（图标墨迹 / 类型名）与右半部分（状态值）之间的间隔；文字版要给竖线留位 */
+    private static float extGap(boolean text) { return text ? 11 : 4; }
+
+    /** 左半部分的宽度：图标版的图标墨迹宽，文字版的类型名宽 */
+    private float extLeadWidth(int index, boolean text) {
+        if (!text) return extIconWidth(EXT_TYPES[index]);
+        font(sSerifBold, 13, 0, INK, true);
+        return tp.measureText(EXT_NAMES[index]);
+    }
+
+    /** 右半部分（状态值）的宽度 */
+    private float extTailWidth(int index, boolean text) {
+        font(sSerifBold, 13, 0, INK, true);
+        return tp.measureText(extValue(index));
+    }
+
+    /** 图标墨迹在目标高度下的实际宽度（逻辑像素） */
+    private float extIconWidth(int type) {
+        float[] ink = INK_BOX[type - 1];
+        return (ink[2] - ink[0]) * (INK_H[type - 1] / (ink[3] - ink[1]));
+    }
+
+    /** 一格「图标 + 状态」的实测宽度（逻辑像素），用于判断单行是否放得下 */
+    private float extItemWidth(int index, boolean text) {
+        return extLeadWidth(index, text) + extGap(text) + extTailWidth(index, text);
+    }
+
+    /**
+     * 画一格（单行用）：内容在格内水平居中，图标墨迹与文字墨迹共用一条中线。
+     * 图标对齐的是「文字墨迹」而不是 16×16 方框：13sp 中文墨迹约 11.5 高、视觉中线在基线上方 5。
+     * 每个图标在 16 空间里墨迹的纵向范围不同（wifi 天生扁、飞机最高），逐个等比缩放后墨迹才齐。
+     */
+    private void extCell(int index, float x, float top, float cw, float ch, boolean text) {
+        float lead = extLeadWidth(index, text);
+        float total = lead + extGap(text) + extTailWidth(index, text);
+        if (total > cw - 4) {                        // 极窄格子兜底：图标与类型让位，只留状态值
+            font(sSerifBold, 13, 0, INK, true);
+            textCenterBase(extValue(index), x + cw / 2f, top + ch / 2f + 4.5f, cw - 6);
+            return;
+        }
+        extCellAt(index, x + cw / 2f - total / 2f, lead, top, ch, text);
+    }
+
+    /** 左半部分左沿落在 start、宽度固定为 lead；状态值接在 lead + gap 之后，基线在格内垂直居中 */
+    private void extCellAt(int index, float start, float lead, float top, float ch, boolean text) {
+        final float baseline = top + ch / 2f + 4.5f;
+        final float textMid = baseline - 5f;
+        final String value = extValue(index);
+        if (text) {
+            font(sSerifBold, 13, 0, INK, true);
+            c.drawText(EXT_NAMES[index], start, baseline, tp);
+            // 1px 竖线：与文字墨迹同高，落在两段的正中间，1-bit 下比字形「|」干净
+            rect(start + lead + (extGap(true) - 1) / 2f, textMid - 5f, 1, 10, INK);
+            c.drawText(value, start + lead + extGap(true), baseline, tp);
+            return;
+        }
+        final int type = EXT_TYPES[index];
+        float[] ink = INK_BOX[type - 1];
+        float k = INK_H[type - 1] / (ink[3] - ink[1]);
+        // 把图标的墨迹左沿/中线接到 start、textMid 上，方框位置按墨迹反推
+        drawIcon(type, start - ink[0] * k, textMid - (ink[1] + ink[3]) / 2f * k, 16 * k);
+        font(sSerifBold, 13, 0, INK, true);
+        c.drawText(value, start + lead + extGap(false), baseline, tp);
     }
 
     /** 每个图标在 16 空间里墨迹的实际外框 {左, 上, 右, 下}：用来把墨迹对齐到文字，而不是对齐 16 方框 */
     private static final float[][] INK_BOX = {
             {0.10f, 4.70f, 15.90f, 14.55f},   // IC_WIFI（三段弧 + 圆点）
             {4.20f, 2.60f, 11.80f, 13.40f},   // IC_BT
-            {1.80f, 2.20f, 13.80f, 13.80f},   // IC_AUDIO（喇叭 + 声波）
-            {0.80f, 1.20f, 15.20f, 14.60f},   // IC_AIRPLANE
+            {1.20f, 1.60f, 14.60f, 14.40f},   // IC_AUDIO（喇叭 + 右侧两道声波）
+            {0.50f, 2.00f, 15.50f, 14.20f},   // IC_AIRPLANE（翼展 15 × 机身长 12.2）
     };
 
     /** 图标的目标墨迹高度：细线图标按 11.5 与文字等重；实心图标视觉重量小，要摸到 12.8～13.2 才不显小 */
     private static final float[] INK_H = {11.5f, 11.5f, 12.8f, 13.2f};
 
     private static final int IC_WIFI = 1, IC_BT = 2, IC_AUDIO = 3, IC_AIRPLANE = 4;
+
+    /** 设备状态四项，顺序即界面上的显示顺序 */
+    private static final int[] EXT_TYPES = {IC_WIFI, IC_BT, IC_AUDIO, IC_AIRPLANE};
+    private static final String[] EXT_NAMES = {"无线", "蓝牙", "声音", "飞行"};
 
     /**
      * 16×16 逻辑框内的单色图标：x/y 为左上角，s 为边长，按比例缩放。
@@ -643,25 +761,26 @@ final class LockCanvas extends View {
             path.moveTo(8, 2.6f); path.lineTo(11.8f, 5.7f); path.lineTo(4.2f, 10.3f);
             path.moveTo(8, 13.4f); path.lineTo(11.8f, 10.3f); path.lineTo(4.2f, 5.7f);
         } else if (type == IC_AUDIO) {
-            // 实心喇叭 + 两道声波（有无声音由右侧状态文字表达）
-            path.moveTo(1.8f, 5.4f); path.lineTo(4.9f, 5.4f); path.lineTo(8.2f, 2.2f);
-            path.lineTo(8.2f, 13.8f); path.lineTo(4.9f, 10.6f); path.lineTo(1.8f, 10.6f);
+            // 实心喇叭（正面 1.2-4.2、锥口 8.6），声波弧在右侧 3 点钟方向（见下方 arc 调用）
+            path.moveTo(1.2f, 5.2f); path.lineTo(4.2f, 5.2f); path.lineTo(8.6f, 1.6f);
+            path.lineTo(8.6f, 14.4f); path.lineTo(4.2f, 10.8f); path.lineTo(1.2f, 10.8f);
             path.close();
         } else if (type == IC_AIRPLANE) {
-            // 俯视飞机：机头朝上，机翼几乎横平（16px 下翅膀不够宽会读成箭头），窄机身 + 小平尾
-            float[] pts = {8, 1.2f, 8.9f, 4.6f, 15.2f, 7.0f, 15.2f, 8.6f, 8.9f, 7.5f,
-                    8.9f, 11.0f, 11.4f, 12.4f, 11.4f, 13.4f, 8.9f, 13.0f, 8.9f, 14.6f,
-                    7.1f, 14.6f, 7.1f, 13.0f, 4.6f, 13.4f, 4.6f, 12.4f, 7.1f, 11.0f,
-                    7.1f, 7.5f, 0.8f, 8.6f, 0.8f, 7.0f, 7.1f, 4.6f};
+            // 俯视飞机：机头朝上。三条硬约束——翼展（15）要明显大于机身长（12.2），否则整块接近正方形，
+            // 在 1-bit 下只剩「十字」；翼厚 2.2 别低于 2，薄了会被量化成一条线；平尾只有翼展一半宽。
+            float[] pts = {8.0f, 2.0f, 9.0f, 5.4f, 15.5f, 7.0f, 15.5f, 9.2f, 9.0f, 8.0f,
+                    9.0f, 10.8f, 11.3f, 12.2f, 11.3f, 13.4f, 9.0f, 12.8f, 9.0f, 14.2f,
+                    7.0f, 14.2f, 7.0f, 12.8f, 4.7f, 13.4f, 4.7f, 12.2f, 7.0f, 10.8f,
+                    7.0f, 8.0f, 0.5f, 9.2f, 0.5f, 7.0f, 7.0f, 5.4f};
             path.moveTo(pts[0], pts[1]);
             for (int i = 2; i < pts.length; i += 2) path.lineTo(pts[i], pts[i + 1]);
             path.close();
         } else return;
         stamp(x, y, k);
         c.drawPath(path, type == IC_BT ? line : fill);
-        if (type == IC_AUDIO) {                 // 喇叭右侧两道声波弧
+        if (type == IC_AUDIO) {                 // 喇叭右侧两道声波弧（315° 起扫 90° = 正右半圆）
             path.reset();
-            arc(8.6f, 8.0f, 3.0f); arc(8.6f, 8.0f, 5.0f);
+            arc(9.0f, 8.0f, 3.2f, -45); arc(9.0f, 8.0f, 5.6f, -45);
             stamp(x, y, k);
             c.drawPath(path, line);
         }
@@ -675,10 +794,13 @@ final class LockCanvas extends View {
         path.transform(mat);
     }
 
-    /** 以 (cx, cy) 为圆心、r 为半径，追加正上方 90°（225°→315°）的圆弧到当前 path */
-    private void arc(float cx, float cy, float r) {
+    /** 以 (cx, cy) 为圆心、r 为半径，追加正上方 90°（225°→315°）的圆弧到当前 path（wifi 用） */
+    private void arc(float cx, float cy, float r) { arc(cx, cy, r, 225); }
+
+    /** 同上，可指定起始角度。Android 的 0° 在 3 点钟方向、顺时针为正：喇叭声波用 -45（315°）扫出右半圆 */
+    private void arc(float cx, float cy, float r, float start) {
         box.set(cx - r, cy - r, cx + r, cy + r);
-        path.addArc(box, 225, 90);
+        path.addArc(box, start, 90);
     }
 
     // ───────────────────────── A' · 编辑排版-横（横版构图） ─────────────────────────
@@ -696,7 +818,7 @@ final class LockCanvas extends View {
     private void editorialLand() {
         final float LX = 42;                      // 左栏左沿（样张：表头/方框/格言均锚定此列；左缘让给解锁提示列）
         final float QW = 375;                     // 格言栏宽（x 42-417；横版下方不够高，右侧带整块左移让给电量/天气）
-        final float BX = 605;                     // 通知框左沿（右下角，与格言栏右端 417 错开）
+        final float BX = 545;                     // 通知/状态框左沿（贴着电量带右侧，右缘 700 与倒数日框对齐）
 
         // ── 顶部：合并表头（第N日 | 中文日期·星期 | 农历 | 农历日期；y 参考样张 ≈60）──
         // 「|」小间隔分隔；农历日期缺失时只保留「第 N 日 | 中文日期·星期」。
@@ -708,10 +830,10 @@ final class LockCanvas extends View {
 
         // ── 底部中：电量 + 天气（样张移至右下方，与格言同一水平带）──
         // 横版只有 360 高，竖版的三列网格放不下：这一带压成两行——电量一行、天气一行。
-        // 左沿贴住格言栏右端（417 后留 3px）；电量行右界 BATT_R2 要给通知框（BX=605）让位，
+        // 左沿贴住格言栏右端（417 后留 3px）；电量行右界 BATT_R2 要给通知框（BX=545）让位，
         // 天气行在通知框下方，可以一直用到倒数日框右缘 WEA_R2，宽度足够写下长天气名。
         final float BATT_X = 420f;                 // 电量/天气共用左沿（格言栏右端 417 后留 3px）
-        final float BATT_R2 = 600f;                // 电量行右界（通知框 BX=605 前留 5px）
+        final float BATT_R2 = 540f;                // 电量行右界（通知框 BX=545 前留 5px）
         final float WEA_R2 = 700f;                 // 天气行右界（在通知框下方，占满到倒数日框右缘）
         String label = data.charging ? "充电中" : "电量";
         String val = data.battery < 0 ? "—" : data.battery + "%";
@@ -748,21 +870,33 @@ final class LockCanvas extends View {
             paragraph(data.subText, LX, my, QW, 1.35f, 2);
         }
 
-        // ── 通知框（样张：右下角细框，整体左移与电量成组；白底细框黑字）──
-        final float BH = 40;
-        final float BW = 95;                          // 外框宽（x 605-700，右缘与倒数日框对齐）
-        final float boxY = 280;                        // 框顶（垂直居中对齐电量/格言带）
-        if (!data.hideNotify) {
+        // ── 通知框 / 设备状态框（白底细框黑字；左移贴着电量带，右缘与倒数日框对齐）──
+        // 原来框在右下角 x605、只有 95 宽，通知挤在边缘且离电量一整条空白。左移到 545 后宽 155：
+        // 通知能居中留白，设备状态也能靠 extBar 的 2×2 降级塞下四项。
+        // 高度 40 → 48、框顶 280 → 272（框底 320，仍压在天气行字身顶 323 之上）。
+        final float BH = 48;
+        final float BW = 155;                          // 外框宽（x 545-700）
+        final float boxY = 272;                        // 框顶（水平带上移，与电量/格言带居中对齐）
+        if (data.extMode) {
+            // 「显示设备状态」：同一块位置改画四项开关状态（与竖版同一套图标与文字）
+            extBar(BX, boxY, BW, BH);
+        } else if (!data.hideNotify) {
+            final float bBase = boxY + BH / 2f + 5f;   // 框内文字基线（垂直居中）
             if (data.notifications > 0) {
                 frame(BX, boxY, BW, BH, 1);
+                String rest = "　" + data.notifications + " 条";
                 font(sSerifBold, 15, 0, INK, true);
-                float w = textBase(data.notificationLabel, BX + 14, boxY + 26, 0);
+                float w = tp.measureText(data.notificationLabel);
                 font(sSerif, 15, 0, INK, true);
-                textBase("　" + data.notifications + " 条", BX + 14 + w, boxY + 26, BW - 28);
+                float start = BX + (BW - (w + tp.measureText(rest))) / 2f;
+                font(sSerifBold, 15, 0, INK, true);
+                textBase(data.notificationLabel, start, bBase, 0);
+                font(sSerif, 15, 0, INK, true);
+                textBase(rest, start + w, bBase, 0);
             } else if (data.notifications == 0) {
                 frame(BX, boxY, BW, BH, 1);
                 font(sSerif, 15, 0, INK, true);
-                textBase("暂无新消息", BX + 14, boxY + 26, 0);
+                textCenterBase("暂无新消息", BX + BW / 2f, bBase, BW - 24);
             }
         }
 
@@ -904,10 +1038,14 @@ final class LockCanvas extends View {
             text(top[i], x, 34, col);
         }
 
-        // 两行叠放的特大时间
-        font(sHeavy, 196, -0.07f, INK, true);
-        textBase(hour(), L - 6, 219, 290);
-        textBase(fmt("mm"), L - 6, 376, 290);
+        // 两行叠放的特大时间。行距必须大于字身，而且要按「最高的字形」留够，不能靠字形的偶然形状：
+        // 同样字号下「00」「20」看上去松，是因为 2 是斜肩、0 是圆弧；换成「11」「18」就会觉得贴在一起。
+        // 实测 196sp 的墨迹高约 141（数字没有降部，墨迹正好落在基线上），原来两行基线 204/390
+        // 只剩 45 的间隙。现在 184sp、基线 188/392：墨迹 56-188 与 260-392，间隙 72（设备像素 144），
+        // 上沿离表头 10、下沿离分隔线 8，两行的主次关系不变，中间真正透气。
+        font(sHeavy, 184, -0.07f, INK, true);
+        textBase(hour(), L - 6, 188, 290);
+        textBase(fmt("mm"), L - 6, 392, 290);
 
         // 竖排日期
         String vertical = chineseDate() + " " + weekCn();
@@ -922,7 +1060,7 @@ final class LockCanvas extends View {
             vy += 18.2f;
         }
 
-        float by = 411;
+        float by = 400;
         float ny;
         if (hasWeather()) {
             boolean range = data.high != null && data.low != null;
@@ -933,7 +1071,7 @@ final class LockCanvas extends View {
             text(dash(data.weather), L + 16, by + 32, 140);
             font(sHeavy, 28, -0.03f, INK, true);
             text(range ? strip(data.high) + " / " + strip(data.low) : dash(data.temperature), L + 164, by + 32, 140);
-            ny = 517;
+            ny = 500;
         } else {
             ny = by;
         }
@@ -942,30 +1080,74 @@ final class LockCanvas extends View {
         text(data.playing ? "NOW" : "DAILY", L, ny + 9, COL);
         text(data.playing ? "PLAYING" : "QUOTE", L, ny + 22, COL);
         float tx = L + COL + GAP, tw = CW - COL - GAP;
-        float th = 0;
+        // 有天气时下面还要塞「通知」带，格言块收紧到 2 行，保证不压到带子的分隔线
+        final int quoteLines = hasWeather() ? 2 : 3;
+        float th = 0, sh = 0;
         if (data.text != null) {
             font(sSansBold, 17, 0, INK, true);
-            th = paragraph(data.text, tx, ny + 8, tw, 1.45f, 3);
+            th = paragraph(data.text, tx, ny + 8, tw, 1.45f, quoteLines);
         }
         if (data.track != null) {
             font(sSans, 12, 0, INK, true);
             text(data.track, tx, ny + 8 + th + 4, tw);
+            sh = 15;
         } else if (data.subText != null) {
             font(sSans, 12, 0, INK, true);
-            paragraph(data.subText, tx, ny + 8 + th + 4, tw, 1.4f, 3);
+            sh = paragraph(data.subText, tx, ny + 8 + th + 4, tw, 1.4f, quoteLines);
         }
 
-        // 底部数据行：隐藏通知时只留「电量 / 第几周」两格（不摆空位）
-        float fy = 640;
+        // ── 通知带 / 设备状态带：底部数据行正上方一条（1px 分隔线 + 同一基线的一行数据）──
+        // 位置跟随格言块底部下移，但落在 578-604：下限保证和底部数据行成组（不留半屏空白），
+        // 上限保证基线 634 之后仍留 6px 给 640 的 4px 横线。
+        final float quoteBottom = ny + 8 + th + (th > 0 ? 4 : 0) + sh;
+        final float bandTop = Math.max(578, Math.min(604, quoteBottom + 18));
+        final boolean bandExt = data.extMode;
+        final boolean bandNotify = !bandExt && !data.hideNotify;
+        if (bandExt || bandNotify) {
+            rect(L, bandTop, CW, 1, INK);
+            final float base = bandTop + 30;
+            if (bandExt) {
+                // 四项各占一格（74+8）。类型与状态同为 13sp、同一条基线，中间一条 1px 竖线，
+                // 画成「无线|开」：原来类型 10sp、状态 15sp，一大一小既不像一组，也和底部
+                // 「大数字 + 小标签」的口径打架。瑞士网格通篇不用图标，这一带固定用文字版。
+                List<Integer> pick = extPicks();
+                for (int k = 0; k < pick.size(); k++) {
+                    final int i = pick.get(k);
+                    final float x = L + k * (COL + GAP);
+                    font(sSans, 13, 0, INK, true);
+                    final float lw = tp.measureText(EXT_NAMES[i]);
+                    textBase(EXT_NAMES[i], x, base, 0);
+                    rect(x + lw + 5, base - 9, 1, 10, INK);
+                    font(sSansBold, 13, 0, INK, true);
+                    textBase(extValue(i), x + lw + 11, base, COL - lw - 11);
+                }
+            } else {
+                // 「通知」与条数贴在一起、按墨迹中线对齐：原来标签 10sp 贴左沿、条数 28sp 贴右沿，
+                // 中间隔了三百像素，既远又不是一条视觉中线。
+                final String count = data.notifications < 0 ? "—" : String.valueOf(data.notifications);
+                font(sHeavy, 26, -0.02f, INK, true);
+                final float countW = tp.measureText(count);
+                final float mid = base + inkMid(count);        // 大数字的墨迹中线
+                font(sSans, 13, 0.06f, INK, true);
+                final String label = data.notificationLabel;
+                final float labelW = tp.measureText(label) - tp.getLetterSpacing() * tp.getTextSize();
+                final float numX = L + labelW + 9;
+                textBase(label, L, mid - inkMid(label), 0);
+                font(sHeavy, 26, -0.02f, INK, true);
+                textBase(count, numX, base, 0);
+                font(sSans, 12, 0, INK, true);
+                textBase("条", numX + countW + 4, mid - inkMid("条"), 0);
+            }
+        }
+
+        // 底部数据行：电量 / 第几周 / 第几天（通知数已单独成带，不再占这一行）
+        // 三格同一套排版：大号数字 + 下方小字标签，与「第几周」完全一致；
+        // 天数取的是「编辑排版」表头「第 N 日」同一个 Calendar.DAY_OF_YEAR。
+        final float fy = 640;
         rect(L, fy, CW, 4, INK);
-        final boolean showNotify = !data.hideNotify;
-        String[] nums = showNotify
-                ? new String[]{batteryText(), data.notifications < 0 ? "—" : String.valueOf(data.notifications),
-                        String.valueOf(data.now.get(Calendar.WEEK_OF_YEAR))}
-                : new String[]{batteryText(), String.valueOf(data.now.get(Calendar.WEEK_OF_YEAR))};
-        String[] labels = showNotify
-                ? new String[]{"电量 %", data.notificationLabel, "第几周"}
-                : new String[]{"电量 %", "第几周"};
+        String[] nums = {batteryText(), String.valueOf(data.now.get(Calendar.WEEK_OF_YEAR)),
+                String.valueOf(data.now.get(Calendar.DAY_OF_YEAR))};
+        String[] labels = {"电量 %", "第几周", "第几天"};
         for (int i = 0; i < nums.length; i++) {
             float x = L + i * (COL + GAP);
             font(sHeavy, 30, -0.04f, INK, true);
@@ -1061,6 +1243,33 @@ final class LockCanvas extends View {
             float lw = tp.measureText(data.notificationLabel);
             text(data.notificationLabel, IN + IW - nw - 6 - lw, y3 + 15, 0);
             icon(ICON_NOTIFY, IN + IW - nw - 6 - lw - 30, y3 + 12, 1.5f, INK);
+        }
+
+        // 窗口 4：设备状态（「显示设备状态」开启时）
+        // 原通知位在电量同一行的右端，横排塞不下四项；按用户要求另起一块、放在电池窗口正下方，
+        // 方框沿用电池那块的老式窗口（2px 边框 + 4px 实心投影，无标题），每项「图标在上、ON/OFF 在下」。
+        // 像素风整体是英文标牌（CLOCK / NOW PLAYING / SLIDE TO UNLOCK），这里也只用 ON / OFF，不混中文；
+        // 因此「文字版」在这个样式里不适用，只用图标。关掉的那几项不占位，剩下几项均分整行。
+        if (data.extMode) {
+            List<Integer> pick = extPicks();
+            if (!pick.isEmpty()) {
+                final float y4 = y3 + 48 + 22;         // 与其它块之间一致的 22 间距
+                final float H4 = 58;
+                window(X, y4, WW, H4, null);
+                final boolean[] on = {data.wifi, data.bt, !data.silent, data.airplane};
+                final float cw = IW / pick.size();
+                for (int i = 0; i < pick.size(); i++) {
+                    final float cx = IN + cw * (i + 0.5f);
+                    // 图标：墨迹高统一 13，墨迹中心压在 y4+22，与竖版同一套 INK_BOX/INK_H 换算
+                    int type = EXT_TYPES[pick.get(i)];
+                    float[] ink = INK_BOX[type - 1];
+                    float k = 13f / (ink[3] - ink[1]);
+                    float inkW = (ink[2] - ink[0]) * k;
+                    drawIcon(type, cx - inkW / 2f - ink[0] * k, y4 + 22 - (ink[1] + ink[3]) / 2f * k, 16 * k);
+                    String label = on[pick.get(i)] ? "ON" : "OFF";
+                    pixText(label, cx - pixWidth(label, 1.5f) / 2f, y4 + 35, 1.5f);
+                }
+            }
         }
 
         // 底部：滑动解锁

@@ -34,9 +34,13 @@ IC_LIB={shlex.quote(posix(SCHEMA))}
         return result.stdout
     def test_all_defaults_disabled(self):
         self.shell('ic_validate "$IC_CONFIG"\n')
+        # 四个设备状态显示开关是 defaultOn（配置里没有这个键就按显示处理），
+        # 所以它们在默认配置里就写 1；其余开关仍必须全部是 0。
+        default_on = {'lock.ext.wifi', 'lock.ext.bt', 'lock.ext.audio', 'lock.ext.airplane'}
         for line in self.config.read_text().splitlines():
             key,value=line.split('=',1)
-            if key not in ('version','revision') and not key.endswith('.value'): self.assertEqual(value,'0')
+            if key not in ('version','revision') and not key.endswith('.value'):
+                self.assertEqual(value, '1' if key in default_on else '0', key)
     def test_conflicting_module_blocks_only_while_enabled(self):
         modules=self.root/'modules'; (modules/'eink_display').mkdir(parents=True)
         prefix='IC_MODULES='+shlex.quote(posix(modules))+'\n'

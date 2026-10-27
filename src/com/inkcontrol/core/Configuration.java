@@ -16,7 +16,12 @@ public final class Configuration {
         this.switches = Collections.unmodifiableMap(switches);
         this.options = Collections.unmodifiableMap(options);
     }
-    public boolean requested(String id) { FeatureCatalog.get(id); return Boolean.TRUE.equals(switches.get(id)); }
+    /** 配置里没写过这个键时，取功能自己的 defaultOn（「显示设备状态」的四项显示开关默认开）。 */
+    public boolean requested(String id) {
+        FeatureDefinition definition = FeatureCatalog.get(id);
+        Boolean stored = switches.get(id);
+        return stored == null ? definition.defaultOn : stored;
+    }
     public String value(String id) { return options.containsKey(id) ? options.get(id) : FeatureCatalog.get(id).defaultValue(); }
     public boolean enabled(String id) {
         FeatureDefinition definition = FeatureCatalog.get(id);
@@ -39,7 +44,7 @@ public final class Configuration {
         Map<String, String> values = new LinkedHashMap<>(options);
         for (FeatureDefinition feature : FeatureCatalog.all()) {
             if (group.equals(feature.group)) {
-                flags.put(feature.id, false);
+                flags.put(feature.id, feature.defaultOn);
                 values.put(feature.id, feature.defaultValue());
             }
         }
@@ -72,8 +77,7 @@ public final class Configuration {
         boolean hasExtKey = fields.containsKey("lock.ext");
         for (FeatureDefinition feature : FeatureCatalog.all()) {
             String flag = fields.remove(feature.id), value = fields.remove(feature.id + ".value");
-            if (flag == null) flag = "0";
-            if (!"0".equals(flag) && !"1".equals(flag)) throw new IllegalArgumentException("功能开关无效");
+            if (flag != null && !"0".equals(flag) && !"1".equals(flag)) throw new IllegalArgumentException("功能开关无效");
             if (value == null) value = feature.defaultValue();
             if ("refresh.period".equals(feature.id) && "0".equals(value)) {
                 value = feature.defaultValue();
@@ -84,16 +88,21 @@ public final class Configuration {
                 value = feature.defaultValue();
                 flag = "0";
             }
+            // 「显示设备状态」原来是单值开关（default），现在分「跟随样式/图标版/文字版」
+            if ("lock.ext".equals(feature.id) && "default".equals(value)) value = feature.defaultValue();
             feature.validate(value);
-            flags.put(feature.id, "1".equals(flag));
+            // 没写过的键不入表：requested() 会退回功能自己的 defaultOn，
+            // 这样旧配置升级后「四项显示开关」默认仍是全开。
+            if (flag != null) flags.put(feature.id, "1".equals(flag));
             values.put(feature.id, value);
         }
         if (legacyExt && !hasExtKey) flags.put("lock.ext", true);
         // 旧版残留键已删除：「字体2」（font2.*）并入「字体」（font.*）；
         // 「Google 设置图标修复」（fix.google）、「隐藏锁屏通知」（lock.notifyhide）并入「锁屏通知」、
-        // 「体感息屏唤醒」（wave.master）整体下线；「设备状态」四项逐项开关（lock.ext.wifi/bt/audio/airplane）
-        // 合并成一个「显示设备状态」总开关。容忍旧配置里的残留键，
-        // 否则升级后 parse 抛「存在未知配置字段」
+        // 「体感息屏唤醒」（wave.master）整体下线。设置状态的四项显示开关（lock.ext.wifi/bt/audio/airplane）
+        // 曾经下线过一阵子，旧配置里可能残留同名的行；它们现在是正式功能，已被上面的循环取走，
+        // 这里仍保留匹配以防只写了半行（只有 flag 没有 .value）。
+        // 容忍旧配置里的残留键，否则升级后 parse 抛「存在未知配置字段」
         // → 整个界面只剩错误卡、连「模块设置」都进不去。
         fields.keySet().removeIf(key -> {
             String name = key.endsWith(".value") ? key.substring(0, key.length() - 6) : key;

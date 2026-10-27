@@ -1,5 +1,6 @@
 package com.inkcontrol.features.lock;
 
+import com.inkcontrol.core.Configuration;
 import com.inkcontrol.core.FeatureDefinition;
 import com.inkcontrol.platform.RuntimeConfig;
 import android.content.Context;
@@ -45,9 +46,11 @@ final class LockData {
     boolean hideNotify;
     /** 「显示设备状态」开着：倒数日下方那一块位置改画设备开关状态，不再画通知条 */
     boolean extMode;
+    /** 设备状态画成哪一种：auto（跟随样式）/ icon（图标版）/ text（文字版） */
+    String extLayout = "auto";
     /** 设备状态四项的当前值（extMode 为真时才有意义） */
     boolean wifi, bt, airplane, silent;
-    /** 四项里哪几项要显示：设备状态条固定四项全显（不再提供逐项开关） */
+    /** 四项里哪几项要显示（lock.ext.wifi / .bt / .audio / .airplane，缺省全开） */
     boolean showWifi = true, showBt = true, showAudio = true, showAirplane = true;
     /** 正在播放：歌词（没有歌词时用曲名），否则是格言 */
     boolean playing;
@@ -86,7 +89,14 @@ final class LockData {
                 d.notifications = LockNotifications.count();
             }
         }
-        if (d.extMode) readDeviceState(d, c);
+        if (d.extMode) {
+            d.extLayout = RuntimeConfig.value("lock.ext");
+            d.showWifi = RuntimeConfig.enabled("lock.ext.wifi");
+            d.showBt = RuntimeConfig.enabled("lock.ext.bt");
+            d.showAudio = RuntimeConfig.enabled("lock.ext.audio");
+            d.showAirplane = RuntimeConfig.enabled("lock.ext.airplane");
+            readDeviceState(d, c);
+        }
         // 只是这一处不画，计数照旧；重新打开开关时不用等下一次通知事件
         d.hideNotify = !notifyVisible;
         if (RuntimeConfig.enabled("lock.weather")) readWeather(d, c, controller);
@@ -253,8 +263,18 @@ final class LockData {
         return null;
     }
 
-    /** 设置预览和调试出图用的样张数据 */
+    /** 设置预览和调试出图用的样张数据（通知模式） */
     static LockData sample() {
+        return sample(null);
+    }
+
+    /**
+     * 同上，{@code config} 决定底部那一块画通知框还是设备状态条、设备状态画哪几项。
+     * 由调用方传入而不是在这里读配置：设置页的预览跑在 App 进程，那里没有挂 RuntimeConfig，
+     * 在这儿调 {@code enabled()} 永远拿到 false，预览会和真实锁屏对不上。
+     * 传 null 等价于「两个开关都关」，只画通知。
+     */
+    static LockData sample(Configuration config) {
         LockData d = new LockData();
         d.now.set(2026, Calendar.OCTOBER, 10, 21, 47, 0);
         d.battery = 76;
@@ -273,6 +293,22 @@ final class LockData {
         d.track = "曲名 · 歌手";
         d.position = 132000;
         d.duration = 220000;
+        // 那一块位置二选一：开着「显示设备状态」却仍画通知框，会让人以为开关没生效。
+        // 四项给一组有开有关的示例值，一眼能看出哪项是「关」；被关掉的显示开关也要跟着少画，
+        // 否则预览比真实锁屏多一格。
+        if (config != null && config.enabled("lock.ext")) {
+            d.extMode = true;
+            d.hideNotify = true;
+            d.extLayout = config.value("lock.ext");
+            d.showWifi = config.requested("lock.ext.wifi");
+            d.showBt = config.requested("lock.ext.bt");
+            d.showAudio = config.requested("lock.ext.audio");
+            d.showAirplane = config.requested("lock.ext.airplane");
+            d.wifi = true;
+            d.bt = true;
+            d.silent = true;
+            d.airplane = false;
+        }
         return d;
     }
 }

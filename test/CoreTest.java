@@ -44,10 +44,31 @@ public final class CoreTest {
         check(notify.role.equals("systemui") && notify.dependency.equals("lock.style"));
         check(notify.values.equals(Arrays.asList("system", "wechat")));
         check(!new Configuration().enabled("lock.notify"));
-        // 设备状态合并成一个总开关，本身没有子项；默认关闭
+        // 设备状态总开关本身没有选项，画图标版还是文字版由 auto/icon/text 决定；默认 off
         FeatureDefinition ext = FeatureCatalog.get("lock.ext");
         check(ext.role.equals("systemui") && ext.dependency.equals("lock.style"));
-        check(ext.values.equals(Arrays.asList("default")) && !new Configuration().enabled("lock.ext"));
+        check(ext.values.equals(Arrays.asList("auto", "icon", "text")) && !new Configuration().enabled("lock.ext"));
+        check(!ext.defaultOn && ext.defaultValue().equals("auto"));
+        // 四项显示开关挂在总开关下，配置里没写过时按「显示」处理（首次开启全开）
+        String[] kinds = {"lock.ext.wifi", "lock.ext.bt", "lock.ext.audio", "lock.ext.airplane"};
+        Configuration fresh = new Configuration();
+        for (String id : kinds) {
+            FeatureDefinition child = FeatureCatalog.get(id);
+            check(child.dependency.equals("lock.ext") && child.defaultOn && child.values.equals(Arrays.asList("default")));
+            check(fresh.requested(id) && !fresh.enabled(id));      // 总开关没开时仍不算生效
+            check(!fresh.change(id, false, "default").requested(id));
+            check(fresh.change(id, false, "default").change(id, true, "default").requested(id));
+            Configuration off = fresh.change(id, false, "default");
+            check(off.text().contains(id + "=0\n") && Configuration.parse(off.text()).requested(id) == false);
+        }
+        // 「显示信息修改」是纯页面项（@panel）：自己没有开关，也不写取值
+        FeatureDefinition edit = FeatureCatalog.get("lock.ext.edit");
+        check(edit.dependency.equals("lock.ext") && edit.values.equals(Arrays.asList("@panel")));
+        check(edit.defaultValue().isEmpty() && edit.acceptsPanel());
+        check(fresh.value("lock.ext.edit").isEmpty() && !fresh.requested("lock.ext.edit"));
+        check(fresh.change("lock.ext.edit", false, "").text().contains("lock.ext.edit.value=\n"));
+        check(Configuration.parse(fresh.text()).value("lock.ext.edit").isEmpty());
+        reject(() -> fresh.change("lock.ext.edit", false, "@panel"));
         for (String scope : DisplayAlgorithms.SCOPES) {
             String id = "display.alg." + scope;
             FeatureDefinition f = FeatureCatalog.get(id);
@@ -144,8 +165,8 @@ public final class CoreTest {
         displayAlgorithms();
         Configuration config = new Configuration(); Set<String> ids = new HashSet<>();
         for (FeatureDefinition feature : FeatureCatalog.all()) {
-            check(ids.add(feature.id)); check(!config.enabled(feature.id)); check(!config.requested(feature.id));
-            for (String value : feature.values) { if (value.equals(FeatureDefinition.CURVE_TOKEN) || value.equals(FeatureDefinition.NUMBER_TOKEN) || value.equals(FeatureDefinition.APPS_TOKEN) || value.equals(FeatureDefinition.COUNTDOWNS_TOKEN) || value.equals(FeatureDefinition.PATH_TOKEN) || value.equals(FeatureDefinition.FONT_TOKEN)) { reject(() -> feature.validate(value)); continue; } feature.validate(value); check(Configuration.parse(config.change(feature.id, true, value).text()).value(feature.id).equals(value)); }
+            check(ids.add(feature.id)); check(!config.enabled(feature.id)); check(config.requested(feature.id) == feature.defaultOn);
+            for (String value : feature.values) { if (value.equals(FeatureDefinition.CURVE_TOKEN) || value.equals(FeatureDefinition.NUMBER_TOKEN) || value.equals(FeatureDefinition.APPS_TOKEN) || value.equals(FeatureDefinition.COUNTDOWNS_TOKEN) || value.equals(FeatureDefinition.PATH_TOKEN) || value.equals(FeatureDefinition.FONT_TOKEN) || value.equals(FeatureDefinition.PANEL_TOKEN)) { reject(() -> feature.validate(value)); continue; } feature.validate(value); check(Configuration.parse(config.change(feature.id, true, value).text()).value(feature.id).equals(value)); }
             reject(() -> feature.validate("$(id)"));
         }
         check(Configuration.parse(config.text()).text().equals(config.text()));
@@ -155,13 +176,18 @@ public final class CoreTest {
                 + "lock.notifyhide=1\nlock.notifyhide.value=default\nwave.master=1\nwave.master.value=default\n");
         check(tolerated.revision == 0 && !tolerated.requested("motion.lock") && !tolerated.requested("wave.lock"));
         // 旧配置的「拓展显示 = 设备状态」迁到独立的 lock.ext：通知关掉、设备状态打开；
-        // 设备状态那四个逐项开关（lock.ext.wifi 等）作为残留键丢弃
+        // 四项显示开关是正式功能，旧配置里的同名行照旧读入（这里是「开」）。
         Configuration migrated = Configuration.parse("version=1\nrevision=3\n"
                 + "lock.notify=1\nlock.notify.value=ext\n"
                 + "lock.ext.wifi=1\nlock.ext.wifi.value=default\n"
                 + "lock.ext.bt=1\nlock.ext.bt.value=default\n");
         check(migrated.requested("lock.ext") && !migrated.requested("lock.notify"));
+        check(migrated.requested("lock.ext.wifi") && migrated.requested("lock.ext.bt"));
+        check(migrated.requested("lock.ext.audio") && migrated.requested("lock.ext.airplane"));   // 缺省按显示
+        check(migrated.value("lock.ext").equals("auto"));                                        // 单值时代的 default 迁成 auto
         check(migrated.value("lock.notify").equals("system"));
+        // 旧配置里的 lock.ext.value=default（没有 auto/icon/text 三选一之前）不能把整个配置打回错误卡
+        check(Configuration.parse("version=1\nrevision=1\nlock.ext=1\nlock.ext.value=default\n").value("lock.ext").equals("auto"));
         FeatureDefinition hold = FeatureCatalog.get("motion.hold");
         String curve = FeatureDefinition.curveValue(new int[]{420, 400, 360, 320, 280, 230, 210, 175, 150});
         hold.validate(curve); check(Configuration.parse(config.change("motion.hold", true, curve).text()).value("motion.hold").equals(curve));

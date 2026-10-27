@@ -12,11 +12,22 @@ public final class FeatureDefinition {
     public final String id, group, title, description, role, dependency;
     public final ApplyMode mode;
     public final boolean experimental;
+    /**
+     * 配置里没有这个键时按「开」处理。只给「显示设备状态」下的四项显示开关用：
+     * 用户第一次打开「显示设备状态」时四类信息应当都在，之后各自关掉的才记住。
+     */
+    public final boolean defaultOn;
     public final List<String> values, labels;
 
     public FeatureDefinition(String id, String group, String title, String description,
             String role, String dependency, ApplyMode mode, boolean experimental,
             String[] values, String[] labels) {
+        this(id, group, title, description, role, dependency, mode, experimental, values, labels, false);
+    }
+
+    public FeatureDefinition(String id, String group, String title, String description,
+            String role, String dependency, ApplyMode mode, boolean experimental,
+            String[] values, String[] labels, boolean defaultOn) {
         this.id = id;
         this.group = group;
         this.title = title;
@@ -25,6 +36,7 @@ public final class FeatureDefinition {
         this.dependency = dependency;
         this.mode = mode;
         this.experimental = experimental;
+        this.defaultOn = defaultOn;
         this.values = Collections.unmodifiableList(Arrays.asList(values));
         this.labels = Collections.unmodifiableList(Arrays.asList(labels));
         if (values.length == 0 || values.length != labels.length) throw new IllegalArgumentException(id);
@@ -40,9 +52,12 @@ public final class FeatureDefinition {
     public boolean acceptsApps() { return values.contains(APPS_TOKEN); }
     public void validate(String value) {
         if (CURVE_TOKEN.equals(value) || NUMBER_TOKEN.equals(value) || APPS_TOKEN.equals(value)
-                || COUNTDOWNS_TOKEN.equals(value) || PATH_TOKEN.equals(value) || FONT_TOKEN.equals(value))
+                || COUNTDOWNS_TOKEN.equals(value) || PATH_TOKEN.equals(value) || FONT_TOKEN.equals(value)
+                || PANEL_TOKEN.equals(value))
             throw new IllegalArgumentException("不支持的选项：" + title);
         if (values.contains(value)) return;
+        // 纯页面项（@panel）没有自己的取值，配置里永远是空串
+        if (acceptsPanel() && value.isEmpty()) return;
         if (acceptsCurve() && curve(value) != null) return;
         if (acceptsNumber() && number(value) != null) return;
         if (acceptsApps() && appFilter(value) != null) return;
@@ -76,6 +91,12 @@ public final class FeatureDefinition {
     public static final int COUNTDOWN_LEGACY_FIELDS = 2;
     /** 是否接受「事项;日期;农历;显示」清单（最多 3 组，事项可空，日期为空则该组停用）。 */
     public boolean acceptsCountdowns() { return values.contains(COUNTDOWNS_TOKEN); }
+    /**
+     * 目录里的占位值；本身不是合法配置。表示这一项没有自己的配置值——它只是一个页面
+     * （「显示信息修改」把四项显示开关收在一起），进入后改的是别的键。
+     */
+    public static final String PANEL_TOKEN = "@panel";
+    public boolean acceptsPanel() { return values.contains(PANEL_TOKEN); }
     /** 目录里的占位值；本身不是合法配置，只表示允许输入目录路径或字体文件名。 */
     public static final String PATH_TOKEN = "@path";
     /** 目录里的占位值；本身不是合法配置，只表示允许记录最近应用的字体文件名。 */

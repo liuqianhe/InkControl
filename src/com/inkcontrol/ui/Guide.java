@@ -43,7 +43,14 @@ final class Guide {
     static final class Category {
         final String name, intro;
         final String[][] sections;
-        Category(String name, String intro, String[][] sections) { this.name = name; this.intro = intro; this.sections = sections; }
+        /**
+         * 收在子页里、不在分类列表直接出现的功能（「显示信息修改」页里的四项显示开关）。
+         * 它们照样算这个分类的开关数，所以单独列出来，分类卡上的「已开启/总数」才准。
+         */
+        final String[] nested;
+        Category(String name, String intro, String[][] sections, String[] nested) {
+            this.name = name; this.intro = intro; this.sections = sections; this.nested = nested;
+        }
     }
 
     /** 名词表；功能页引用，首页“名词解释”页列出全部。 */
@@ -78,10 +85,11 @@ final class Guide {
                 {"触摸与响应", "display.sampling", "display.idle"}, {"系统刷新设置", "display.dynamic", "display.apps"}});
         cat("锁屏", "锁屏样式、天气、拓展显示、倒数日与锁屏刷新，以及歌词相关设置。", new String[][]{
                 {"样式", "lock.style", "lock.weather"},
-                {"拓展显示", "lock.notify", "lock.ext"},
+                {"拓展显示", "lock.notify", "lock.ext", "lock.ext.edit"},
                 {"倒数日", "lock.countdown"},
                 {"锁屏刷新", "lock.first", "lock.update", "lock.delay", "lock.dither"},
-                {"歌词", "lock.lyric", "lock.statusbar", "lock.lyricmode"}});
+                {"歌词", "lock.lyric", "lock.statusbar", "lock.lyricmode"}},
+                new String[]{"lock.ext.wifi", "lock.ext.bt", "lock.ext.audio", "lock.ext.airplane"});
         cat("动画", "打开应用、返回、弹窗和锁屏时的过渡效果，专为墨水屏设计。", new String[][]{
                 {"总开关", "motion.master"},
                 {"各场景用什么动画", "motion.app_open", "motion.app_close", "motion.in_app_forward", "motion.in_app_back", "motion.dialog", "motion.gc_clear", "motion.lock", "motion.unlock"},
@@ -104,11 +112,23 @@ final class Guide {
                 {"安全", "fix.permissions"}});
         cat("实验室", "仍在验证的优化，效果因场景而异。", new String[][]{{"实验项目", "experiment.cache"}});
     }
-    private static void cat(String name, String intro, String[][] sections) { CATEGORIES.put(name, new Category(name, intro, sections)); }
+    private static void cat(String name, String intro, String[][] sections) {
+        CATEGORIES.put(name, new Category(name, intro, sections, new String[0]));
+    }
+    private static void cat(String name, String intro, String[][] sections, String[] nested) {
+        CATEGORIES.put(name, new Category(name, intro, sections, nested));
+    }
 
     private static final Map<String, Entry> ENTRIES = new LinkedHashMap<>();
     static Entry get(String id) { Entry e = ENTRIES.get(id); return e == null ? new Entry() : e; }
     private static Entry put(String id) { Entry e = new Entry(); ENTRIES.put(id, e); return e; }
+
+    /**
+     * 没有独立入口、只作为数据或页内操作存在的功能：内容并进了上一页（倒数日事项并进「锁屏倒数日」），
+     * 或是那一页里的选择器记录（最近应用的字体、文件选择器记录）。它们不出现在分类小节里。
+     */
+    static final java.util.Set<String> INTERNAL = new java.util.HashSet<>(Arrays.asList(
+            "lock.countdowns", "font.pick", "font.saf"));
 
     /** 迟滞内嵌在算法页；旧视频入口只跳到新页，配置仍可解析。 */
     static String destination(String id) {
@@ -263,8 +283,17 @@ final class Guide {
         put("lock.notify").summary("锁屏底部显示通知条").what("锁屏倒数日下方那一块位置只有一处，本页是「显示通知」这个总开关。开启后在来源里二选一：系统通知或微信未读。关闭则整块都不画：编辑排版的「通知 N 条」框、横版的右下通知框、瑞士与液态玻璃右下角的通知数、像素样式的通知数和通知一格都会消失，腾出的位置不会再摆空框。")
                 .cost("只影响显示，通知照常统计；关掉再打开马上恢复，不用等新的通知。想在那块位置显示无线、蓝牙等开关情况，请开启「显示设备状态」——两者互斥，开一个会自动关掉另一个。").option("system", "系统通知", "统计可清除的系统通知，不依赖微信。")
                 .option("wechat", "微信", "只统计微信未读消息，适合安装了微信的设备。");
-        put("lock.ext").summary("锁屏底部改显示设备开关状态").what("同一块位置（倒数日下方、上滑解锁提示上方）改画设备状态：无线网络、蓝牙、声音模式（静音 / 非静音）、飞行模式是否开启，四项各占一格均分宽度，不画分隔线。四项一次全部显示，不再需要单独挑选。")
-                .cost("只读显示，不会改动无线、蓝牙、飞行模式或铃声音量。与「显示通知」互斥：开启本项会自动关闭「显示通知」，反之亦然；两项都关时那块位置留空。").option("default", "显示设备状态", "");
+        put("lock.ext").summary("锁屏底部改显示设备开关状态").what("同一块位置（倒数日下方、上滑解锁提示上方）改画设备状态：无线网络、蓝牙、声音模式、飞行模式是否开启。要显示哪几项，到「显示信息修改」里逐个开关；关掉的项不再占位，其余各项自动均分宽度。本页选的是画成什么样：跟随样式、图标版还是文字版。")
+                .cost("只读显示，不会改动无线、蓝牙、飞行模式或铃声音量。与「显示通知」互斥：开启本项会自动关闭「显示通知」，反之亦然；两项都关时那块位置留空。像素样式是英文标牌（ON / OFF），固定用图标版；瑞士网格本身就是纯文字排版，选「跟随样式」时用文字版。")
+                .option("auto", "跟随样式", "编辑排版、横版用图标版，瑞士网格用文字版，与各样式原本的观感一致。")
+                .option("icon", "图标版", "左侧一个线描图标、右侧「开 / 关 / 静音 / 有声」。")
+                .option("text", "文字版", "「无线|开」这类类型加竖线加状态，两边同字号同基线，没有图标。");
+        put("lock.ext.edit").summary("选择设备状态里显示哪几项").what("锁屏底部那块位置宽度固定，项越多每格越窄。这里逐项决定画不画：无线网络、蓝牙、声音模式、飞行模式。关掉的项直接不占位，剩下的自动均分宽度；四项全关时那块位置留空。")
+                .cost("四项开关只影响显示，不会改变无线、蓝牙、飞行模式或铃声音量本身。四个都是默认显示：新装或升级后不用先来这里设置；关掉某一项才需要记住。画成图标还是文字在上一页「显示设备状态」里选。");
+        put("lock.ext.wifi").summary("设备状态里是否显示无线网络").what("关掉后锁屏设备状态条里不再出现无线这一格，其余各项自动补位。默认显示；只影响这一格，不会关闭无线网络。").option("default", "显示无线", "");
+        put("lock.ext.bt").summary("设备状态里是否显示蓝牙").what("关掉后锁屏设备状态条里不再出现蓝牙这一格。默认显示；只影响这一格，不会关闭蓝牙。").option("default", "显示蓝牙", "");
+        put("lock.ext.audio").summary("设备状态里是否显示声音模式").what("关掉后锁屏设备状态条里不再出现声音这一格（其余样式里是「静音 / 有声」，像素样式里是喇叭的 ON / OFF）。默认显示；只读铃声音量模式，不会改音量。").option("default", "显示声音", "");
+        put("lock.ext.airplane").summary("设备状态里是否显示飞行模式").what("关掉后锁屏设备状态条里不再出现飞行这一格。默认显示；只读飞行模式状态，不会改变它。").option("default", "显示飞行", "");
         put("lock.countdown").summary("一个开关管显示，本页直接编辑事项").what("打开后在锁屏上显示事项倒数日：最多三个，每组一个事项和日期，多个按目标日先后排列。下方就是事项编辑器——事项名可留空；日期为空该组停用。")
                 .cost("关闭后锁屏不再显示倒数日，已填的事项和日期仍保留，再打开即恢复。").option("default", "显示倒数日", "");
         put("lock.countdowns").summary("倒数日事项的数据存储位置").what("最多三个倒数日，每组有独立的「农历日期」和「显示」开关：开启农历后按农历年/月/日计算（如选 2027-01-01 即 2027 年春节）；关闭显示可暂时隐藏该组而不删除。编辑入口已并入上一页「锁屏倒数日」，这里是它的数据保存位置，旧配置继续有效。")
