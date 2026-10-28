@@ -1,6 +1,7 @@
 package com.inkcontrol.features.lock;
 
 import com.inkcontrol.core.FeatureDefinition;
+import com.inkcontrol.core.LunarCalendar;
 import com.inkcontrol.platform.RuntimeConfig;
 import com.inkcontrol.shared.WeatherIcon;
 import android.content.Context;
@@ -212,6 +213,41 @@ final class LockCanvas extends View {
         text(s, cx - w / 2f, top, 0);
     }
 
+    /**
+     * 一格内并排多段不同字号的文字时，按基准字号量总宽、返回需要缩小的比例（≤1）。
+     * 分段各带自己的字号（例如「10.29 | 9.20(农历)」里括号注释要小一号），
+     * 所以不能靠 text() 的横向压缩——那会把数字压瘦变形，字号才是该缩的地方。
+     */
+    private float segFit(String[] parts, float[] sizes, float maxW) {
+        float total = 0;
+        for (int i = 0; i < parts.length; i++) {
+            font(sSansBold, sizes[i], 0, INK, true);
+            total += tp.measureText(parts[i]);
+        }
+        return (maxW > 0 && total > maxW) ? maxW / total : 1f;
+    }
+
+    /**
+     * 按统一比例 scale 把多段文字从左往右排开，返回右端 x。
+     *
+     * 垂直方向**不能统一挂同一条基线**：分段字号不同（14sp 日期 + 10sp 括号注释），
+     * 字形框是跟着字号等比缩放的，小一号那段的框整体往上收，挂同一基线就会看着
+     * 像掉下去一截的角标——「9.20(农历)」的括号还有下探，更明显。
+     * 所以按**字形框中线**对齐：先用第一段的字号取中线，其余段反算自己的基线。
+     */
+    private float segRow(String[] parts, float[] sizes, float scale, float x, float baseline) {
+        font(sSansBold, sizes[0] * scale, 0, INK, true);
+        final Paint.FontMetrics base = tp.getFontMetrics();
+        final float center = baseline + (base.ascent + base.descent) / 2f;
+        float cx = x;
+        for (int i = 0; i < parts.length; i++) {
+            font(sSansBold, sizes[i] * scale, 0, INK, true);
+            final Paint.FontMetrics fm = tp.getFontMetrics();
+            cx += textBase(parts[i], cx, center - (fm.ascent + fm.descent) / 2f, 0);
+        }
+        return cx;
+    }
+
     /** 以基线居中绘制一行字，超宽按 maxW 横向压缩（数据格内居中用）。 */
     private void textCenterBase(String s, float cx, float baseline, float maxW) {
         if (s == null || s.isEmpty()) return;
@@ -404,6 +440,13 @@ final class LockCanvas extends View {
 
     private String weekCn() {
         return "星期" + WEEK_CN[data.now.get(Calendar.DAY_OF_WEEK) - 1];
+    }
+
+    /** 农历月份日期（数字版，如 9.18）：表头是「公历数字 | 农历数字」并排，写成「九月十八」既长又不齐。 */
+    private String lunarNumeric() {
+        final int[] lunar = LunarCalendar.toLunar(data.now.get(Calendar.YEAR),
+                data.now.get(Calendar.MONTH) + 1, data.now.get(Calendar.DAY_OF_MONTH));
+        return lunar == null ? "—" : lunar[1] + "." + lunar[2];
     }
 
     /** 节日/节气优先，其次农历 */
@@ -1025,43 +1068,46 @@ final class LockCanvas extends View {
     private void swiss() {
         final float L = 20, CW = 320, COL = 74, GAP = 8;
 
-        String day = fmt("EEE");
-        boolean hasTemp = data.temperature != null;
-        String[] top = {day.substring(0, Math.min(2, day.length())), fmt("MM.dd"), fmt("yyyy"),
-                hasTemp ? (data.temperature.endsWith("F") ? data.temperature : data.temperature + "C") : null};
-        int columns = hasTemp ? 4 : 3;
-        float col = columns == 4 ? COL : (CW - 2 * GAP) / 3f;
-        for (int i = 0; i < columns; i++) {
-            float x = L + i * (col + GAP);
-            rect(x, 24, col, 4, INK);
-            font(sSansBold, 12, 0, INK, true);
-            text(top[i], x, 34, col);
+        // 表头固定三列，字号从 12 提到 14（用户要求放大）：
+        //   周三 第44周 / 10.29 | 9.20(农历) / 2026年 | 第302天
+        // 三格等宽（各 101.3），但「2026年 | 第302天」这种 14sp 要 107 宽、塞不进，
+        // 所以先按 14sp 量一遍取三格里最小的比例，**统一缩放**：只缩塞不下的那一格会让
+        // 表头字号参差，瑞士网格最忌讳这个。段内不再用横向压缩（会把数字压瘦变形）。
+        // 农历日期的「(农历)」注释比日期小一号（12sp vs 14sp），但不能再小——
+        // 原来按 10sp 排，1-bit 下比日期矮一截，看着像掉下去的角标、不像同一行。
+        final int dow = data.now.get(Calendar.DAY_OF_WEEK) - 1;
+        final String[][] top = {
+                {"周" + WEEK_CN[dow], "  第" + data.now.get(Calendar.WEEK_OF_YEAR) + "周"},
+                {fmt("MM.dd"), " | ", lunarNumeric(), "(农历)"},
+                {fmt("yyyy") + "年", " | ", "第" + data.now.get(Calendar.DAY_OF_YEAR) + "天"}};
+        final float[][] topSz = {{14, 14}, {14, 14, 14, 12}, {14, 14, 14}};
+        final float col = (CW - 2 * GAP) / 3f;
+        float topScale = 1f;
+        for (int i = 0; i < top.length; i++) topScale = Math.min(topScale, segFit(top[i], topSz[i], col));
+        // 基线定位：segRow 内部按字形框中线对齐（小一号的「(农历)」不会掉到日期下面）。
+        for (int i = 0; i < top.length; i++) {
+            final float x = L + i * (col + GAP);
+            rect(x, 22, col, 4, INK);
+            segRow(top[i], topSz[i], topScale, x, 46);
         }
 
-        // 两行叠放的特大时间。行距必须大于字身，而且要按「最高的字形」留够，不能靠字形的偶然形状：
-        // 同样字号下「00」「20」看上去松，是因为 2 是斜肩、0 是圆弧；换成「11」「18」就会觉得贴在一起。
-        // 实测 196sp 的墨迹高约 141（数字没有降部，墨迹正好落在基线上），原来两行基线 204/390
-        // 只剩 45 的间隙。现在 184sp、基线 188/392：墨迹 56-188 与 260-392，间隙 72（设备像素 144），
-        // 上沿离表头 10、下沿离分隔线 8，两行的主次关系不变，中间真正透气。
-        font(sHeavy, 184, -0.07f, INK, true);
+        // 两行叠放的特大时间。184sp 的数字墨迹实测 125 高（数字没有降部，墨迹下沿落在基线上）。
+        // 用户口径：横向要松、纵向要贴，两行的间距收到原来的 1/3。上一版基线 188/360 的墨迹间隙
+        // 实测 47（设备像素 94），现在基线 188/329、间隙 16，两行归成一个整块。
+        // 注意别按 0.77×字号去估墨迹高——那是黑体上沿的粗算，数字实际只有 0.68 倍。
+        font(sHeavy, 184, 0.06f, INK, true);
         textBase(hour(), L - 6, 188, 290);
-        textBase(fmt("mm"), L - 6, 392, 290);
+        textBase(fmt("mm"), L - 6, 329, 290);
 
-        // 竖排日期
-        String vertical = chineseDate() + " " + weekCn();
-        font(sSansBold, 13, 0, INK, true);
-        float vy = 76;
-        for (int i = 0; i < vertical.length(); i++) {
-            String ch = vertical.substring(i, i + 1);
-            if (!ch.equals(" ")) {
-                float w = tp.measureText(ch);
-                text(ch, 334 - w / 2f, vy, 0);
-            }
-            vy += 18.2f;
-        }
+        // 右缘竖排（第 N 天 / 空槽 / 第 N 周）已按用户要求整列删除：这两项现在跟在表头
+        // 第一、三格的右半边，整块右缘留白。
 
-        float by = 400;
-        float ny;
+        // 天气块：不管有没有数据都占住 352-428 这一段（用户要求「留相应的空位即可」）。
+        // 原来没天气时格言直接顶到 376，天气数据一回来整摞内容就往下跳一格；现在位置恒定，
+        // 天气关着时这块就是留白。模块设置里没开天气显示，所以这条路径是常态、不是异常。
+        // 整块比上一版上移 24：格言正文加英文译文的底边离设备状态带只有 28（实机量到的），
+        // 而预览样张里格言只有一两行、显得远；把天气留位和格言线一起上提，把这点空间让给下方。
+        final float by = 352;
         if (hasWeather()) {
             boolean range = data.high != null && data.low != null;
             font(sSansBold, 10, 0.12f, INK, true);
@@ -1071,55 +1117,71 @@ final class LockCanvas extends View {
             text(dash(data.weather), L + 16, by + 32, 140);
             font(sHeavy, 28, -0.03f, INK, true);
             text(range ? strip(data.high) + " / " + strip(data.low) : dash(data.temperature), L + 164, by + 32, 140);
-            ny = 500;
-        } else {
-            ny = by;
         }
+        final float ny = 428;
         rect(L, ny, CW, 1, INK);
         font(sSansBold, 10, 0.12f, INK, true);
         text(data.playing ? "NOW" : "DAILY", L, ny + 9, COL);
         text(data.playing ? "PLAYING" : "QUOTE", L, ny + 22, COL);
         float tx = L + COL + GAP, tw = CW - COL - GAP;
-        // 有天气时下面还要塞「通知」带，格言块收紧到 2 行，保证不压到带子的分隔线
-        final int quoteLines = hasWeather() ? 2 : 3;
+        // 天气块固定留位后格言恒为 2 行：行数一变，下面整摞（通知带、底部）的位置就跟着变。
+        final int quoteLines = 2;
         float th = 0, sh = 0;
         if (data.text != null) {
             font(sSansBold, 17, 0, INK, true);
             th = paragraph(data.text, tx, ny + 8, tw, 1.45f, quoteLines);
         }
+        // 播放媒体时在格言下面补一行当前曲目（曲名 · 歌手），与上游瑞士风格一致：
+        // 左边那两行 NOW PLAYING / DAILY QUOTE 只是栏目标签，曲名必须单独成行才读得到。
+        // 12sp、前面一个长破折号与格言正文拉开距离；单行显示（超宽横向压缩），不许换行顶到
+        // 下面的设备状态带。
         if (data.track != null) {
-            font(sSans, 12, 0, INK, true);
-            text(data.track, tx, ny + 8 + th + 4, tw);
-            sh = 15;
+            font(sSans, 12, 0.01f, INK, true);
+            text("— " + data.track, tx, ny + 8 + th + 7, tw);
+            sh = 18;
         } else if (data.subText != null) {
             font(sSans, 12, 0, INK, true);
             sh = paragraph(data.subText, tx, ny + 8 + th + 4, tw, 1.4f, quoteLines);
         }
 
-        // ── 通知带 / 设备状态带：底部数据行正上方一条（1px 分隔线 + 同一基线的一行数据）──
-        // 位置跟随格言块底部下移，但落在 578-604：下限保证和底部数据行成组（不留半屏空白），
-        // 上限保证基线 634 之后仍留 6px 给 640 的 4px 横线。
+        // ── 通知带 / 设备状态带：底部「电量 + 倒数日」正上方一条（1px 分隔线 + 同一基线的一行数据）──
+        // 位置用固定值而不是「跟着格言底边走」：格言正文 2 行 + 英文译文 2 行时块底会落到 523，
+        // 带子若跟着它走就只剩 26 的空白，实机看着贴着（预览样张格言只有一两行，所以显得远）。
+        // 现在带子顶固定在 586（基线 616、文字墨迹底 619），格言块底到带子留 63，
+        // 带子到 646 那根 4px 横线还有 27。钳位 586-594 只是安全阀，格言异常长时最多下移 8，
+        // 再往下就会蹭到 646 的横线。
         final float quoteBottom = ny + 8 + th + (th > 0 ? 4 : 0) + sh;
-        final float bandTop = Math.max(578, Math.min(604, quoteBottom + 18));
+        final float bandTop = Math.max(586, Math.min(594, quoteBottom + 40));
         final boolean bandExt = data.extMode;
         final boolean bandNotify = !bandExt && !data.hideNotify;
         if (bandExt || bandNotify) {
             rect(L, bandTop, CW, 1, INK);
             final float base = bandTop + 30;
             if (bandExt) {
-                // 四项各占一格（74+8）。类型与状态同为 13sp、同一条基线，中间一条 1px 竖线，
-                // 画成「无线|开」：原来类型 10sp、状态 15sp，一大一小既不像一组，也和底部
-                // 「大数字 + 小标签」的口径打架。瑞士网格通篇不用图标，这一带固定用文字版。
+                // 四项均分整条 320（原来按 74+8 的格），类型与状态同字号、同一条基线，
+                // 中间一条 1px 竖线画成「无线|开」。用户要求再放大一点：15sp 在 320 宽的带子里
+                // 和下面 30sp 的电量大数字比还是像注脚，目标字号定 17sp。
+                // 但 4 项均分时最宽的「声音+静音」是 34+5+1+5+34 = 79，正好顶满 80 的格子、
+                // 与邻项只隔 1px（实机看着像「静音飞行」连在一起）；所以先量一遍，塞不下就整行退 16sp。
                 List<Integer> pick = extPicks();
+                final float cell = CW / pick.size();
+                float fs = 17;
+                for (Integer idx : pick) {
+                    font(sSans, fs, 0, INK, true);
+                    float need = tp.measureText(EXT_NAMES[idx]);
+                    font(sSansBold, fs, 0, INK, true);
+                    need += 11 + tp.measureText(extValue(idx));
+                    if (need + 4 > cell) { fs = 16; break; }
+                }
                 for (int k = 0; k < pick.size(); k++) {
                     final int i = pick.get(k);
-                    final float x = L + k * (COL + GAP);
-                    font(sSans, 13, 0, INK, true);
+                    final float x = L + k * cell;
+                    font(sSans, fs, 0, INK, true);
                     final float lw = tp.measureText(EXT_NAMES[i]);
                     textBase(EXT_NAMES[i], x, base, 0);
-                    rect(x + lw + 5, base - 9, 1, 10, INK);
-                    font(sSansBold, 13, 0, INK, true);
-                    textBase(extValue(i), x + lw + 11, base, COL - lw - 11);
+                    rect(x + lw + 5, base - 13, 1, 15, INK);
+                    font(sSansBold, fs, 0, INK, true);
+                    textBase(extValue(i), x + lw + 10, base, cell - lw - 10);
                 }
             } else {
                 // 「通知」与条数贴在一起、按墨迹中线对齐：原来标签 10sp 贴左沿、条数 28sp 贴右沿，
@@ -1140,23 +1202,53 @@ final class LockCanvas extends View {
             }
         }
 
-        // 底部数据行：电量 / 第几周 / 第几天（通知数已单独成带，不再占这一行）
-        // 三格同一套排版：大号数字 + 下方小字标签，与「第几周」完全一致；
-        // 天数取的是「编辑排版」表头「第 N 日」同一个 Calendar.DAY_OF_YEAR。
-        final float fy = 640;
+        // ── 底部：电量 + 倒数日 ──
+        // 电量沿用「大号数字 + 小字标签」的老口径占左起一格（20-94）；「倒数日」由横排小字改成
+        // 14sp 竖排标签（列心 104），倒数日各列从 118 起一直排到右边界 340——原来右端让给了
+        // 「↑ 解锁」，那行提示已按用户要求删除。每列「事项 14sp / 剩 N 日 13sp」两行，
+        // 与竖版编辑排版同一套顺序与居中规则。
+        // 用户要求整块再往屏幕底下靠：横线 620 → 646，最低的「电量 %」标签基线 690，
+        // 离屏幕底沿只留 30（原来 76 显得悬在半空）。
+        final float fy = 646;
         rect(L, fy, CW, 4, INK);
-        String[] nums = {batteryText(), String.valueOf(data.now.get(Calendar.WEEK_OF_YEAR)),
-                String.valueOf(data.now.get(Calendar.DAY_OF_YEAR))};
-        String[] labels = {"电量 %", "第几周", "第几天"};
-        for (int i = 0; i < nums.length; i++) {
-            float x = L + i * (COL + GAP);
-            font(sHeavy, 30, -0.04f, INK, true);
-            text(nums[i], x, fy + 12, COL);
-            font(sSans, 10, 0, INK, true);
-            text(labels[i], x, fy + 46, COL);
+        font(sHeavy, 30, -0.04f, INK, true);
+        text(batteryText(), L, fy + 10, COL);
+        font(sSans, 10, 0, INK, true);
+        text("电量 %", L, fy + 44, COL);
+
+        final List<FeatureDefinition.CountdownItem> shown = shownCountdowns();
+        if (!shown.isEmpty()) {
+            // 「倒数日」标签由 10sp 横排改成 14sp 竖排：横排小字跟左边 30sp 电量、右边 14sp 事项名
+            // 都不成比例，竖排正好当电量与倒数日之间的一条竖向分隔。电量占 20-94，标签列心 104。
+            final String vyLabel = "倒数日";
+            final float labelCx = 104;
+            font(sSansBold, 14, 0, INK, true);
+            float ly = fy + 16;
+            for (int i = 0; i < vyLabel.length(); i++) {
+                final String ch = vyLabel.substring(i, i + 1);
+                final float w = tp.measureText(ch);
+                text(ch, labelCx - w / 2f, ly, 0);
+                ly += 17;
+            }
+            // 底部去掉「↑ 解锁」后右端整条都能用：倒数日从竖排标签右侧起、一直排到右边界。
+            final float cx0 = labelCx + 14, cw = L + CW - cx0;
+            final float cell = cw / shown.size();
+            for (int i = 0; i < shown.size(); i++) {
+                final float cx = cx0 + cell * (i + 0.5f);
+                final FeatureDefinition.CountdownItem entry = shown.get(i);
+                final long days = daysUntil(entry);
+                final String left = (days >= 0 ? "剩 " : "过 ") + Math.abs(days) + " 日";
+                if (entry.item.isEmpty()) {
+                    font(sSerif, 13, 0, INK, true);
+                    textCenterFit(left, cx, fy + 30, cell - 8);
+                } else {
+                    font(sSerifBold, 14, 0, INK, true);
+                    textCenterFit(entry.item, cx, fy + 20, cell - 8);
+                    font(sSerif, 13, 0, INK, true);
+                    textCenterFit(left, cx, fy + 39, cell - 8);
+                }
+            }
         }
-        font(sSansBold, 11, 0, INK, true);
-        textRight("↑ 解锁", L + CW, fy + 47, COL);
     }
 
     // ───────────────────────── C · 1-bit 像素 ─────────────────────────
