@@ -1224,53 +1224,28 @@ final class LockCanvas extends View {
             }
         }
 
-        // 窗口 3：电量 / 通知
-        float y3 = y2 + h2 + 22;
-        window(X, y3, WW, 48, null);
-        icon(ICON_BATTERY, IN - 2, y3 + 12, 1.5f, INK);
-        if (data.battery >= 0) {
-            // 电池图标内部按电量填充（16 格网格里内腔为 x 3..9）
-            float inner = 6 * 1.5f * data.battery / 100f;
-            rect(IN - 2 + 3 * 1.5f, y3 + 12 + 6 * 1.5f, 6 * 1.5f, 4 * 1.5f, PAPER);
-            rect(IN - 2 + 3 * 1.5f, y3 + 12 + 6 * 1.5f, Math.round(inner / 1.5f) * 1.5f, 4 * 1.5f, INK);
+        // ── 下半部三块：电量 / 倒数日 / 通知-设备状态 ──
+        // 顺序按用户指定：格言 → 电量 → 倒数日 → 通知/设备状态。
+        // 原来通知数与电量挤在同一行右端，四项设备状态塞不下，只能另起一块挂到电量下面，读起来像
+        // 「电量的附注」；现在电量独占一块（图标按电量填充 + 大号百分比），通知与设备状态本是互斥的
+        // 两个总开关，正好共用最后一块：同高 58、标题 NOTIFY / STATUS，来回切也不会整块上下跳。
+        // 块间距按剩余空间在 12–22 之间取，倒数日三组时这一摞的最高点仍留有 20 余量，绝不压到底部解锁框。
+        final List<FeatureDefinition.CountdownItem> shown = shownCountdowns();
+        final List<Integer> picks = data.extMode ? extPicks() : null;
+        final boolean slot = data.extMode ? !picks.isEmpty() : (!data.hideNotify && data.notifications >= 0);
+        final float hBat = 48, hCd = shown.isEmpty() ? 0 : 80, hSlot = 58;
+        final int blocks = 1 + (hCd > 0 ? 1 : 0) + (slot ? 1 : 0);
+        final float top = y2 + h2;
+        final float stack = hBat + hCd + (slot ? hSlot : 0);
+        final float gap = Math.max(12, Math.min(22, ((H - 58) - 12 - top - stack) / blocks));
+        float y = top + gap;
+        pixelBattery(X, y, WW);
+        y += hBat + gap;
+        if (hCd > 0) {
+            pixelCountdown(X, y, WW, shown);
+            y += hCd + gap;
         }
-        pixText(batteryText() + "%", IN + 26, y3 + 19, 1.5f);
-        if (!data.hideNotify && data.notifications >= 0) {
-            String n = String.valueOf(data.notifications);
-            float nw = pixWidth(n, 1.5f);
-            pixText(n, IN + IW - nw, y3 + 19, 1.5f);
-            font(sSans, 16, 0, INK, false);
-            float lw = tp.measureText(data.notificationLabel);
-            text(data.notificationLabel, IN + IW - nw - 6 - lw, y3 + 15, 0);
-            icon(ICON_NOTIFY, IN + IW - nw - 6 - lw - 30, y3 + 12, 1.5f, INK);
-        }
-
-        // 窗口 4：设备状态（「显示设备状态」开启时）
-        // 原通知位在电量同一行的右端，横排塞不下四项；按用户要求另起一块、放在电池窗口正下方，
-        // 方框沿用电池那块的老式窗口（2px 边框 + 4px 实心投影，无标题），每项「图标在上、ON/OFF 在下」。
-        // 像素风整体是英文标牌（CLOCK / NOW PLAYING / SLIDE TO UNLOCK），这里也只用 ON / OFF，不混中文；
-        // 因此「文字版」在这个样式里不适用，只用图标。关掉的那几项不占位，剩下几项均分整行。
-        if (data.extMode) {
-            List<Integer> pick = extPicks();
-            if (!pick.isEmpty()) {
-                final float y4 = y3 + 48 + 22;         // 与其它块之间一致的 22 间距
-                final float H4 = 58;
-                window(X, y4, WW, H4, null);
-                final boolean[] on = {data.wifi, data.bt, !data.silent, data.airplane};
-                final float cw = IW / pick.size();
-                for (int i = 0; i < pick.size(); i++) {
-                    final float cx = IN + cw * (i + 0.5f);
-                    // 图标：墨迹高统一 13，墨迹中心压在 y4+22，与竖版同一套 INK_BOX/INK_H 换算
-                    int type = EXT_TYPES[pick.get(i)];
-                    float[] ink = INK_BOX[type - 1];
-                    float k = 13f / (ink[3] - ink[1]);
-                    float inkW = (ink[2] - ink[0]) * k;
-                    drawIcon(type, cx - inkW / 2f - ink[0] * k, y4 + 22 - (ink[1] + ink[3]) / 2f * k, 16 * k);
-                    String label = on[pick.get(i)] ? "ON" : "OFF";
-                    pixText(label, cx - pixWidth(label, 1.5f) / 2f, y4 + 35, 1.5f);
-                }
-            }
-        }
+        if (slot) pixelSlot(X, y, WW, picks);
 
         // 底部：滑动解锁
         float yb = H - 18 - 40;
@@ -1279,6 +1254,93 @@ final class LockCanvas extends View {
         String hint = "↑ SLIDE TO UNLOCK ↑";
         float hw = pixWidth(hint, 1.5f);
         pixText(hint, (W - hw) / 2f, yb + 15, 1.5f);
+    }
+
+    /**
+     * 电量窗口：电池图标按电量填充 + 大号百分比；充电时右端标 CHARGING。
+     * 这块原来和通知数共用一行，通知搬走后右侧会空出一大片，所以百分比放大到 u=2.5，
+     * 由「图标 + 数字」自己撑满一行；没有充电标记时宁可留白也不塞无意义的装饰。
+     */
+    private void pixelBattery(float x, float y, float w) {
+        final float IN = x + 16, IW = w - 32;
+        window(x, y, w, 48, null);
+        final float mid = y + 24;
+        // 16 格空间里电池墨迹纵向 4..12（中心 8），scale 3 后墨迹 24 高；y 传 mid-24 让墨迹中线落在块中线
+        icon(ICON_BATTERY, IN - 3, mid - 24, 3, INK);
+        if (data.battery >= 0) {
+            // 内腔在 16 格空间里是 x 3..9 / y 6..10，从左往右填；宽度取 3（=1 格）的整数倍才落在物理像素上
+            final float ix = IN + 6, iy = mid - 6;
+            rect(ix, iy, 18, 12, PAPER);
+            final float fill = Math.round(6 * data.battery / 100f) * 3;
+            if (fill > 0) rect(ix, iy, fill, 12, INK);
+        }
+        pixText(batteryText() + "%", IN + 46, mid - 8.75f, 2.5f);
+        if (data.charging) {
+            final String tag = "CHARGING";
+            pixText(tag, IN + IW - pixWidth(tag, 1), mid - 3.5f, 1);
+        }
+    }
+
+    /**
+     * 倒数日窗口：每列「事项名 / N DAYS」，列的分配与竖版一致（1 组居中、2 组 1/4 与 3/4、
+     * 3 组 1/6 3/6 5/6）。天数是主要信息，走 5×7 点阵（1-bit 下比黑体干净），已过用负号；
+     * 事项名是中文，只能交给无抗锯齿黑体，超长按列宽横向压缩，不会串到邻列。
+     */
+    private void pixelCountdown(float x, float y, float w, List<FeatureDefinition.CountdownItem> shown) {
+        final float IN = x + 16, IW = w - 32;
+        window(x, y, w, 80, "COUNTDOWN");
+        final int n = shown.size();
+        final float cell = IW / n;
+        for (int i = 0; i < n; i++) {
+            final float cx = IN + cell * (i + 0.5f);
+            final FeatureDefinition.CountdownItem it = shown.get(i);
+            final long days = daysUntil(it);
+            final String label = (days >= 0 ? String.valueOf(days) : "-" + Math.abs(days)) + " DAYS";
+            final float lw = pixWidth(label, 1.5f);
+            if (it.item.isEmpty()) {
+                // 没填事项时只有天数，整行在内容区（y+22..y+76）里居中
+                pixText(label, cx - lw / 2f, y + 44, 1.5f);
+            } else {
+                font(sSans, 16, 0, INK, false);
+                textCenterFit(it.item, cx, y + 30, cell - 10);
+                pixText(label, cx - lw / 2f, y + 56, 1.5f);
+            }
+        }
+    }
+
+    /**
+     * 最后一块（互斥的那块）：显示设备状态时是四项「图标 / ON|OFF」，否则是通知数。
+     * 两者同高 58、都带标题，切换总开关时下面的解锁框与上面的块都不会跳。
+     * 像素风整体是英文标牌（CLOCK / NOW PLAYING / COUNTDOWN / SLIDE TO UNLOCK），
+     * 设备状态也就只用 ON / OFF 不混中文；通知只能写系统给的中文来源名，那是数据不是标签。
+     */
+    private void pixelSlot(float x, float y, float w, List<Integer> picks) {
+        final float IN = x + 16, IW = w - 32;
+        if (data.extMode) {
+            window(x, y, w, 58, "STATUS");
+            final boolean[] on = {data.wifi, data.bt, !data.silent, data.airplane};
+            final float cw = IW / picks.size();
+            for (int i = 0; i < picks.size(); i++) {
+                final float cx = IN + cw * (i + 0.5f);
+                // 内容区只有 32 高（58 - 标题栏 22 - 投影 4），墨迹收到 11 才放得下下面一行 ON/OFF
+                final int type = EXT_TYPES[picks.get(i)];
+                final float[] ink = INK_BOX[type - 1];
+                final float k = 11f / (ink[3] - ink[1]);
+                final float inkW = (ink[2] - ink[0]) * k;
+                drawIcon(type, cx - inkW / 2f - ink[0] * k, y + 35 - (ink[1] + ink[3]) / 2f * k, 16 * k);
+                final String label = on[picks.get(i)] ? "ON" : "OFF";
+                pixText(label, cx - pixWidth(label, 1.5f) / 2f, y + 43, 1.5f);
+            }
+            return;
+        }
+        window(x, y, w, 58, "NOTIFY");
+        // ICON_NOTIFY 墨迹在 16 格空间里是 x 2..15 / y 3..14，scale 2 后 x 传 IN-4 让墨迹左沿落在 IN
+        icon(ICON_NOTIFY, IN - 4, y + 24, 2, INK);
+        final String cnt = String.valueOf(data.notifications);
+        pixText(cnt, IN + 30, y + 29.25f, 2.5f);
+        // 来源名靠右端：紧挨着数字排会变成「铃铛 + 方框(0) + 中文」三块连着的方块，0 偏偏就是个方框
+        font(sSans, 15, 0, INK, false);
+        textRight(data.notificationLabel, IN + IW, y + 30, IW * 0.45f);
     }
 
     /** 老式 Mac 窗口：2px 边框、4px 实心投影、条纹标题栏 */
