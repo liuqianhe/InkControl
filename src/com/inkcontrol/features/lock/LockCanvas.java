@@ -850,8 +850,9 @@ final class LockCanvas extends View {
 
     /**
      * 编辑排版的横版：按 720×360 横版逻辑画布作画，paint() 里整体旋转 90° 铺满竖屏面板。
-     * 构图（2026-10-24 五次样张重排）：左缘竖排「上滑解锁」（整体居 Y 中心 180，箭头随样式翻转）；
-     * 表头「第N日 | 中文日期·星期 | 农历 | 农历日期」+ 上划线自 x=42 起（为左缘提示列让位）；
+     * 构图（2026-10-29 重排）：竖排「上滑解锁」列——正版落在画布右端（手机横转后即屏幕最右），
+     * 逆版落在画布左端（整幅旋转 180° 后同样在面板最右），箭头随样式翻转、整体居 Y 中心 180；
+     * 表头「第N日 | 中文日期·星期 | 农历 | 农历日期」+ 上划线自 x=42 起；
      * 大号横版时间 + 细方框（方框宽贴合时间实际宽度）同列 x=40；时间右侧倒数日框（横排标签在框子上方，
      * 事项+日期最多 3 组，框高与时间方框一致）；格言（中英加粗）与通知框整体下沉至下划线下方、
      * 与电量同水平带；电量在右下、天气位在电量正下方（仅原厂控件有真实天气数据时绘制，
@@ -859,25 +860,29 @@ final class LockCanvas extends View {
      * 天气仅在有真实数据时绘制；倒数日只占位不取数：无数据显示的组不绘制。
      */
     private void editorialLand() {
-        final float LX = 42;                      // 左栏左沿（样张：表头/方框/格言均锚定此列；左缘让给解锁提示列）
+        final boolean rev = reverseLand();
+        // 竖排解锁列占 16 宽 + 左右各 12 边距。正版在画布右端（692-708），内容右界 R_END 退到 668 让位；
+        // 逆版在画布左端（12-28），内容右界仍是 700——两版共用同一份坐标，只让「内容右界」跟着版本走。
+        final float R_END = rev ? 700 : 668;
+        final float LX = 42;                      // 左栏左沿（样张：表头/方框/格言均锚定此列）
         final float QW = 375;                     // 格言栏宽（x 42-417；横版下方不够高，右侧带整块左移让给电量/天气）
-        final float BX = 545;                     // 通知/状态框左沿（贴着电量带右侧，右缘 700 与倒数日框对齐）
+        final float BX = R_END - 155;              // 通知/状态框左沿（贴着电量带右侧，右缘与倒数日框对齐）
 
         // ── 顶部：合并表头（第N日 | 中文日期·星期 | 农历 | 农历日期；y 参考样张 ≈60）──
         // 「|」小间隔分隔；农历日期缺失时只保留「第 N 日 | 中文日期·星期」。
         String head = "第" + data.now.get(Calendar.DAY_OF_YEAR) + "日 | " + chineseDate() + "·" + weekCn();
         if (almanac() != null) head += " | 农历 | " + almanac();
         font(sSerif, 26, 0.04f, INK, true);
-        float hw = textBase(head, LX, 60, 640);
+        float hw = textBase(head, LX, 60, R_END - LX - 18);
         rect(LX, 70, hw, 1, INK);
 
         // ── 底部中：电量 + 天气（样张移至右下方，与格言同一水平带）──
         // 横版只有 360 高，竖版的三列网格放不下：这一带压成两行——电量一行、天气一行。
-        // 左沿贴住格言栏右端（417 后留 3px）；电量行右界 BATT_R2 要给通知框（BX=545）让位，
+        // 左沿贴住格言栏右端（417 后留 3px）；电量行右界 BATT_R2 要给通知框（左沿 BX）让位，
         // 天气行在通知框下方，可以一直用到倒数日框右缘 WEA_R2，宽度足够写下长天气名。
         final float BATT_X = 420f;                 // 电量/天气共用左沿（格言栏右端 417 后留 3px）
-        final float BATT_R2 = 540f;                // 电量行右界（通知框 BX=545 前留 5px）
-        final float WEA_R2 = 700f;                 // 天气行右界（在通知框下方，占满到倒数日框右缘）
+        final float BATT_R2 = BX - 5f;             // 电量行右界（通知框左沿前留 5px）
+        final float WEA_R2 = R_END;                // 天气行右界（在通知框下方，占满到倒数日框右缘）
         String label = data.charging ? "充电中" : "电量";
         String val = data.battery < 0 ? "—" : data.battery + "%";
         font(sSerif, 24, 0.1f, INK, true);
@@ -914,11 +919,12 @@ final class LockCanvas extends View {
         }
 
         // ── 通知框 / 设备状态框（白底细框黑字；左移贴着电量带，右缘与倒数日框对齐）──
-        // 原来框在右下角 x605、只有 95 宽，通知挤在边缘且离电量一整条空白。左移到 545 后宽 155：
-        // 通知能居中留白，设备状态也能靠 extBar 的 2×2 降级塞下四项。
+        // 原来框在右下角 x605、只有 95 宽，通知挤在边缘且离电量一整条空白。左移并加宽到 155 后：
+        // 通知能居中留白，设备状态也能靠 extBar 的 2×2 降级塞下四项。右缘跟随内容右界 R_END
+        // （正版 668、逆版 700），正版要给它右边的竖排解锁列让出 24。
         // 高度 40 → 48、框顶 280 → 272（框底 320，仍压在天气行字身顶 323 之上）。
         final float BH = 48;
-        final float BW = 155;                          // 外框宽（x 545-700）
+        final float BW = 155;                          // 外框宽（左沿 BX，右缘 R_END）
         final float boxY = 272;                        // 框顶（水平带上移，与电量/格言带居中对齐）
         if (data.extMode) {
             // 「显示设备状态」：同一块位置改画四项开关状态（与竖版同一套图标与文字）
@@ -954,7 +960,7 @@ final class LockCanvas extends View {
         final float T_FX = 40;                       // 方框左沿（右移 30，给左缘解锁提示列让位）
         final float T_FY = 90, T_FH = 155;           // 方框 y 90-245（加高，吃掉时间下方空当）
         final float T_PAD = 10;                       // 框内边距
-        final float T_MAXW = 565;                     // 方框最大宽（右缘 605，给倒数日框留 20px）
+        final float T_MAXW = R_END - 75 - 20 - T_FX;  // 方框最大宽（右缘给倒数日框留 20px）
         final float pairGap = 16f;                    // 对内间隔（HH 两数字间、MM 两数字间）
         final float colonGap = 10f;                   // 冒号两侧间隔
         String t = time();                            // "HH:mm"（12 小时制同为两位）
@@ -986,7 +992,7 @@ final class LockCanvas extends View {
         // 「显示」开关关闭的组不绘制；农历组的目标日按所选农历年/月/日换算公历后再算天数。
         List<FeatureDefinition.CountdownItem> shown = shownCountdowns();
         if (!shown.isEmpty()) {
-            final float FX = 625, FW = 75;            // 框 x 625-700（与时间方框右缘 605 错开 20）
+            final float FW = 75, FX = R_END - FW;      // 框靠内容右界（与时间方框右缘错开 20）
             final float FY = 90, FH = 155;            // 框 y 90-245（拉高至与时间方框同高）
             frame(FX, FY, FW, FH, 1);
             float cx = FX + FW / 2f;
@@ -1015,17 +1021,18 @@ final class LockCanvas extends View {
             }
         }
 
-        // ── 左缘：竖排「上滑解锁」提示（移到横版画布最左；表头/时间/倒数日整体右移 30 让位）──
-        // 实测墨迹带 y≈133-227，中心 180（箭头字形在字身框内居中，故比字顶参数低约 6px）
-        // 箭头方向随样式翻转：正版 ←，逆版 →。
-        // 面板映射（竖屏 720×1440）：正版横版画布左沿落在面板顶边，画布内 ← 在面板上呈 ↑，
-        // 即真实的解锁手势方向；逆版整幅相对正版旋转 180°，← 会变成 ↓（方向错、与实际解锁相反），
-        // 故改为 →，面板上仍呈 ↑，横转阅读时箭头也仍指向滑动的一侧。
+        // ── 竖排「上滑解锁」提示：正版在画布右端，逆版在画布左端 ──
+        // 正版横版画布旋转 90° 铺到竖屏面板：画布 x 小 → 面板上沿，x 大 → 面板下沿，
+        // 手机横转阅读时「面板下沿」就是屏幕最右边，所以解锁提示要落在画布右端；
+        // 逆版整幅相对正版再转 180°，画布 x 小反而落到面板下沿（横转后仍是最右），故留在左端。
+        // 箭头方向随样式翻转：正版 ←，逆版 →，面板上始终呈 ↑（真实解锁手势方向）。
         // 文字保持正立、自上而下：整块再旋转 180° 虽能让面板画面与正版完全一致，
         // 但横转阅读时文字会上下颠倒，反而不可读，故只翻转箭头。
-        final float VX = 12;
+        // 实测墨迹带 y≈133-227，中心 180（箭头字形在字身框内居中，故比字顶参数低约 6px）。
         font(sSerifBold, 16, 0, INK, true);
-        String arrow = reverseLand() ? "\u2192" : "\u2190";
+        String arrow = rev ? "\u2192" : "\u2190";
+        float uw = Math.max(tp.measureText(arrow), tp.measureText("上"));
+        final float VX = rev ? 12 : 720 - 12 - uw;
         text(arrow, VX, 123f, 0f);       // 上表针
         textVertical("上滑解锁", VX, 141, 18);
         text(arrow, VX, 213f, 0f);       // 下表针
