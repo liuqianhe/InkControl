@@ -393,9 +393,10 @@ static int hookUpdate(void*entry,void*ctl){
                     request.bandDirection=fd.direction;request.bandFrames=fd.frames;
                     request.bandRows=fd.rows;request.bandTail=fd.tail;request.bandStyle=fd.style;
                     fusionTail=fd.tail;
-                    LOG("FUSION_DRIVE wave=%llu dir=%u style=%u rows=%u tail=%u frames=%u active=%u total=%u",
+                    LOG("FUSION_DRIVE wave=%llu dir=%u style=%u rows=%u tail=%u frames=%u active=%u total=%u diff=%u",
                         (unsigned long long)waveId,fd.direction,fd.style,fd.rows,fd.tail,fd.frames,
-                        request.activeFrames,request.totalFrames);
+                        request.activeFrames,request.totalFrames,
+                        frontDiff==UINT32_MAX?0u:frontDiff);
                 }else fusionTail=0;
                 request.wave=waveId;request.gpuIndexValidated=true;
                 gpuBeginWave(request);waveformFrames=int(request.totalFrames);

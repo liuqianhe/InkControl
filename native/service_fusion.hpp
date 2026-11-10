@@ -28,6 +28,8 @@
 //                                    （左滑/点右半屏），与 reverse 异或后决定方向；
 //                                    4 秒后自动过期（按正向处理）
 //   debug.inkcontrol.fusion.spacing  展开速度，映射成额外的错峰帧数（bandTail）
+//   debug.inkcontrol.fusion.minpercent  0..100，默认 12：只有整屏内容改动超过这个
+//                                   百分比才分带（见下方 drive() 里的门槛）。0 表示关掉门槛
 #ifndef INKCONTROL_SERVICE_FUSION_HPP
 #define INKCONTROL_SERVICE_FUSION_HPP
 
@@ -43,6 +45,8 @@ namespace einkfusion {
 
 // 屏幕是 720×1440；按 y 切条带，每条 720 × (1440/bands)。
 static constexpr int PANEL_W = 720, PANEL_H = 1440, DEFAULT_BANDS = 4;
+// 分带的内容门槛（百分比）。翻页是整屏大改，弹窗开合、局部重绘只动一小块。
+static constexpr int DEFAULT_MIN_PERCENT = 12;
 // 只用于日志中说明「原厂传输入口仍然可达且本路线不需要它」。
 static constexpr uintptr_t STOCK_SUBMIT = 0x95dc4;
 
@@ -105,6 +109,18 @@ inline int bands() {
     __system_property_get("debug.inkcontrol.fusion.bands", value);
     int n = std::atoi(value);
     return n >= 4 && n <= 32 ? n : DEFAULT_BANDS;
+}
+
+/** 分带门槛：整屏改动至少要占多少百分比。默认 12，与「动画」那边 motion 的阈值一致。 */
+inline int minPercent() {
+    char value[PROP_VALUE_MAX] = {};
+    // 属性没设时 __system_property_get 返回 0、value 留空，atoi("") 会给 0（＝关掉门槛），
+    // 所以必须先判长度，空值一律回到默认。
+    if (__system_property_get("debug.inkcontrol.fusion.minpercent", value) <= 0) {
+        return DEFAULT_MIN_PERCENT;
+    }
+    int p = std::atoi(value);
+    return (p >= 0 && p <= 100) ? p : DEFAULT_MIN_PERCENT;
 }
 
 struct Band { int index, y, h, firstFrame, lastFrame; };
@@ -170,6 +186,25 @@ inline Drive drive(int activeFrames, void* ctl) {
     // 不按 pageanim.bands 过滤，否则 total=9 一类的短波形会被误排除。
     if (!f.armed || !f.reader || !f.full || !f.waveFamily || !f.nonLocal || f.total < 4) return d;
     if (activeFrames <= 1) return d;
+    // 只让「画面真的换了页」的波形分带。翻页是整屏大改；弹窗开合、局部重绘只动一小块，
+    // 把这种波形也拉长，等于把上一帧（还带着弹窗）在屏上多停几百毫秒——用户看到的就是
+    // 「关掉注释弹窗后，阅读界面上浮着一块白底」。帧差未知（没走比较）同样不分带：
+    // 那种情况下我们无法确认这一波是翻页，按原速刷新更安全。
+    const int percent = minPercent();
+    if (percent > 0) {
+        const uint64_t need = uint64_t(PANEL_W) * PANEL_H * uint32_t(percent) / 100u;
+        const bool known = frontDiff != UINT32_MAX;
+        if (!known || uint64_t(frontDiff) < need) {
+            static unsigned skipped = 0;
+            if ((skipped++ % 8u) == 0u) {
+                log("FUSION_SKIP reason=%s diff=%llu need=%llu minpercent=%d",
+                    known ? "small" : "unknown",
+                    static_cast<unsigned long long>(known ? frontDiff : 0u),
+                    static_cast<unsigned long long>(need), percent);
+            }
+            return d;
+        }
+    }
     char reverse[PROP_VALUE_MAX] = {};
     __system_property_get("debug.inkcontrol.fusion.reverse", reverse);
     // 手势方向：system_server 在抬手时写 "1 <uptime_ms>" 表示「翻上一页」。
