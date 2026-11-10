@@ -79,6 +79,8 @@ public class PanelHook implements IXposedHookLoadPackage {
             new ComponentName("com.inkcontrol", "com.inkcontrol.ui.MainActivity");
     /** 墨控里「快捷设置」页：MainActivity 读到这个 extra 直接渲染遮挡息屏 / 锁屏主题 / 自动刷新。 */
     private static final String QUICK_EXTRA = "quick";
+    /** 长按「墨控快捷设置」= 打开墨控本身（回首页），带上这个 extra 让已在后台的实例也回到首页。 */
+    private static final String HOME_EXTRA = "home";
     /** 长按落到大功能分类页：MainActivity 用分类名渲染那一页，而不是某一项的说明页。 */
     private static final String CATEGORY_EXTRA = "category";
     /** 落到某个大功能页之后还要滚到哪一项（面板长按「全刷扫过」用）。 */
@@ -375,6 +377,13 @@ public class PanelHook implements IXposedHookLoadPackage {
     private static void longPress(Context context, Object window, String action) {
         if ("wifi".equals(action)) { hidePanel(window); openSettings(context, Settings.ACTION_WIFI_SETTINGS); return; }
         if ("bt".equals(action)) { hidePanel(window); openSettings(context, Settings.ACTION_BLUETOOTH_SETTINGS); return; }
+        // 「墨控快捷设置」点一下进快捷设置页，长按则是「就想去墨控里」：直接打开 App 首页，
+        // 补上它之前缺的这一档（原来长按落到 feature() 为 null 的分支，按了半天没反应）。
+        if ("quick".equals(action)) {
+            hidePanel(window);
+            start(context, new Intent().putExtra(HOME_EXTRA, "1"));
+            return;
+        }
         // 刷新格言没有对应功能项，长按直接落到「锁屏显示」那一页（格言徽标就在那儿）。
         if ("motto".equals(action)) {
             hidePanel(window);

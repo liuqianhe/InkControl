@@ -16,6 +16,12 @@
         <receiver android:name="com.inkcontrol.features.lock.MottoReceiver" android:exported="true">
             <intent-filter><action android:name="com.inkcontrol.action.REFRESH_MOTTO"/></intent-filter>
         </receiver>
+        <!-- 「切换总开关」的无界面入口：被 force-stop 后广播叫不醒时改用它，不打开墨控主界面。 -->
+        <activity android:name="com.inkcontrol.ui.ToggleActivity" android:exported="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:excludeFromRecents="true" android:taskAffinity="" android:noHistory="true" />
+        <!-- 外部广播入口：am broadcast -a com.inkcontrol.action.TOGGLE，用 extra「feature」指定项 -->
+        <receiver android:name="com.inkcontrol.features.external.ToggleReceiver" android:exported="true">
+            <intent-filter><action android:name="com.inkcontrol.action.TOGGLE"/></intent-filter>
+        </receiver>
         <provider android:name="com.inkcontrol.platform.ConfigProvider" android:authorities="com.inkcontrol.state" android:exported="true" android:directBootAware="true" android:process=":state" />
         <service android:name="com.inkcontrol.features.refresh.RefreshService" android:exported="true" android:label="@string/accessibility_service_label" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:directBootAware="true" android:process=":refresh">
             <intent-filter><action android:name="android.accessibilityservice.AccessibilityService"/></intent-filter>

@@ -450,7 +450,8 @@ final class Guide {
                             + "五格并排时每格窄一点，长一点的文字会自动缩一档。"
                             + "墨控自己的几项（自动刷新、遮挡息屏、翻页动画、全刷扫过）点一下就地开关，长按跳到对应的设置页；"
                             + "锁屏主题点一下等同于长按，直接去挑样式，免得误触把整套锁屏关掉；"
-                            + "刷新格言点一下就让锁屏格言换下一条，长按跳到「锁屏显示」页。");
+                            + "刷新格言点一下就让锁屏格言换下一条，长按跳到「锁屏显示」页；"
+                            + "「墨控快捷设置」点一下进快捷设置页，长按直接打开墨控首页。");
             for (String[] action : com.inkcontrol.core.FeatureCatalog.PANEL_ACTIONS) entry.option(action[0], action[1], "");
             entry.option(com.inkcontrol.core.FeatureCatalog.PANEL_NONE, "无", "这个位置不显示按钮，后面的往前挪")
                     .option(com.inkcontrol.core.FeatureDefinition.PACKAGE_TOKEN, "某个应用", "从已安装应用里挑一个，点它直接打开");

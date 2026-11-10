@@ -35,7 +35,6 @@ local.properties
 /docs/evidence/
 /docs/local-history/
 
-# inputs/ 是构建输入（原厂与社区派生的 HWC / 常驻二进制），允许入库；
+# inputs/ 是构建输入（原厂与社区派生的 HWC / 常驻二进制）：**不入库**，本地自备。
 # 权利仍归原权利人，见 NOTICE.md。
-!/inputs/
-!/inputs/**
+/inputs/

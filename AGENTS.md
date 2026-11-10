@@ -9,8 +9,8 @@
 - 所有编译及构建验证走 GitHub 托管 Actions；本地只编辑和做静态检查。
 - Keep feature IDs, backend properties, configuration syntax and default values independent of UI language. Run `python tools/check_i18n.py` after changing user-visible source phrases. English UI translations are **no longer maintained** (since 2026-10-24): `check_i18n.py` reports missing entries as notes instead of failing the build; existing `assets/i18n/en.tsv` entries stay for the in-app English UI.
 - 功能 ID、后端属性、配置语法与默认值不得依赖界面语言。修改用户可见源码文案后运行 `python tools/check_i18n.py`。**英文界面翻译自 2026-10-24 起停止维护**：`check_i18n.py` 对缺失翻译只提示不阻断；`assets/i18n/en.tsv` 已有条目保留（App 内英文界面仍可用）。
-- Never commit private signing keys, device backups, raw logs, build outputs or local acceptance reports. Vendor-derived HWC binaries live in `inputs/`.
-- 禁止提交签名私钥、设备备份、原始日志、构建产物与本机验收报告。厂商派生的 HWC 二进制放在 `inputs/` 里。
+- Never commit private signing keys, device backups, raw logs, build outputs or local acceptance reports. Vendor-derived HWC binaries live in `inputs/` and are **not committed** (local only).
+- 禁止提交签名私钥、设备备份、原始日志、构建产物与本机验收报告。厂商派生的 HWC 二进制放在 `inputs/` 里，**不入库**（只在本地）。
 - Do not install, mount, flash, reboot or run device-changing tests as part of repository maintenance or CI. Real-device acceptance is a separate explicit task.
 - 默认配置不因仓库整理、语言切换或云构建而改变；历史报告与发布版本不可覆盖。
 - The user authorized public publication after the 2026-10-18 sensitive-data review. Maintain the native GitHub Wiki from docs/wiki; audit full Git history, Actions logs/artifacts and Release assets before expanding public content. Third-party binaries and artwork remain outside MIT; see NOTICE.md. Never put personal access tokens in workflows or Wiki pages.
@@ -29,7 +29,7 @@
 | `test/` | 回归：`CoreTest`、`GuideTest`、`CatalogExport`、`GeometryTest` 等（由 `tools/test.py` 驱动）与后端 shell / python 测试 | 是 |
 | `tools/` | 构建与静态检查（`build.py`、`check_docs.py`、`check_repository.py`、`check_i18n.py`）以及设备脚本（`adb_target.py`、`reboot_safe.py`、`unlock_device.py`） | 是 |
 | `docs/` | 机制文档与索引、`wiki/`（面向使用者 + `knowledge-index.json`）、`releases/`（每版发布说明）、`media/`（界面截图与 SHA256 清单） | 是 |
-| `inputs/` | **构建输入**：原厂与社区派生的 HWC（`hwcomposer.stock/motion/pageanim.so`）与常驻二进制（`a5pro-resident`、`a5pro-control-once`）。允许入库，但权利归原权利人（见 `NOTICE.md`），不要在文档里把它们算作 MIT 原创 | 是 |
+| `inputs/` | **构建输入**：原厂与社区派生的 HWC（`hwcomposer.stock/motion/pageanim.so`）与常驻二进制（`a5pro-resident`、`a5pro-control-once`）。**只在本地，不入库**（`.gitignore`）；权利归原权利人（见 `NOTICE.md`），不要在文档里把它们算作 MIT 原创 | **否**（`.gitignore`，本地自备） |
 | `ci/` | 云端构建的输入清单、加密依赖包（`private-inputs.zip.enc`）与固定签名证书 | 是 |
 | `out/`、`results/` | 构建产物与验收输出 | 否（`.gitignore`） |
 | `signing/`、`private-inputs/`、`.ci-secrets/` | 本地签名材料与私密输入 | **否，禁止入库** |

@@ -41,8 +41,10 @@ public final class MainActivity extends Activity {
     private static final String FEATURES = "功能", MODULE = "模块设置", INSTALL = "安装", DIAGNOSE = "诊断", ORDER = "功能列表排序", SHORTCUTS = "桌面快捷方式", ABOUT = "关于", TERMS = "__terms";
     /** 启动时直接打开「模块设置」下某一页用的 extra。 */
     private static final String MODULE_EXTRA = "module";
-    /** E-Ink 刷新面板的「墨控快捷设置」按钮：带 quick=1 进来，直接落到只含三个常用开关的一页。 */
+    /** E-Ink 刷新面板的「墨控快捷设置」按钮：带 quick=1 进来，直接落到只含常用开关的一页。 */
     private static final String QUICK_EXTRA = "quick";
+    /** 面板长按「墨控快捷设置」：带 home=1 进来，不管上次停在哪儿都回首页。 */
+    private static final String HOME_EXTRA = "home";
     /** 面板长按「自动刷新 / 遮挡息屏」：带分类名进来，落到该大功能的分类页而不是单项详情。 */
     private static final String CATEGORY_EXTRA = "category";
     /** 落到大功能页之后要滚到哪一行（面板长按「全刷扫过」用它定位到 02 那一组）。 */
@@ -164,6 +166,7 @@ public final class MainActivity extends Activity {
             shortcutTarget(getIntent());
             quickTarget(getIntent());
             categoryTarget(getIntent());
+            homeTarget(getIntent());
         }
         // 面板点一下开关改的是同一份配置，但发起方是系统界面；App 里拿的是打开页面时的
         // 旧快照。只监听面板那条专用通知，App 自己保存时不会触发，避免和提交流程打架。
@@ -211,10 +214,21 @@ public final class MainActivity extends Activity {
         if (restored != null && landingFeature(restored) != null) category = "";
     }
 
-    /** 从 E-Ink 刷新面板的「墨控快捷设置」按钮进来：落到遮挡息屏 / 锁屏自定义 / 自动刷新那一页。 */
+    /** 从 E-Ink 刷新面板的「墨控快捷设置」按钮进来：落到遮挡息屏 / 锁屏主题 / 自动刷新 / 翻页动画 / 格言那一页。 */
     private void quickTarget(android.content.Intent intent) {
         if (intent == null || !"1".equals(intent.getStringExtra(QUICK_EXTRA))) return;
         tab = FEATURES; modulePage = ""; category = QUICK; featureId = "";
+    }
+
+    /**
+     * 面板长按「墨控快捷设置」进来：只是想打开墨控本身，所以不看上次停在哪儿，一律回首页。
+     *
+     * <p>和 {@link #quickTarget} 分开：点一下是「快捷设置」那一页，长按是「整个 App」。
+     */
+    private void homeTarget(android.content.Intent intent) {
+        if (intent == null || intent.getStringExtra(HOME_EXTRA) == null) return;
+        tab = FEATURES; modulePage = ""; category = ""; featureId = "";
+        scrollToFocus = null;
     }
 
     /**
@@ -243,6 +257,9 @@ public final class MainActivity extends Activity {
         }
         if (intent.getStringExtra(CATEGORY_EXTRA) != null) {
             categoryTarget(intent); scroll = null; render(); return;
+        }
+        if (intent.getStringExtra(HOME_EXTRA) != null) {
+            homeTarget(intent); scroll = null; render(); return;
         }
         if (!UiShortcuts.ACTION.equals(intent.getAction())) return;
         shortcutTarget(intent);
@@ -436,7 +453,7 @@ public final class MainActivity extends Activity {
             // 「快捷设置」是面板按钮进来的自造页，不在 Guide 分类表里，别在这里取 intro 抛空指针。
             Guide.Category known = Guide.CATEGORIES.get(category);
             subtitle = known != null ? known.intro
-                    : "遮挡息屏、锁屏自定义与自动刷新的常用开关。";
+                    : "遮挡息屏、锁屏主题、自动刷新、翻页动画与格言的常用开关。";
             back = category.equals("实验室") ? "模块设置" : "功能";
         }
         else { title = "墨控"; subtitle = ""; }
@@ -1065,12 +1082,11 @@ public final class MainActivity extends Activity {
     /**
      * 「快捷设置」页：E-Ink 刷新面板的「墨控快捷设置」按钮进来。
      *
-     * <p>只放三个最常用的入口——遮挡息屏、锁屏主题、自动刷新——开关就地能改，点进去分别是
-     * 完整的功能页（延时、版式、触发次数等细项都在那边）。首页的分类列表不列这一页。
+     * <p>只放最常用的入口——遮挡息屏、锁屏主题、自动刷新、翻页动画、刷新格言——开关就地能改，
+     * 点进去分别是完整的功能页（延时、版式、触发次数等细项都在那边）。首页的分类列表不列这一页。
      */
     private void quickPage() {
-        body.addView(card(column(paragraph("常用三项放在一页，开关直接改；点进每一项可以调细节。", 14))));
-        String[] ids = {"wave.lock", "lock.style", "refresh.master"};
+        String[] ids = {"wave.lock", "lock.style", "refresh.master", "pageanim.master"};
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
         list.setBackground(ink.outline(12));
@@ -1078,8 +1094,26 @@ public final class MainActivity extends Activity {
             if (i > 0) list.addView(ink.rule(1));
             list.addView(featureRow(FeatureCatalog.get(ids[i])));
         }
+        // 刷新格言是就地动作，没有功能页：和锁屏页右上角那颗小徽标同一个出口。
+        list.addView(ink.rule(1));
+        list.addView(mottoRow());
         body.addView(spaced(list, 18));
-        body.addView(spaced(paragraph("遮挡息屏关闭屏幕后要按电源键唤醒；锁屏显示与自动刷新在锁屏、系统界面里生效。", 13), 12));
+        body.addView(spaced(paragraph("遮挡息屏关闭屏幕后要按电源键唤醒；锁屏显示、自动刷新与翻页动画都在系统界面里生效。", 13), 12));
+    }
+
+    /** 「刷新格言」那一行：点一下换下一条，不解锁、也不跳页。 */
+    private View mottoRow() {
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(ink.dp(16), ink.dp(14), ink.dp(8), ink.dp(14));
+        row.setBackground(ink.pressable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT), ink.box(Ink.PAPER, Ink.INK, 2, 12)));
+        LinearLayout content = column(ink.text("刷新格言", 17, Ink.MEDIUM),
+                spaced(paragraph("点一下让锁屏格言换下一条，不动系统界面以外的设置。", 13), 5));
+        row.addView(content, new LinearLayout.LayoutParams(0, -2, 1));
+        row.addView(withMargin(ink.text("›", 24, Ink.REGULAR), 8));
+        row.setContentDescription(ink.t("刷新格言"));
+        row.setOnClickListener(v -> com.inkcontrol.features.lock.MottoCommand.request(this));
+        return row;
     }
 
     /**
