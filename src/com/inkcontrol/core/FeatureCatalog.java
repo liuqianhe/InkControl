@@ -25,7 +25,8 @@ public final class FeatureCatalog {
      * <p>前十个就是控制中心那排磁贴；{@code refresh}／{@code lock}／{@code cover}／{@code pageanim}
      * 是墨控自己的四个开关（自动刷新、锁屏主题、遮挡息屏、翻页动画），点一下就地开关（锁屏主题
      * 例外，点它直接进设置页）；{@code quick} 打开墨控的快捷设置页；{@code pin} 就是原厂那个
-     * 「截屏便签」，保留它自己的图标、文字与截屏监听器。
+     * 「截屏便签」，保留它自己的图标、文字与截屏监听器；{@code theme} 按「轮换主题范围」
+     * 里勾选的样式换到下一个锁屏主题，并提示当前用的是哪一个。
      */
     public static final String[][] PANEL_ACTIONS = {
             {"wifi", "WiFi"}, {"bt", "蓝牙"}, {"ring", "铃声"}, {"airplane", "飞行模式"},
@@ -33,7 +34,7 @@ public final class FeatureCatalog {
             {"dnd", "免打扰"}, {"saver", "省电模式"}, {"float", "悬浮球"},
             {"refresh", "自动刷新"}, {"lock", "锁屏主题"}, {"cover", "遮挡息屏"},
             {"pageanim", "翻页动画"}, {"gcsweep", "全刷扫过"}, {"motto", "刷新格言"},
-            {"quick", "墨控快捷设置"}, {"pin", "截屏便签"}};
+            {"quick", "墨控快捷设置"}, {"pin", "截屏便签"}, {"theme", "轮换主题"}};
 
     /** 这个位置不显示按钮（选择框里排在最上面的「无」）。 */
     public static final String PANEL_NONE = "none";
@@ -129,7 +130,7 @@ public final class FeatureCatalog {
         add("lock.cover.status", "锁屏显示", "设备状态", "右下角显示无线网络与铃声状态，关掉的那项画一道斜线", "systemui", "lock.cover.overlay", HOT, false, "default", "右下无线与铃声", true);
         // 书封信息压在画面上，默认给文字和图标描一圈白边；背景干净时可以关掉。
         add("lock.cover.halo", "锁屏显示", "文字描边", "书封上的文字与图标先描一圈白边再画本体", "systemui", "lock.cover.overlay", HOT, false, "default", "描边", true);
-        add("lock.weather", "锁屏显示", "锁屏天气", "跟随原厂桌面组件，或直接读取系统预装的天气App", "systemui", "lock.style", HOT, false, "default,moji", "原厂桌面组件,天气App");
+        add("lock.weather", "锁屏显示", "锁屏天气", "跟随原厂桌面组件、直接读天气App，或选「无」不显示也不取数", "systemui", "lock.style", HOT, false, "default,moji,none", "原厂桌面组件,天气App,无");
         // 锁屏底部那一块位置只有一处，两个总开关二选一：「显示通知」或「显示设备状态」。
         // 互斥由界面统一保证（MainActivity.change 里开一个就自动关另一个），
         // 所以配置里正常只会有一个为开；设备状态条的四项由 lock.ext.* 单独控制显示与否。

@@ -23,6 +23,7 @@ import com.inkcontrol.features.lock.LockPreview;
 import com.inkcontrol.features.motion.Geometry;
 import com.inkcontrol.platform.ApplicationServices;
 import com.inkcontrol.platform.BuildInfo;
+import com.inkcontrol.platform.ThemePrefs;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -2291,6 +2292,8 @@ public final class MainActivity extends Activity {
         switches.addView(ink.rule(1));
         switches.addView(smallToggleRow("qs.panel.pinsize"));
         body.addView(spaced(switches, 12));
+        // 「轮换主题」按钮的范围也在这页挑：和按钮顺序属于同一块设置，不另开一页。
+        body.addView(spaced(themeCycleBlock(), 12));
 
         // 恢复默认是次要操作，压在页面底部：左边小一号按钮，右边直接跟出厂顺序本身
         // （不再写「默认：」前缀，也不再占一行，省得整块贴着底部导航）。
@@ -2302,6 +2305,46 @@ public final class MainActivity extends Activity {
         note.leftMargin = ink.dp(12);
         reset.addView(ink.text("WiFi · 蓝牙 · 自动刷新 · 翻页动画 · 截屏便签", 11, Ink.REGULAR), note);
         body.addView(spaced(reset, 18));
+    }
+
+    /**
+     * 「轮换主题范围」：面板上的「轮换主题」按钮只在这几个主题之间切换。
+     * 这是纯界面偏好，点一下即存；至少留一个，免得按钮点了没处可换。
+     */
+    private View themeCycleBlock() {
+        final List<String> styles = ThemePrefs.styles();
+        final List<String> chosen = ThemePrefs.cycle(this);
+        LinearLayout box = column(heading("轮换主题范围", 18),
+                spaced(paragraph("面板上的「轮换主题」按钮只在这些主题之间切换。点一下换到下一个，并提示当前用的是哪一个。", 13), 6));
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        list.setBackground(ink.outline(12));
+        for (int i = 0; i < styles.size(); i++) {
+            final String value = styles.get(i);
+            final boolean on = chosen.contains(value);
+            if (i > 0) list.addView(ink.rule(1));
+            LinearLayout row = new LinearLayout(this);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(ink.dp(14), ink.dp(10), ink.dp(12), ink.dp(10));
+            row.setBackground(ink.pressable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT),
+                    ink.box(Ink.PAPER, Ink.INK, 1.5f, 0)));
+            row.addView(checkBox(on));
+            row.addView(ink.text(ThemePrefs.name(value), 16, on ? Ink.MEDIUM : Ink.REGULAR),
+                    new LinearLayout.LayoutParams(0, -2, 1));
+            row.setContentDescription(ink.t(ThemePrefs.name(value) + (on ? "，参与轮换" : "，不参与轮换")));
+            row.setOnClickListener(v -> {
+                List<String> next = new ArrayList<>(chosen);
+                if (on) {
+                    if (next.size() <= 1) { showText("至少留一个主题", "全部取消后「轮换主题」就无处可换了。"); return; }
+                    next.remove(value);
+                } else next.add(value);
+                ThemePrefs.saveCycle(this, next);
+                render();
+            });
+            list.addView(row);
+        }
+        box.addView(list);
+        return box;
     }
 
     /** 比主按钮小一号：14sp、最小高度 40dp、宽度随文字，用在页内的次要操作上。 */

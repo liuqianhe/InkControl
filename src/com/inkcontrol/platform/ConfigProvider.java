@@ -171,6 +171,26 @@ public final class ConfigProvider extends ContentProvider {
                 result.putBoolean("enabled", enable);
                 return result;
             }
+            if ("cycle-theme".equals(method)) {
+                // 面板上的「轮换主题」改的不是开关，而是 lock.style 的取值。写盘 + root 应用
+                // 放后台线程（和 toggle 一样），先把下一个主题的名字回给面板去提示。
+                require(systemui || self());
+                Configuration before = store.load();
+                java.util.List<String> cycle = ThemePrefs.cycle(getContext());
+                if (cycle.isEmpty()) throw new IllegalArgumentException("没有可轮换的锁屏主题");
+                final String next = ThemePrefs.next(before.value("lock.style"), cycle);
+                final String name = ThemePrefs.name(next);
+                new Thread(() -> {
+                    try {
+                        features().change("lock.style", true, next);
+                        changed("panel-toggle");
+                    } catch (Throwable error) { reportToggleFailure("lock.style", error); }
+                }, "inkcontrol-cycle-theme").start();
+                Bundle result = new Bundle();
+                result.putString("name", name);
+                result.putString("value", next);
+                return result;
+            }
             throw new IllegalArgumentException("未知接口");
         } catch (RuntimeException error) { throw error; }
         catch (Exception error) { throw new IllegalStateException("配置读取失败，保留原文件", error); }

@@ -294,7 +294,7 @@ public class Hook implements IXposedHookLoadPackage {
         });
     }
 
-    /** 锁屏天气选了「天气App」＝直接读系统预装的墨迹天气，而不是原厂桌面小组件那条链路。 */
+    /** 锁屏天气选了「天气App」＝直接读系统预装的墨迹天气；选「无」时这里不成立，不会预取。 */
     private static boolean appWeather() {        return RuntimeConfig.enabled("lock.weather") && "moji".equals(RuntimeConfig.value("lock.weather"));
     }
 

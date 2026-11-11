@@ -103,7 +103,8 @@ final class LockData {
         if (!d.extMode && LockStyle.cover()) readDeviceState(d, c);
         // 只是这一处不画，计数照旧；重新打开开关时不用等下一次通知事件
         d.hideNotify = !notifyVisible;
-        if (RuntimeConfig.enabled("lock.weather")) readWeather(d, c, controller);
+        if (RuntimeConfig.enabled("lock.weather") && weatherWanted(RuntimeConfig.value("lock.weather")))
+            readWeather(d, c, controller);
         readLunar(d, controller);
         // 倒数日：仅当「锁屏 → 倒数日」开关开启时读取 App 配置的事项与日期；
         // 开关关闭、或未配置任何事项时不绘制（测试期硬编码样张已移除，编辑器可正常配置）。
@@ -170,10 +171,19 @@ final class LockData {
     }
 
     /**
+     * 「锁屏天气」选「无」＝整块天气都不画、也不取数；其余取值沿用原厂控件或天气App。
+     * 开关仍可保持开启，取数前统一过这一道，两条数据源都不会在「无」时被碰到。
+     */
+    static boolean weatherWanted(String value) {
+        return !"none".equals(value);
+    }
+
+    /**
      * 两种数据源：默认跟随原厂锁屏的天气控件；选择「天气App」时直接读系统预装的墨迹天气。
      * 天气App 还没取到（首次查询在后台进行）或它本身没有数据时，退回原厂数据，避免整块留空。
      */
     private static void readWeather(LockData d, Context c, Object controller) {
+        if (!weatherWanted(RuntimeConfig.value("lock.weather"))) return;
         if ("moji".equals(RuntimeConfig.value("lock.weather"))) {
             android.os.Bundle app = MojiWeatherSource.get(c);
             if (app != null && !TextUtils.isEmpty(app.getString("temperature"))) {
@@ -286,10 +296,13 @@ final class LockData {
         LockData d = new LockData();
         d.now.set(2026, Calendar.OCTOBER, 10, 21, 47, 0);
         d.battery = 76;
-        d.weather = "多云";
-        d.temperature = "18°";
-        d.high = "18°";
-        d.low = "12°";
+        // 「锁屏天气」选「无」时设置页预览也不摆天气，和真实锁屏一致。
+        if (config == null || weatherWanted(config.value("lock.weather"))) {
+            d.weather = "多云";
+            d.temperature = "18°";
+            d.high = "18°";
+            d.low = "12°";
+        }
         d.lunar = "九月初一";
         d.countdowns = new ArrayList<>();
         d.countdowns.add(new FeatureDefinition.CountdownItem("考试", "2026-11-27", false, true));

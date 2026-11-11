@@ -20,6 +20,7 @@ import com.inkcontrol.platform.ConfigProvider;
 public final class PanelToggleActivity extends Activity {
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
+        if (getIntent() != null && getIntent().getBooleanExtra("cycle", false)) { cycleTheme(); return; }
         final String id = getIntent() == null ? "" : getIntent().getStringExtra("feature");
         final boolean enabled = getIntent() != null && getIntent().getBooleanExtra("enabled", false);
         if (id == null || id.isEmpty()) { finish(); return; }
@@ -39,5 +40,26 @@ public final class PanelToggleActivity extends Activity {
                 finish();
             });
         }, "inkcontrol-panel-retry").start();
+    }
+
+    /** 面板轮换的兜底路径：由应用进程自己发同一条调用，完成后提示当前用的主题。 */
+    private void cycleTheme() {
+        new Thread(() -> {
+            String name = "", failure = "";
+            try {
+                Bundle result = getContentResolver().call(ConfigProvider.URI, "cycle-theme", null, null);
+                if (result != null) name = result.getString("name", "");
+            } catch (Throwable error) {
+                failure = error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage();
+            }
+            final String shown = name, problem = failure;
+            runOnUiThread(() -> {
+                String text = problem.isEmpty()
+                        ? (shown.isEmpty() ? "轮换失败" : "当前主题：" + shown)
+                        : "轮换失败：" + problem;
+                Toast.makeText(this, text, Toast.LENGTH_LONG).show();
+                finish();
+            });
+        }, "inkcontrol-panel-cycle").start();
     }
 }

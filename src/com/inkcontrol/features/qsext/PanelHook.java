@@ -71,6 +71,8 @@ public class PanelHook implements IXposedHookLoadPackage {
     private static final String PKG = "com.android.systemui";
     private static final String PANEL = "qs.panel";
     private static final String CLOSE = "qs.panel.close";
+    /** 「轮换主题」：不是开关，按勾选的主题范围换 lock.style 的取值。 */
+    private static final String CYCLE_THEME = "theme";
     /** 原厂「截屏便签」的图标与文字比补上来的按钮大一圈，默认缩到同一档。 */
     private static final String PIN_SIZE = "qs.panel.pinsize";
     private static final String[] SLOTS = {"qs.panel.btn1", "qs.panel.btn2", "qs.panel.btn3",
@@ -357,6 +359,7 @@ public class PanelHook implements IXposedHookLoadPackage {
             start(context, new Intent().putExtra(QUICK_EXTRA, "1"));
             return;
         }
+        if (CYCLE_THEME.equals(action)) { cycleTheme(context, window); return; }
         if (feature(action) != null) {
             // 锁屏主题不是「点一下就好」的开关：和长按一样直接进「锁屏自定义」那一页挑样式，
             // 免得在面板上误触就把整套锁屏关掉。另两项（自动刷新、遮挡息屏）仍就地开关。
@@ -388,6 +391,12 @@ public class PanelHook implements IXposedHookLoadPackage {
         if ("motto".equals(action)) {
             hidePanel(window);
             start(context, new Intent().putExtra(CATEGORY_EXTRA, FeatureCatalog.get(LOCK).group));
+            return;
+        }
+        // 轮换主题没有独立的功能页，长按直接回到快捷面板设置里挑轮换范围。
+        if (CYCLE_THEME.equals(action)) {
+            hidePanel(window);
+            start(context, new Intent().putExtra(CATEGORY_EXTRA, FeatureCatalog.get(PANEL).group));
             return;
         }
         String id = feature(action);
@@ -451,6 +460,33 @@ public class PanelHook implements IXposedHookLoadPackage {
                 }
             }
         }, "inkcontrol-toggle").start();
+    }
+
+    /**
+     * 「轮换主题」：改的是 lock.style 的取值，写盘与应用由应用进程完成（见 ConfigProvider
+     * 的 cycle-theme）。拿到下一个主题的名字再提示；面板比 Toast 高一层，先按「点完收起面板」
+     * 的设置收起来，提示才看得见。
+     */
+    private static void cycleTheme(Context context, Object window) {
+        if (RuntimeConfig.enabled(CLOSE)) hidePanel(window);
+        new Thread(() -> {
+            String name = "";
+            try {
+                Bundle result = context.getContentResolver().call(STATE, "cycle-theme", null, null);
+                if (result != null) name = result.getString("name", "");
+            } catch (Throwable error) {
+                XposedBridge.log(TAG + "cycle-theme provider unavailable: " + error);
+                // 墨控被强制停止时 provider 拉不起来：显式启动透明页，由应用自己完成同一次轮换。
+                Intent fallback = new Intent();
+                fallback.setComponent(new ComponentName("com.inkcontrol", "com.inkcontrol.ui.PanelToggleActivity"));
+                fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                fallback.putExtra("cycle", true);
+                try { context.startActivity(fallback); return; }
+                catch (Throwable second) { XposedBridge.log(TAG + "cycle-theme fallback failed: " + second); }
+            }
+            final String shown = name;
+            MAIN.post(() -> toast(context, shown.isEmpty() ? "锁屏主题轮换失败" : "当前主题：" + shown));
+        }, "inkcontrol-cycle-theme").start();
     }
 
     /** 各动作都照原厂磁贴的同一套调用做：同一个进程、同样的权限，行为与下拉面板一致。 */
@@ -634,6 +670,8 @@ public class PanelHook implements IXposedHookLoadPackage {
         if ("gcsweep".equals(action)) return "ic_menu_refresh";
         // 刷新格言也是「换一下再看」，沿用同一个刷新图标。
         if ("motto".equals(action)) return "ic_menu_refresh";
+        // 轮换锁屏主题同样是「换一个」，沿用刷新图标。
+        if (CYCLE_THEME.equals(action)) return "ic_menu_refresh";
         if ("quick".equals(action)) return "ink_launch_pad_settings";
         return "";
     }

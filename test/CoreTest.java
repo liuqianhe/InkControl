@@ -221,6 +221,11 @@ public final class CoreTest {
                 if (entry[0].equals(action[0])) { found = entry[1].equals(action[1]); break; }
             check(found && FeatureCatalog.get(action[2]) != null);
         }
+        // 「轮换主题」不是开关：点一下在勾选的主题之间换到下一个，五个位置都能选这个动作。
+        boolean cycleTheme = false;
+        for (String[] entry : FeatureCatalog.PANEL_ACTIONS)
+            if (entry[0].equals("theme") && entry[1].equals("轮换主题")) cycleTheme = true;
+        check(cycleTheme);
         // 「快捷面板按钮」同属「快捷面板修改」，面板弹出时由 SystemUI 现加按钮，默认关闭。
         FeatureDefinition panel = FeatureCatalog.get("qs.panel");
         check(panel.group.equals("快捷面板修改") && panel.role.equals("systemui")
@@ -385,10 +390,16 @@ public final class CoreTest {
         check(lockStyle.values.contains("10"));
         check(lockStyle.values.size() == lockStyle.labels.size());
         check(lockStyle.labels.get(lockStyle.values.indexOf("10")).equals("编辑排版-横-逆"));
-        // 锁屏天气：默认沿用原厂（桌面小组件）数据，另可切换为直接读系统预装的天气App
+        // 锁屏天气：默认沿用原厂（桌面小组件）数据，另可切换为直接读系统预装的天气App，
+        // 或选「无」整块不画也不取数。默认值仍是首个取值（原厂桌面组件）。
         FeatureDefinition lockWeather = FeatureCatalog.get("lock.weather");
-        check(lockWeather.values.equals(Arrays.asList("default", "moji")));
+        check(lockWeather.values.equals(Arrays.asList("default", "moji", "none")));
         check(lockWeather.labels.get(lockWeather.values.indexOf("moji")).equals("天气App"));
+        check(lockWeather.labels.get(lockWeather.values.indexOf("none")).equals("无"));
+        check(lockWeather.defaultValue().equals("default"));
+        Configuration weatherOff = new Configuration().change("lock.weather", true, "none");
+        check(weatherOff.value("lock.weather").equals("none"));
+        check(Configuration.parse(weatherOff.text()).value("lock.weather").equals("none"));
         check(CallerPolicy.read(10100, 10100, 10139, 10063)); check(CallerPolicy.read(1000, 10100, 10139, 10063));
         check(CallerPolicy.read(10139, 10100, 10139, 10063)); check(CallerPolicy.read(10063, 10100, 10139, 10063));
         check(!CallerPolicy.read(10199, 10100, 10139, 10063)); check(!CallerPolicy.read(0, 10100, -1, -1));
