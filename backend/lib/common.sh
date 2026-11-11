@@ -177,7 +177,11 @@ ic_autostart() { [ "$(ic_get module.autostart)" != 0 ]; }
 # 它不拦 startActivity，所以用无界面的 WakeActivity 把配置进程叫醒一次；Provider 会通知
 # 所有已注入进程重读配置。不弹界面、不联网、不需要额外常驻服务。
 ic_wake_app() {
-    am start -n com.inkcontrol/com.inkcontrol.ui.WakeActivity >/dev/null 2>&1 || return 1
+    # am start 即使启动失败也可能返回 0（开机未解锁时组件解析不到会打印
+    # 「Error type 3 / Activity class ... does not exist」）。必须读回输出判断，
+    # 否则会把失败记成成功，日志好看但配置进程其实根本没起来。
+    result=$(am start -n com.inkcontrol/com.inkcontrol.ui.WakeActivity 2>&1) || return 1
+    printf '%s' "$result" | grep -q 'Error' && return 1
     ic_log '开机自启：已叫醒配置进程'
 }
 ic_properties() {

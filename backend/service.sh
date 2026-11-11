@@ -16,9 +16,14 @@ if [ "$(getprop sys.boot_completed)" != 1 ]; then
 fi
 ic_apply_hot || { echo '启动期配置应用失败' > "$IC_STATE/error"; exit 1; }
 # 开机自启：把配置进程叫醒一次，系统侧才会读到真正的配置（否则动画与全刷扫过按原厂瞬切）。
-# 刚报 boot_completed 时系统界面可能还没起，失败就再试两次；WakeActivity 是透明无界面入口。
+# 开机时用户往往还没解锁，组件可能暂时解析不到；用一个短周期后台重试直到 :state 真的出现
+# （最多 5 分钟），用户一解锁就能立刻补上，之后交给主循环的 60 秒守护。
 if ic_autostart; then
-    for attempt in 1 2 3; do ic_wake_app && break; sleep 2; done
+    ( for attempt in $(seq 1 60); do
+          pidof com.inkcontrol:state >/dev/null 2>&1 && break
+          ic_wake_app
+          sleep 5
+      done ) </dev/null >/dev/null 2>&1 &
 fi
 # 翻页动画常驻端：读 settings.conf、监听触摸/按键、把翻页事件写进 HWC 注入段。
 # 只在本次开机确实挂了翻页动画 HWC 时拉起；GPU 后端融合模式下这份注入段不存在，
