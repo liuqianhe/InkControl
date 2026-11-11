@@ -563,45 +563,90 @@ ic_apply_idle() {
 # 屏幕亮灭，按策略在息屏后关掉 WiFi、亮屏再开回来。
 # 只认自己关的那一次（状态文件），不会把用户手动关掉的 WiFi 打开；策略改回「始终连接」/
 # 「系统默认」时，下一次 tick 就把之前关掉的 WiFi 开回来。
+#
+# 这条循环跑在已经休眠的设备上，所以整条链路不 fork 子进程：策略只在配置变化时重算
+# （-nt 比对 mtime），亮灭与充电状态用 shell 内建 read 取，日志超限才清。
 IC_WIFI_MARK=$IC_STATE/wifi-sleep.off
+IC_WIFI_LOG=$IC_STATE/idle-wifi.log
+IC_WIFI_STAMP=$IC_STATE/wifi-sleep.stamp
+IC_WIFI_LOG_MAX=32768
 
-# 当前是否应该关掉 WiFi。返回 0＝要关；只看策略，不看屏幕。
-ic_idle_wifi_want_off() {
-    ic_enabled sys.wifi.sleep || return 1
+# 当前策略：off（不碰 WiFi）/ never / charging。只在配置变化时算一次。
+ic_idle_wifi_mode() {
+    ic_enabled sys.wifi.sleep || { echo off; return 0; }
     case "$(ic_get sys.wifi.sleep.value)" in
+        never) echo never ;;
+        charging) echo charging ;;
+        *) echo off ;;
+    esac
+}
+
+# 插着电时「仅充电保持」不该断网，充电状态变了也要及时开回来。
+ic_idle_wifi_charging() {
+    ic_power=
+    { read -r ic_power < /sys/class/power_supply/battery/status; } 2>/dev/null || return 1
+    [ "$ic_power" = Charging ] || [ "$ic_power" = Full ]
+}
+
+# 这个策略下息屏该不该关 WiFi。返回 0＝要关；只看策略和充电，不看屏幕。
+ic_idle_wifi_want_off() {
+    case "$1" in
         never) return 0 ;;
         charging) ic_idle_wifi_charging && return 1; return 0 ;;
         *) return 1 ;;
     esac
 }
 
-# 插着电时「仅充电保持」不该断网，充电状态变了也要及时开回来。
-ic_idle_wifi_charging() {
-    grep -qE '^(Charging|Full)$' /sys/class/power_supply/battery/status 2>/dev/null
+# 动作日志留个上限：WiFi 一直关不掉时会持续追加，超过上限就清空重来。
+ic_idle_wifi_log() {
+    [ -f "$IC_WIFI_LOG" ] || return 0
+    [ "$(wc -c < "$IC_WIFI_LOG" 2>/dev/null || echo 0)" -lt "$IC_WIFI_LOG_MAX" ] || : > "$IC_WIFI_LOG"
 }
 
 ic_idle_wifi_tick() {
+    ic_wifi_round=$(( ${ic_wifi_round:-0} + 1 ))
     # 背光为 0 就是息屏；读不到（别的机型）按亮屏处理，宁可不动作。
-    off_screen=0
-    [ "$(cat /sys/class/backlight/sprd_backlight/brightness 2>/dev/null || echo 1)" = 0 ] && off_screen=1
-    if [ "$off_screen" = 1 ] && ic_idle_wifi_want_off; then
-        # 网卡还在就再下一次命令：svc 偶尔第一下不生效（开机后首次、Doze 切换瞬间），
-        # 每 2 秒重试一次，直到 wlan0 真的消失为止。
+    ic_light=1
+    { read -r ic_light < /sys/class/backlight/sprd_backlight/brightness; } 2>/dev/null || ic_light=1
+    if [ "$ic_light" = 0 ] && ic_idle_wifi_want_off "$1"; then
         if [ -e /sys/class/net/wlan0 ]; then
-            : > "$IC_WIFI_MARK" 2>/dev/null
-            /system/bin/svc wifi disable >> "$IC_STATE/idle-wifi.log" 2>&1
+            # 网卡还在就再下一次命令：svc 偶尔第一下不生效（开机后首次、Doze 切换瞬间），
+            # 每 2 秒重试，直到 wlan0 真的消失；连试 3 次还不行就放慢到每 10 秒一次，
+            # 免得驱动异常时每 2 秒拉起一个 java 进程。
+            if [ "${ic_wifi_tries:-0}" -lt 3 ] || [ $((ic_wifi_round % 5)) = 0 ]; then
+                ic_idle_wifi_log
+                : > "$IC_WIFI_MARK" 2>/dev/null
+                /system/bin/svc wifi disable >> "$IC_WIFI_LOG" 2>&1
+                ic_wifi_tries=$((ic_wifi_tries + 1))
+            fi
+        else
+            ic_wifi_tries=0
         fi
     elif [ -f "$IC_WIFI_MARK" ]; then
+        ic_idle_wifi_log
         rm -f "$IC_WIFI_MARK"
-        /system/bin/svc wifi enable >> "$IC_STATE/idle-wifi.log" 2>&1
+        /system/bin/svc wifi enable >> "$IC_WIFI_LOG" 2>&1
+        ic_wifi_tries=0
+    else
+        ic_wifi_tries=0
     fi
     return 0
 }
 
 # 2 秒一轮，只读两个 sysfs 文件，真正动手只发生在状态切换的那一次。
 ic_idle_wifi_watch() {
+    ic_wifi_round=0
+    ic_wifi_tries=0
+    # 先解析一次再落基准：基准文件比配置新，-nt 就不成立，第一次进循环不会重算。
+    ic_mode=$(ic_idle_wifi_mode)
+    : > "$IC_WIFI_STAMP" 2>/dev/null
     while [ ! -f "$IC_MODULE/disable" ] && [ ! -f "$IC_MODULE/remove" ]; do
-        ic_idle_wifi_tick 2>/dev/null || :
+        # -nt 是 shell 内建测试，不 fork：只有配置被改写时才重新解析策略。
+        if [ "$IC_CONFIG" -nt "$IC_WIFI_STAMP" ]; then
+            ic_mode=$(ic_idle_wifi_mode)
+            : > "$IC_WIFI_STAMP" 2>/dev/null
+        fi
+        ic_idle_wifi_tick "$ic_mode" 2>/dev/null || :
         sleep 2
     done
 }
