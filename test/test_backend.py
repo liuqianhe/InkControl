@@ -118,6 +118,97 @@ IC_LIB={shlex.quote(posix(SCHEMA))}
                     '事项名特别长超过十二个字符;2026-11-27;0;1;;;;'):
             self.config.write_text(with_value(bad),encoding='utf-8')
             self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
+    def _wifi_stub(self, wake='Awake', backlight='0', wlan=True, power='Discharging', enable_works=True):
+        """把 sysfs 路径与系统命令换成替身，返回 (前缀, 网卡文件, svc 日志, dumpsys 命中日志)。"""
+        # 必须写纯 LF：Windows 上 write_text 会把 \n 变成 \r\n，read -r 读到 "0\r"，
+        # 会被误判成「背光非 0」而走亮屏快路径，测试就假通过/假失败了。
+        bl = self.root/'bl'; bl.write_bytes((backlight+'\n').encode())
+        net = self.root/'wlan0'
+        if wlan: net.write_bytes(b'')
+        elif net.exists(): net.unlink()
+        pw = self.root/'power'; pw.write_bytes((power+'\n').encode())
+        svclog = self.root/'svc.log'
+        if svclog.exists(): svclog.unlink()
+        dumplog = self.root/'dumped.log'
+        if dumplog.exists(): dumplog.unlink()
+        enable_body = ': > "$IC_WIFI_NET"' if enable_works else ':'
+        prefix = f'''IC_WIFI_BACKLIGHT={shlex.quote(posix(bl))}
+IC_WIFI_NET={shlex.quote(posix(net))}
+IC_WIFI_POWER={shlex.quote(posix(pw))}
+FAKE_WAKE={wake}
+ic_wifi_dumpsys() {{ echo DUMPED >> {shlex.quote(posix(dumplog))}; echo "  mWakefulness=$FAKE_WAKE"; }}
+ic_wifi_svc() {{
+  echo "$1 $2" >> {shlex.quote(posix(svclog))}
+  case "$2" in disable) rm -f "$IC_WIFI_NET";; enable) {enable_body};; esac
+  return 0
+}}
+'''
+        return prefix, net, svclog, dumplog
+
+    def test_wifi_awake_with_backlight_zero_does_not_disable(self):
+        # 回归：e-ink 前光关到 0 时「亮屏」背光也是 0，旧逻辑会误判息屏把 WiFi 关掉。
+        prefix, net, svclog, _ = self._wifi_stub(wake='Awake', backlight='0', wlan=True)
+        self.shell(prefix + 'ic_idle_wifi_tick never\n')
+        calls = svclog.read_text() if svclog.exists() else ''
+        self.assertNotIn('wifi disable', calls)
+        self.assertTrue(net.exists())
+        self.assertFalse((self.root/'wifi-sleep.off').exists())
+
+    def test_wifi_restores_when_awake_backlight_zero(self):
+        # mark 在、网卡不在、亮屏但背光 0：必须 enable，且确认网卡回来后才删 mark。
+        prefix, net, svclog, _ = self._wifi_stub(wake='Awake', backlight='0', wlan=False)
+        (self.root/'wifi-sleep.off').write_text('', encoding='utf-8')
+        out = self.shell(prefix + '''
+ic_idle_wifi_tick never
+echo "r1 mark=$(test -f "$IC_WIFI_MARK" && echo yes || echo no) net=$(test -e "$IC_WIFI_NET" && echo yes || echo no)"
+ic_idle_wifi_tick never
+echo "r2 mark=$(test -f "$IC_WIFI_MARK" && echo yes || echo no) net=$(test -e "$IC_WIFI_NET" && echo yes || echo no)"
+''')
+        self.assertIn('r1 mark=yes net=yes', out)
+        self.assertIn('r2 mark=no net=yes', out)
+        self.assertIn('wifi enable', svclog.read_text())
+
+    def test_wifi_restore_retries_until_iface_back(self):
+        # enable 一直失败（亮屏瞬间系统没就绪）：mark 不能提前删，必须持续重试。
+        prefix, net, svclog, _ = self._wifi_stub(wake='Awake', backlight='0', wlan=False, enable_works=False)
+        (self.root/'wifi-sleep.off').write_text('', encoding='utf-8')
+        out = self.shell(prefix + '''
+i=1; while [ $i -le 6 ]; do ic_idle_wifi_tick never; i=$((i+1)); done
+echo "mark=$(test -f "$IC_WIFI_MARK" && echo yes || echo no)"
+''')
+        self.assertIn('mark=yes', out)
+        enables = [line for line in svclog.read_text().splitlines() if 'wifi enable' in line]
+        self.assertGreaterEqual(len(enables), 3)
+
+    def test_wifi_asleep_backlight_zero_still_disables(self):
+        prefix, net, svclog, _ = self._wifi_stub(wake='Asleep', backlight='0', wlan=True)
+        self.shell(prefix + 'ic_idle_wifi_tick never\n')
+        self.assertIn('wifi disable', svclog.read_text())
+        self.assertFalse(net.exists())
+        self.assertTrue((self.root/'wifi-sleep.off').exists())
+
+    def test_wifi_charging_policy_keeps_wifi_while_plugged(self):
+        prefix, net, svclog, _ = self._wifi_stub(wake='Asleep', backlight='0', wlan=True, power='Charging')
+        self.shell(prefix + 'ic_idle_wifi_tick charging\n')
+        calls = svclog.read_text() if svclog.exists() else ''
+        self.assertNotIn('disable', calls)
+        self.assertTrue(net.exists())
+
+    def test_wifi_svc_uses_absolute_path(self):
+        # Magisk 服务进程 PATH 以 /sbin 开头，BusyBox 自带的 svc（runsv 控制器）会抢走
+        # 裸命令名，wifi disable/enable 会静默变成打印 BusyBox Usage。必须走绝对路径。
+        text = (ROOT/'backend/lib/common.sh').read_text(encoding='utf-8')
+        self.assertIn('ic_wifi_svc() { /system/bin/svc "$@"; }', text)
+        self.assertIn('ic_wifi_dumpsys() { /system/bin/dumpsys "$@"; }', text)
+        self.assertIn('ic_wifi_svc wifi disable >> "$IC_WIFI_LOG" 2>&1', text)
+        self.assertIn('ic_wifi_svc wifi enable >> "$IC_WIFI_LOG" 2>&1', text)
+
+    def test_wifi_backlight_on_skips_dumpsys(self):
+        # 背光非 0 时直接认定亮屏，一次 dumpsys 都不该 fork。
+        prefix, _, _, dumplog = self._wifi_stub(wake='Asleep', backlight='232', wlan=True)
+        self.shell(prefix + 'ic_screen_awake\n')
+        self.assertFalse(dumplog.exists())
+
     def test_refresh_debounce_accepts_custom_number_and_is_optional(self):
         original=self.config.read_text()
         for good in ('1000','500','2000','0','250','999'):

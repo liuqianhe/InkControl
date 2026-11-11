@@ -18,6 +18,9 @@ final class ExternalTask {
             try {
                 text = task.call();
             } catch (Throwable error) {
+                // 外部调用没有界面，失败原因除了 Toast 再留一份到 logcat，
+                // 免得 Toast 一闪而过时只能猜（`adb logcat -s InkControl`）。
+                android.util.Log.e("InkControl", "外部调用失败", error);
                 String reason = error.getMessage();
                 text = "墨控：" + (reason == null || reason.isEmpty() ? error.toString() : reason);
             }

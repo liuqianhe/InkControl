@@ -559,17 +559,31 @@ ic_apply_idle() {
 
 # ── 息屏断网（墨控自己执行）──────────────────────────────────────────
 # Android 10 起框架不再按 Settings.Global.wifi_sleep_policy 关 WiFi：实测策略写成 0、
-# 系统已进浅睡（mLightState=IDLE），射频仍在。所以这一项由后端自己实现：读背光值判断
-# 屏幕亮灭，按策略在息屏后关掉 WiFi、亮屏再开回来。
+# 系统已进浅睡（mLightState=IDLE），射频仍在。所以这一项由后端自己实现：判断屏幕亮灭，
+# 按策略在息屏后关掉 WiFi、亮屏再开回来。
 # 只认自己关的那一次（状态文件），不会把用户手动关掉的 WiFi 打开；策略改回「始终连接」/
 # 「系统默认」时，下一次 tick 就把之前关掉的 WiFi 开回来。
 #
-# 这条循环跑在已经休眠的设备上，所以整条链路不 fork 子进程：策略只在配置变化时重算
-# （-nt 比对 mtime），亮灭与充电状态用 shell 内建 read 取，日志超限才清。
+# 这条循环跑在已经休眠的设备上，所以整条链路尽量不 fork 子进程：策略只在配置变化时重算
+# （-nt 比对 mtime），背光与充电状态用 shell 内建 read 取，日志超限才清。
+# 亮灭判定是例外：背光亮度这台机器并不可靠——e-ink 前光关到 0 时「亮屏」也读得到 0，
+# 只看它会把亮屏当成息屏，WiFi 关掉后再也不开回来（息屏断网两档都受影响）。
+# 所以背光为 0 时再问一次 PowerManager 的 mWakefulness，结果缓存 5 轮（约 10 秒），
+# 背光大于 0 时直接认定亮屏、一次都不用 fork。
+#
+# svc/dumpsys 必须走绝对路径：Magisk 服务进程的 PATH 以 /sbin 开头，BusyBox 自带的
+# svc（runsv 控制器）会把裸命令名抢走，wifi disable/enable 就静默变成打印 Usage。
+# 包一层函数是为了让回归测试能用同名函数替身。
+ic_wifi_svc() { /system/bin/svc "$@"; }
+ic_wifi_dumpsys() { /system/bin/dumpsys "$@"; }
 IC_WIFI_MARK=$IC_STATE/wifi-sleep.off
 IC_WIFI_LOG=$IC_STATE/idle-wifi.log
 IC_WIFI_STAMP=$IC_STATE/wifi-sleep.stamp
 IC_WIFI_LOG_MAX=32768
+# 设备路径抽成可覆盖变量，回归测试用临时文件替身；真机上一律指向 sysfs / 系统命令。
+IC_WIFI_BACKLIGHT=${IC_WIFI_BACKLIGHT:-/sys/class/backlight/sprd_backlight/brightness}
+IC_WIFI_NET=${IC_WIFI_NET:-/sys/class/net/wlan0}
+IC_WIFI_POWER=${IC_WIFI_POWER:-/sys/class/power_supply/battery/status}
 
 # 当前策略：off（不碰 WiFi）/ never / charging。只在配置变化时算一次。
 ic_idle_wifi_mode() {
@@ -584,7 +598,7 @@ ic_idle_wifi_mode() {
 # 插着电时「仅充电保持」不该断网，充电状态变了也要及时开回来。
 ic_idle_wifi_charging() {
     ic_power=
-    { read -r ic_power < /sys/class/power_supply/battery/status; } 2>/dev/null || return 1
+    { read -r ic_power < "$IC_WIFI_POWER"; } 2>/dev/null || return 1
     [ "$ic_power" = Charging ] || [ "$ic_power" = Full ]
 }
 
@@ -603,37 +617,67 @@ ic_idle_wifi_log() {
     [ "$(wc -c < "$IC_WIFI_LOG" 2>/dev/null || echo 0)" -lt "$IC_WIFI_LOG_MAX" ] || : > "$IC_WIFI_LOG"
 }
 
+# 屏幕是不是真的亮着。背光大于 0 一定亮屏（零 fork，正常亮屏走这条）；
+# 背光为 0 不能直接判息屏：这台 e-ink 把前光关到 0 时，亮屏读到的也是 0。
+# 这时问 PowerManager 的 mWakefulness，结果缓存 5 轮（约 10 秒）省着 fork。
+ic_screen_awake() {
+    ic_bl=1
+    { read -r ic_bl < "$IC_WIFI_BACKLIGHT"; } 2>/dev/null || ic_bl=1
+    if [ "$ic_bl" != 0 ]; then ic_awake_ttl=0; return 0; fi
+    if [ "${ic_awake_ttl:-0}" -le 0 ]; then
+        ic_awake_ttl=5
+        # 只在明确读到 Asleep 时判息屏：dumpsys 没起来、输出被截断、开机早期
+        # PowerManager 未就绪，一律按亮屏处理——宁可晚关，也不要把 WiFi 误关掉。
+        if ic_wifi_dumpsys power 2>/dev/null | grep -q 'mWakefulness=Asleep'; then
+            ic_awake_cached=0
+        else
+            ic_awake_cached=1
+        fi
+    else
+        ic_awake_ttl=$((ic_awake_ttl - 1))
+    fi
+    [ "${ic_awake_cached:-0}" = 1 ]
+}
+
 ic_idle_wifi_tick() {
     ic_wifi_round=$(( ${ic_wifi_round:-0} + 1 ))
-    # 背光为 0 就是息屏；读不到（别的机型）按亮屏处理，宁可不动作。
-    ic_light=1
-    { read -r ic_light < /sys/class/backlight/sprd_backlight/brightness; } 2>/dev/null || ic_light=1
-    if [ "$ic_light" = 0 ] && ic_idle_wifi_want_off "$1"; then
-        if [ -e /sys/class/net/wlan0 ]; then
+    # 网卡在不在，是「关成功 / 开成功」的唯一凭据，不再靠删标记就算完成。
+    ic_wlan=0
+    [ -e "$IC_WIFI_NET" ] && ic_wlan=1
+    if ! ic_screen_awake && ic_idle_wifi_want_off "$1"; then
+        if [ "$ic_wlan" = 1 ]; then
             # 网卡还在就再下一次命令：svc 偶尔第一下不生效（开机后首次、Doze 切换瞬间），
             # 每 2 秒重试，直到 wlan0 真的消失；连试 3 次还不行就放慢到每 10 秒一次，
             # 免得驱动异常时每 2 秒拉起一个 java 进程。
             if [ "${ic_wifi_tries:-0}" -lt 3 ] || [ $((ic_wifi_round % 5)) = 0 ]; then
                 ic_idle_wifi_log
                 : > "$IC_WIFI_MARK" 2>/dev/null
-                /system/bin/svc wifi disable >> "$IC_WIFI_LOG" 2>&1
+                ic_wifi_svc wifi disable >> "$IC_WIFI_LOG" 2>&1
                 ic_wifi_tries=$((ic_wifi_tries + 1))
             fi
         else
             ic_wifi_tries=0
         fi
     elif [ -f "$IC_WIFI_MARK" ]; then
-        ic_idle_wifi_log
-        rm -f "$IC_WIFI_MARK"
-        /system/bin/svc wifi enable >> "$IC_WIFI_LOG" 2>&1
-        ic_wifi_tries=0
+        # 该恢复了：先 enable，只有网卡真的回来才删标记。以前是先删标记再 enable 一次，
+        # 亮屏瞬间系统没就绪、这一下失败就再也不会重试，WiFi 永远停在关闭状态。
+        if [ "$ic_wlan" = 0 ]; then
+            if [ "${ic_wifi_tries:-0}" -lt 3 ] || [ $((ic_wifi_round % 5)) = 0 ]; then
+                ic_idle_wifi_log
+                ic_wifi_svc wifi enable >> "$IC_WIFI_LOG" 2>&1
+                ic_wifi_tries=$((ic_wifi_tries + 1))
+            fi
+        else
+            rm -f "$IC_WIFI_MARK"
+            ic_wifi_tries=0
+        fi
     else
         ic_wifi_tries=0
     fi
     return 0
 }
 
-# 2 秒一轮，只读两个 sysfs 文件，真正动手只发生在状态切换的那一次。
+# 2 秒一轮，正常亮屏时只读一个 sysfs 文件；背光为 0 才按需复核亮灭。
 ic_idle_wifi_watch() {
     ic_wifi_round=0
     ic_wifi_tries=0

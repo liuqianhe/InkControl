@@ -20,6 +20,9 @@ import java.util.Map;
  *
  * <p>走 {@link ApplicationServices#changeAll}，一次落盘、一次下发，和界面同一条链路，
  * 所以界面刷新与状态统计都会跟着变，不需要重启。
+ *
+ * <p>墨控被「强制停止」后静态广播不投递，改 {@code am start -n com.inkcontrol/com.inkcontrol.ui.IdleActivity}
+ * 走 {@link com.inkcontrol.ui.IdleActivity} 那个透明页，参数完全一样。
  */
 public final class IdleCommand {
     /** 外部入口用的 action。 */
