@@ -59,6 +59,23 @@ case "$1" in
         ic_list_fonts "$dir" ;;
     restorefont)
         ic_restore_font ;;
+    lockcover)
+        # 子动作 state|install|remove|rotate|start。install 的图片路径优先取参数，没有才读 stdin（App 走 stdin）。
+        action=${2:-state}
+        case "$action" in
+            state) ic_lockcover_state ;;
+            remove) ic_lockcover_remove ;;
+            rotate) ic_lockcover_rotate ;;
+            start) ic_lockcover_start ;;
+            install)
+                # 先看命令行参数；没有才读 stdin（App 走 stdin，手工调试可以直接给路径）。
+                # 反过来先读 stdin 的话，终端里不带重定向调用会一直等输入。
+                src=$3
+                [ -n "$src" ] || IFS= read -r src || true
+                ic_lockcover_install "$src" ;;
+            *) echo '仅支持 state/install/remove/rotate/start' >&2; exit 2 ;;
+        esac
+        exit $? ;;
     sysapp)
         # 子动作 state|remove|restore，包名从第三个参数或 stdin 读（App 侧先校验格式，这里再校验一次）
         action=$2
@@ -85,5 +102,5 @@ case "$1" in
             *) echo '仅支持 list/save/restore/delete' >&2; exit 2 ;;
         esac
         exit $? ;;
-    *) echo '仅支持 status/apply/applyfont/fontlist/restorefont/sysapp/sysbackup' >&2; exit 2 ;;
+    *) echo '仅支持 status/apply/applyfont/fontlist/restorefont/lockcover/sysapp/sysbackup' >&2; exit 2 ;;
 esac

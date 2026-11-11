@@ -139,7 +139,7 @@ ic_validate() {
           # 旧配置里没有，缺省按「自动」/跟随「波形动画速度」/「横向展开」处理。
           # sys.wifi.sleep / sys.idle.net / sys.idle.sleep（待机与联网）是后加的三项，
           # 旧配置里没有，缺省按这台机器 ROM 的现值（始终连接 / 1 分钟 / 3 分钟）处理。
-          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^lock\.ext(\.(wifi|bt|audio|airplane|edit))?$/ || key ~ /^font\.(dir|pick|saf)$/ || key ~ /^font2\.(dir|pick|saf)$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/ || key ~ /^qs\.extend$/ || key ~ /^navbar\.white$/ || key ~ /^sys\.backup$/ || key ~ /^sys\.(wifi\.sleep|idle\.(net|sleep))$/ || key ~ /^fix\.safeime$/ || key ~ /^qs\.panel(\.(close|pinsize|btn[1-5]))?$/ || key ~ /^motion\.gc_direction$/ || key ~ /^motion\.gc_speed$/ || key ~ /^motion\.gc_style$/ || key ~ /^pageanim\./)
+          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^lock\.ext(\.(wifi|bt|audio|airplane|edit))?$/ || key ~ /^lock\.cover(\.(overlay|time|hint|battery|status|edit|pick|dir|rotate|halo))?$/ || key ~ /^font\.(dir|pick|saf)$/ || key ~ /^font2\.(dir|pick|saf)$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/ || key ~ /^qs\.extend$/ || key ~ /^navbar\.white$/ || key ~ /^sys\.backup$/ || key ~ /^sys\.(wifi\.sleep|idle\.(net|sleep))$/ || key ~ /^fix\.safeime$/ || key ~ /^qs\.panel(\.(close|pinsize|btn[1-5]))?$/ || key ~ /^motion\.gc_direction$/ || key ~ /^motion\.gc_speed$/ || key ~ /^motion\.gc_style$/ || key ~ /^pageanim\./)
           if(optional && !seen[key] && !seen[key ".value"]) continue
           if(!seen[key] || !seen[key ".value"]) bad=1
         }
@@ -417,6 +417,169 @@ ic_restore_font() {
     ic_log "font: 恢复原厂字体（来自备份） -> $dst"
     echo "已恢复原厂字体（$(( $(stat -c %s "$dst") / 1024 / 1024 )) MB），界面已刷新。"
 }
+# 轮换进度：1 起，指向目录里第几张。
+IC_COVER_INDEX=$IC_STATE/lockcover.idx
+# 进度对应的目录名：和配置里的书封目录不一样就把进度清零，否则换了文件夹会接着上一份的序号走。
+IC_COVER_SOURCE=$IC_STATE/lockcover.dir
+
+# 锁屏「透明书封」要叠的那张图：/data/inkcontrol/lockcover.png。
+# 为什么不借别的目录：/data/adb 只有 root 进得去，SystemUI 读不到；/data/fonts 是字体目录，
+# 书封跟字体没关系。所以单独建 /data/inkcontrol：目录 0771（别人能穿过、列不出内容）、
+# 文件 0644，标签沿用 fonts_app_data_file——SystemUI 是 platform_app，只对这个类型有读权限。
+# 换图只换文件内容，SystemUI 按 mtime 重新解码，不用重启。
+IC_COVER_DIR=${IC_COVER_DIR:-/data/inkcontrol}
+IC_COVER_FILE=$IC_COVER_DIR/lockcover.png
+# 旧版本把书封放在字体目录里；升级后搬过来，不在字体目录留副本。
+IC_COVER_LEGACY=$IC_FONT_DIR/lockcover.png
+
+# 建目录、定权限、搬走旧位置那张。每次写图前都过一遍，开机不用另做初始化。
+ic_lockcover_ready() {
+    mkdir -p "$IC_COVER_DIR" || return 1
+    chmod 0771 "$IC_COVER_DIR" 2>/dev/null
+    chcon u:object_r:fonts_app_data_file:s0 "$IC_COVER_DIR" 2>/dev/null
+    [ -f "$IC_COVER_LEGACY" ] || return 0
+    [ -f "$IC_COVER_FILE" ] || mv -f "$IC_COVER_LEGACY" "$IC_COVER_FILE" 2>/dev/null
+    rm -f "$IC_COVER_LEGACY" 2>/dev/null
+}
+
+ic_lockcover_state() {
+    ic_lockcover_ready
+    p=$IC_COVER_FILE
+    # 目录与图张数先给：App 的书封页不管有没有图都要显示这两行
+    d=$(ic_lockcover_dir)
+    echo "dir=$d"
+    if [ -n "$d" ] && [ -d "$d" ]; then
+        echo "images=$(ic_lockcover_list "$d" | awk 'END{print NR+0}')"
+    else
+        echo 'images=0'
+    fi
+    echo "rotate=$( [ "$(ic_get lock.cover.rotate)" = 1 ] && echo 1 || echo 0)"
+    if [ ! -f "$p" ]; then
+        echo 'present=0'
+        return 0
+    fi
+    echo 'present=1'
+    echo "bytes=$(stat -c %s "$p" 2>/dev/null || echo 0)"
+    echo "mtime=$(stat -c %y "$p" 2>/dev/null | cut -c1-16)"
+    # PNG 的 IHDR 固定在第 16–23 字节：宽、高各 4 字节大端
+    echo "size=$(od -An -tu1 -j16 -N8 "$p" 2>/dev/null | awk '{printf "%dx%d", $1*16777216+$2*65536+$3*256+$4, $5*16777216+$6*65536+$7*256+$8}')"
+}
+
+# 轮换用：配置里的书封目录，没配或不是绝对路径时输出空。
+# 注意读的是 .value 行：不带后缀的那一行是开关（0/1）。
+ic_lockcover_dir() {
+    d=$(ic_get lock.cover.dir.value)
+    case "$d" in /*) printf '%s\n' "$d" ;; esac
+}
+
+# 目录里的 PNG，按文件名排序，保证每次轮换顺序固定。
+ic_lockcover_list() {
+    [ -n "$1" ] && [ -d "$1" ] || return 0
+    for f in "$1"/*.png "$1"/*.PNG; do
+        [ -f "$f" ] && printf '%s\n' "$f"
+    done | sort
+}
+
+# 换成目录里的下一张。只在「轮换壁纸」开着、目录里有图时才动；
+# 进度存 $IC_STATE/lockcover.idx（1 起），图被删光后按取模回绕。
+# 换了文件夹就从头开始：进度旁边记着它属于哪个目录，对不上就先把序号清零。
+ic_lockcover_rotate() {
+    ic_enabled lock.cover.rotate || return 0
+    d=$(ic_lockcover_dir)
+    [ -n "$d" ] || return 0
+    list=$(ic_lockcover_list "$d")
+    [ -n "$list" ] || return 0
+    total=$(printf '%s\n' "$list" | awk 'END{print NR+0}')
+    [ "$total" -gt 0 ] || return 0
+    if [ "$(cat "$IC_COVER_SOURCE" 2>/dev/null)" != "$d" ]; then
+        printf '%s\n' "$d" > "$IC_COVER_SOURCE" 2>/dev/null
+        printf '%s\n' 0 > "$IC_COVER_INDEX" 2>/dev/null
+    fi
+    next=$(( $(cat "$IC_COVER_INDEX" 2>/dev/null || echo 0) % total + 1 ))
+    file=$(printf '%s\n' "$list" | sed -n "${next}p")
+    [ -n "$file" ] || return 0
+    ic_lockcover_copy "$file" || return 1
+    printf '%s\n' "$next" > "$IC_COVER_INDEX"
+    ic_log "lockcover rotate: $next/$total $file"
+}
+
+# 换书封文件夹之后调一次：进度归零，轮换开着就直接装第一张，
+# 免得锁屏还停在之前手动选的那张、或者接着上一份目录的序号往下走。
+ic_lockcover_start() {
+    ic_lockcover_ready
+    d=$(ic_lockcover_dir)
+    printf '%s\n' "$d" > "$IC_COVER_SOURCE" 2>/dev/null
+    printf '%s\n' 0 > "$IC_COVER_INDEX" 2>/dev/null
+    [ -n "$d" ] && ic_lockcover_rotate 2>/dev/null
+    if [ "$(cat "$IC_COVER_INDEX" 2>/dev/null)" = 1 ]; then
+        ic_log "lockcover start: $d"
+        echo '已换成书封文件夹里的第一张；之后每次熄屏换下一张。'
+    else
+        echo '书封文件夹已记下，进度从头开始；打开「轮换壁纸」后熄屏才会换图。'
+    fi
+}
+
+# 换下一张的时机：**解锁之后**，不是熄屏那一刻。
+# 锁屏画面在熄屏后每分钟会被原厂重绘一次，如果这期间换了文件，画面就会在眼前换成下一张，
+# 屏幕上的上一张还会留成残影。SystemUI 每次解锁往自己的缓存写一个毫秒时间戳，这里读它。
+IC_COVER_UNLOCK=/data/user_de/0/com.android.systemui/cache/inkcontrol-unlock
+
+# 解锁后换下一张：亮屏看到的锁屏就是新图，锁屏期间不再动。
+# 和「息屏断网」那条循环同一个写法——2 秒一轮只读一个小文件，平时不 fork。
+ic_lockcover_watch() {
+    # 开机先对齐一次：这时文件里多半还是上一次开机留下的时间戳，
+    # 当成「刚解锁」就会把用户开机后看到的那张换掉。
+    ic_cover_seen=
+    { read -r ic_cover_seen < "$IC_COVER_UNLOCK"; } 2>/dev/null || ic_cover_seen=
+    while [ ! -f "$IC_MODULE/disable" ] && [ ! -f "$IC_MODULE/remove" ]; do
+        ic_cover_stamp=
+        { read -r ic_cover_stamp < "$IC_COVER_UNLOCK"; } 2>/dev/null || ic_cover_stamp=
+        # 文件在开机后才出现（第一次解锁）也算变化，照换
+        if [ -n "$ic_cover_stamp" ] && [ "$ic_cover_stamp" != "$ic_cover_seen" ]; then
+            ic_lockcover_rotate 2>/dev/null || :
+            ic_cover_seen=$ic_cover_stamp
+        fi
+        sleep 2
+    done
+}
+
+# 校验并写入 $IC_COVER_FILE；成功时不打印任何东西（轮换要用它的返回码）。
+ic_lockcover_copy() {
+    src=$1
+    [ -n "$src" ] && [ -f "$src" ] || { echo '找不到图片文件' >&2; return 1; }
+    case "$src" in
+        /storage/*|/sdcard/*|/data/local/tmp/*|/data/user/*|/data/data/*) ;;
+        *) echo '图片路径不在允许范围' >&2; return 1 ;;
+    esac
+    printf '%s' "$src" | grep -q '[[:cntrl:]]' && { echo '图片路径无效' >&2; return 1; }
+    bytes=$(stat -c %s "$src" 2>/dev/null || echo 0)
+    [ "$bytes" -gt 0 ] || { echo '图片是空文件' >&2; return 1; }
+    [ "$bytes" -le 8388608 ] || { echo '图片超过 8 MB，请先压小' >&2; return 1; }
+    head -c 8 "$src" | od -An -tx1 | tr -d ' \n' | grep -q '^89504e470d0a1a0a$' || {
+        echo '不是 PNG 图片（书封图需要带透明通道的 PNG）' >&2; return 1; }
+    ic_lockcover_ready || return 1
+    dst=$IC_COVER_FILE
+    # 先写临时文件再 mv：SystemUI 任何时刻读到的都是完整文件
+    cat "$src" > "$dst.new" || { rm -f "$dst.new"; echo '写入失败' >&2; return 1; }
+    chmod 644 "$dst.new" 2>/dev/null
+    chcon u:object_r:fonts_app_data_file:s0 "$dst.new" 2>/dev/null
+    mv -f "$dst.new" "$dst" || { rm -f "$dst.new"; echo '写入失败' >&2; return 1; }
+}
+
+ic_lockcover_install() {
+    ic_lockcover_copy "$1" || return 1
+    bytes=$(stat -c %s "$IC_COVER_FILE" 2>/dev/null || echo 0)
+    ic_log "lockcover: $1 -> $IC_COVER_FILE ($bytes bytes)"
+    echo "书封图已更新（$((bytes / 1024)) KB）；锁一次屏就能看到。"
+}
+
+ic_lockcover_remove() {
+    ic_lockcover_ready
+    rm -f "$IC_COVER_FILE" || { echo '删除失败' >&2; return 1; }
+    ic_log 'lockcover: 已移除'
+    echo '书封图已移除；锁屏只剩熄屏前的画面。'
+}
+
 # 系统无障碍里按功能开关增删一个组件。系统可能存短名（/.features.x.Y）也可能存全名，两种都认。
 # $1 短组件  $2 全组件  $3 期望状态（1 启用 / 0 关闭）
 ic_accessibility_sync() {

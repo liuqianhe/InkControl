@@ -98,6 +98,9 @@ final class LockData {
             d.showAirplane = RuntimeConfig.enabled("lock.ext.airplane");
             readDeviceState(d, c);
         }
+        // 透明书封右下角要画无线与铃声：这条路径不经过 extMode，单独读一次给书封用。
+        // 读的是同一组只读状态，不额外开权限，也不受「显示设备状态」开关影响。
+        if (!d.extMode && LockStyle.cover()) readDeviceState(d, c);
         // 只是这一处不画，计数照旧；重新打开开关时不用等下一次通知事件
         d.hideNotify = !notifyVisible;
         if (RuntimeConfig.enabled("lock.weather")) readWeather(d, c, controller);
@@ -294,6 +297,9 @@ final class LockData {
         d.countdowns.add(new FeatureDefinition.CountdownItem("春节", "2027-01-01", true, true));   // 农历示例（2027 春节=2027-02-06）
         d.notifications = 3;
         d.playing = true;
+        // 书封信息层右下角要用：预览里给「无线已连、铃声有声」，和真实锁屏最常见的样子一致。
+        d.wifi = true;
+        d.silent = false;
         d.text = "把今天折好，放进明天的口袋。";
         d.track = "曲名 · 歌手";
         d.position = 132000;

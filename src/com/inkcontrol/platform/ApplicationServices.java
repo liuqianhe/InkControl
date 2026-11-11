@@ -73,6 +73,12 @@ public final class ApplicationServices {
     public String applyFont(String source) throws Exception { return root.applyFont(source); }
     /** 恢复原厂字体并立刻全局激活。 */
     public String restoreFont() throws Exception { return root.restoreFont(); }
+    /** 书封图现状（present / bytes / mtime / size）；读不到时抛异常，由界面按「未设置」处理。 */
+    public java.util.Map<String, String> coverState() throws Exception { return root.coverState(); }
+    public String installCover(String source) throws Exception { return root.installCover(source); }
+    public String removeCover() throws Exception { return root.removeCover(); }
+    /** 换了书封文件夹之后调：轮换进度归零，轮换开着就直接装第一张。 */
+    public String startCover() throws Exception { return root.startCover(); }
     /** 列出目录里的字体：{绝对路径, 文件名, 字节数}；root 读取，不受 App 存储权限限制。 */
     public java.util.List<String[]> listFonts(String directory) throws Exception {
         java.util.List<String[]> result = new java.util.ArrayList<>();

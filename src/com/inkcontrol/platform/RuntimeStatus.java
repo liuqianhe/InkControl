@@ -60,10 +60,17 @@ final class RuntimeStatus implements StatusSource {
             if (value != null && applied != null && applied.enabled(feature.id) == value.enabled(feature.id) && applied.value(feature.id).equals(value.value(feature.id))) acknowledged = applied.revision;
             if (!error.isEmpty()) return new Evidence(false, "", error, expectedRevision);
             if (value != null && value.enabled(feature.id) && feature.id.equals("display.dynamic") && !"0".equals(fields.get("dynamic_current"))) return new Evidence(false, "", "系统值已被独立修改，保留该修改；重新关闭再开启可接管", acknowledged);
-            if (value != null && value.enabled("display.gpu") && (feature.id.equals("display.gpu") || feature.dependency.equals("display.gpu"))) {
+            // GPU 报错只记在「GPU 显示后端」自己身上：它一旦真失败，依赖它的项会由调用方的
+            // 依赖检查统一报「依赖未满足」，当时关着的项更不该被牵连成异常。
+            // 次数门槛与后端保持一致（service.sh 连续 3 次才禁止加载 HWC）：1–2 次是自愈过的
+            // 降级，计数又是本次开机以来的累计值，按 1 次就报异常会让整页长期挂着误报。
+            if (feature.id.equals("display.gpu") && value != null && value.enabled("display.gpu")) {
                 if (!gpu.matches("(?s).*\"helper_loaded\"\\s*:\\s*(true|1).*")) return null;
                 if (!gpu.matches("(?s).*\"telemetry_valid\"\\s*:\\s*(true|1).*")) return null;
-                if (gpu.matches("(?s).*\"gpu_errors\"\\s*:\\s*[1-9][0-9]*.*")) return new Evidence(false, "", "GPU 记录到执行错误", expectedRevision);
+                java.util.regex.Matcher errors = java.util.regex.Pattern
+                        .compile("\"gpu_errors\"\\s*:\\s*([0-9]+)").matcher(gpu);
+                if (errors.find() && Integer.parseInt(errors.group(1)) >= 3)
+                    return new Evidence(false, "", "GPU 后端连续 " + errors.group(1) + " 次执行失败，等完整重启恢复", expectedRevision);
             }
         } else {
             Bundle report = reports.getBundle(feature.role);

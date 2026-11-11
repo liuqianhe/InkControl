@@ -218,6 +218,9 @@ public class Hook implements IXposedHookLoadPackage {
             public void onReceive(Context c, Intent intent) { nextMotto(c); }
         }, new IntentFilter(ACTION_MOTTO_NEXT), null, sHandler);
         if (com.inkcontrol.platform.BuildInfo.DEBUG) SystemLockStyles.registerDebug(context, controller, sHandler);
+        // 「透明书封」要的「熄屏前最后一帧」：亮屏时每 2 秒缓存一张，锁屏瞬间 SurfaceFlinger
+        // 已经把这一屏清掉，再截就是空白了。
+        SystemLockStyles.startFrameCache(context, sHandler);
         RuntimeConfig.markReady();
         MediaLyric.start(context, sHandler);
         if (appWeather()) MojiWeatherSource.prefetch(context);

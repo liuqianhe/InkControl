@@ -58,6 +58,8 @@ public final class MainActivity extends Activity {
     private static final int EXPORT_REQUEST = 100;
     private static final int FONT_REQUEST = 101;
     private static final int FONT_DIR_REQUEST = 102;
+    private static final int COVER_REQUEST = 103;
+    private static final int COVER_DIR_REQUEST = 104;
     /** 海信主题字体目录：字体包没有扩展名，靠文件头识别 TTF/OTF。 */
     private static final String FONT_DIR_DEFAULT = "/storage/emulated/0/.hmcttheme/com.hmct.theme/";
     /** 「关于」页里的外链；只跳转浏览器，不在应用里做自动更新或下载。 */
@@ -91,7 +93,7 @@ public final class MainActivity extends Activity {
     private String pendingId = "", pendingValue = "";
     private boolean pendingEnabled;
     /** 「显示信息修改」在紧凑页里是展开式多选，记着这一行是展开还是收起。 */
-    private boolean lockExtOpen;
+    private boolean lockExtOpen, lockCoverOpen;
     /** 面板开关由 SystemUI 转到应用进程写盘，界面快照不会自己变；靠这条观察者重读。 */
     private android.database.ContentObserver panelObserver;
     /** 「关于」页检测更新的结果：留在字段里，页面重建（旋转）后仍看得到上一次结论。 */
@@ -129,6 +131,10 @@ public final class MainActivity extends Activity {
     /** 面板按钮刚拖完、还没写进配置的新顺序；有值时按它画，省得等 root 应用那一两秒。 */
     private String[] panelOrderPending;
     private boolean panelOrderBusy;
+
+    /** 书封图现状（present / bytes / mtime / size）；null 表示还没读过。 */
+    private java.util.Map<String, String> coverState;
+    private boolean coverLoading;
 
     /** 系统设置快照列表；null 表示还没读过，读的时候用 backupsLoading 挡重复请求。 */
     private List<String[]> backups;
@@ -552,10 +558,25 @@ public final class MainActivity extends Activity {
      * 没有开关、点进去只做修改的页内操作项：字体（挑字体、应用）与「显示信息修改」
      * （把设备状态的四项显示开关收进一页）。它们不计入「已开启 / 总数」。
      */
-    private static boolean isPageNode(String id) { return isFontNode(id) || id.equals("lock.ext.edit"); }
+    private static boolean isPageNode(String id) {
+        return isFontNode(id) || id.equals("lock.ext.edit") || id.equals("lock.cover.edit")
+                || id.equals("lock.cover.pick") || id.equals("lock.cover.dir");
+    }
 
     /** 「显示信息修改」页里的四项显示开关，顺序即锁屏上从左到右的顺序。 */
     private static final String[] EXT_ITEMS = {"lock.ext.wifi", "lock.ext.bt", "lock.ext.audio", "lock.ext.airplane"};
+
+    /** 「书封显示内容」页里的四项，顺序即锁屏上的位置：顶部时间、底部提示、左下电量、右下状态。 */
+    private static final String[] COVER_ITEMS = {"lock.cover.time", "lock.cover.hint", "lock.cover.battery", "lock.cover.status"};
+
+    /** 「01 样式」里只属于「透明书封」的三行；锁屏主题选别的样式时不摆出来。 */
+    private static final List<String> COVER_STYLE_ROWS = Arrays.asList(
+            "lock.cover.overlay", "lock.cover.pick", "lock.cover.edit");
+
+    /** 锁屏主题选中的是不是「透明书封」（逻辑样式 11，物理样式复用 9，只能看配置里的值）。 */
+    private boolean coverStyleSelected() {
+        return "11".equals(snapshot.config.value("lock.style"));
+    }
 
     /**
      * 点大功能卡片不经过分类列表、直接落到某个功能页的分类：
@@ -959,10 +980,15 @@ public final class MainActivity extends Activity {
             int rows = 0;
             for (int i = 1; i < section.length; i++) {
                 String id = section[i];
+                // 「01 样式」里的三行书封控件只对「透明书封」有用：锁屏主题选了别的样式就整组
+                // 跳过，分隔线也跟着不画（rows 只在真正添加行时才递增）。
+                if (COVER_STYLE_ROWS.contains(id) && !coverStyleSelected()) continue;
                 FeatureDefinition f = FeatureCatalog.get(id);
                 // 「显示信息修改」是四项多选，直接在页里展开勾选，不再单开一页来回跳。
                 // 「锁屏倒数日」既是开关又有自己的编辑页：右侧给状态与开关，点标题仍可进去编辑。
                 View row = id.equals("lock.ext.edit") ? lockExtBlock()
+                        : id.equals("lock.cover.edit") ? lockCoverBlock()
+                        : id.equals("lock.cover.overlay") ? smallToggleRow(id, false)
                         : "lock.countdown".equals(id) ? compactToggleRow(id, true)
                         : compactSpecial(id) ? entryRow(f)
                         : realValues(f).size() > 1 ? dropdownRow(f, f.title) : smallToggleRow(id);
@@ -1041,7 +1067,7 @@ public final class MainActivity extends Activity {
         if (!lockExtOpen) return block;
         for (String id : EXT_ITEMS) {
             block.addView(ink.rule(1));
-            block.addView(lockExtItem(FeatureCatalog.get(id)));
+            block.addView(checkRow(FeatureCatalog.get(id)));
         }
         block.addView(ink.rule(1));
         // 逐项说明与「图标版 / 文字版」还在原来那一页，留个入口，别把那条路堵死。
@@ -1052,8 +1078,8 @@ public final class MainActivity extends Activity {
         return block;
     }
 
-    /** 展开后的一行：方框 + 名称，点一下勾选／取消并立即保存。 */
-    private View lockExtItem(FeatureDefinition f) {
+    /** 展开后的一行：方框 + 名称，点一下勾选／取消并立即保存。两处勾选块（设备状态 / 书封）共用。 */
+    private View checkRow(FeatureDefinition f) {
         boolean on = snapshot.config.requested(f.id);
         LinearLayout row = new LinearLayout(this);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -1072,6 +1098,46 @@ public final class MainActivity extends Activity {
                 return "已保存「" + f.title + "」：" + (next ? "显示" : "不显示");
             }, false);
         });
+        return row;
+    }
+
+    /**
+     * 「书封显示内容」：点标题就地展开四项，和「显示信息修改」同一套交互。
+     * 收起时右侧显示「4 / 4」，不占版面；展开后勾一项存一项，锁屏下一次出图就按新的画。
+     */
+    private View lockCoverBlock() {
+        LinearLayout block = new LinearLayout(this);
+        block.setOrientation(LinearLayout.VERTICAL);
+        int on = 0;
+        for (String id : COVER_ITEMS) if (snapshot.config.requested(id)) on++;
+        LinearLayout head = new LinearLayout(this);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        head.setPadding(ink.dp(14), ink.dp(13), ink.dp(12), ink.dp(13));
+        head.addView(ink.text("书封显示内容", 17, Ink.MEDIUM), new LinearLayout.LayoutParams(0, -2, 1));
+        head.addView(ink.text(on + " / " + COVER_ITEMS.length + (lockCoverOpen ? " ▴" : " ▾"), 13, Ink.REGULAR));
+        head.setContentDescription(ink.t("书封显示内容，已选 " + on + " 项" + (lockCoverOpen ? "，已展开" : "，点开可勾选")));
+        head.setOnClickListener(v -> { lockCoverOpen = !lockCoverOpen; render(); });
+        block.addView(head);
+        if (!lockCoverOpen) return block;
+        for (String id : COVER_ITEMS) {
+            block.addView(ink.rule(1));
+            block.addView(checkRow(FeatureCatalog.get(id)));
+        }
+        // 文字描边不是"显示哪一项"，排在四块内容后面，单独一条开关。
+        block.addView(ink.rule(1));
+        block.addView(nestedToggle("lock.cover.halo"));
+        return block;
+    }
+
+    /** 收在页里的开关行：只有标题和开关，点标题也不跳页（这几项没有独立详情页）。 */
+    private View nestedToggle(String id) {
+        FeatureDefinition f = FeatureCatalog.get(id);
+        boolean requested = snapshot.config.requested(id);
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(ink.dp(26), ink.dp(10), ink.dp(12), ink.dp(10));
+        row.addView(ink.text(f.title, 16, Ink.MEDIUM), new LinearLayout.LayoutParams(0, -2, 1));
+        row.addView(toggle(f, requested, requested));
         return row;
     }
 
@@ -1257,14 +1323,17 @@ public final class MainActivity extends Activity {
     }
 
     /** 紧凑开关行：只留名字和 Switch，点名字仍可进原详情页。 */
-    private View smallToggleRow(String id) {
+    private View smallToggleRow(String id) { return smallToggleRow(id, true); }
+
+    /** {@code link} 为假时点标题也不跳页（「书封叠加信息」没有详情页，说明都在开关本身）。 */
+    private View smallToggleRow(String id, boolean link) {
         FeatureDefinition f = FeatureCatalog.get(id);
         boolean requested = snapshot.config.requested(id);
         LinearLayout row = new LinearLayout(this);
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(ink.dp(14), ink.dp(10), ink.dp(12), ink.dp(10));
         TextView title = ink.text(f.title, 16, Ink.MEDIUM);
-        title.setOnClickListener(v -> openFeature(id));
+        if (link) title.setOnClickListener(v -> openFeature(id));
         row.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
         row.addView(toggle(f, requested, requested));
         return row;
@@ -1460,6 +1529,8 @@ public final class MainActivity extends Activity {
         if (isFontNode(f.id)) { fontPage(f); return; }
         // 「显示信息修改」：四项显示开关收在一页，本页自己没有开关
         if (f.id.equals("lock.ext.edit")) { extItemsPage(f); return; }
+        // 「书封选择」：换图、选文件夹、轮换都在这一页，本页自己没有开关
+        if (f.id.equals("lock.cover.pick")) { coverPickPage(f); return; }
         // 「备份系统设置」：进去是操作页（拍快照 / 列快照 / 写回），没有开关
         if (f.id.equals("sys.backup")) { backupPage(); return; }
         // 「快捷面板修改」：整页只有总开关和按钮顺序，交给专用页
@@ -1602,6 +1673,135 @@ public final class MainActivity extends Activity {
                 v -> openFeature("lock.ext")), 14));
 
         if (!g.cost.isEmpty()) body.addView(spaced(section("需要知道", paragraph(g.cost, 14)), 20));
+    }
+
+    /**
+     * 「书封选择」：换书封图、选书封文件夹、开关轮换，三件事都在这一页。
+     * 图固定装到 /data/inkcontrol/lockcover.png（后端建的独立目录，SystemUI 直接按路径读；
+     * 不放字体目录，也不放只有 root 进得去的 /data/adb）；文件夹只把路径记进配置，
+     * 真正轮换由后端在每次解锁后做，App 不需要常驻。
+     */
+    private void coverPickPage(FeatureDefinition f) {
+        ApplicationServices.Snapshot s = snapshot;
+        Guide.Entry g = Guide.get(f.id);
+        if (coverState == null && !coverLoading) loadCoverState();
+
+        String dir = s.config.value("lock.cover.dir");
+        boolean hasDir = dir != null && dir.startsWith("/");
+        String current;
+        if (coverState == null) current = "正在读取当前书封…";
+        else if (!"1".equals(coverState.get("present"))) current = "还没有书封图：锁屏只显示熄屏前的画面。";
+        else current = "当前：" + text(coverState, "size") + " · " + text(coverState, "bytes")
+                    + " 字节 · " + text(coverState, "mtime");
+
+        LinearLayout box = column(heading("书封图片", 18), spaced(paragraph(current, 14), 6));
+        if (hasDir) {
+            String count = coverState == null ? "正在统计…" : "共 " + text(coverState, "images") + " 张 PNG";
+            box.addView(spaced(paragraph("文件夹：" + dir + "，" + count, 13), 4));
+        } else {
+            box.addView(spaced(paragraph("还没选文件夹；选了之后打开下面的「轮换壁纸」才会用。", 13), 4));
+        }
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.addView(ink.button("选择书封图片", Ink.Kind.PRIMARY, v -> pickCover()),
+                new LinearLayout.LayoutParams(0, -2, 1));
+        LinearLayout.LayoutParams folderParams = new LinearLayout.LayoutParams(0, -2, 1);
+        folderParams.leftMargin = ink.dp(10);
+        actions.addView(ink.button("选择文件夹", Ink.Kind.SECONDARY, v -> pickCoverDir()), folderParams);
+        box.addView(spaced(actions, 12));
+        box.addView(spaced(ink.button("移除书封图片", Ink.Kind.SECONDARY, v -> removeCover()), 10));
+        body.addView(card(box));
+
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        list.setBackground(ink.outline(12));
+        list.addView(nestedToggle("lock.cover.rotate"));
+        body.addView(spaced(section("轮换", list), 18));
+
+        if (!g.what.isEmpty()) body.addView(spaced(paragraph(g.what, 15), 18));
+        if (!g.cost.isEmpty()) body.addView(spaced(section("需要知道", paragraph(g.cost, 14)), 18));
+    }
+
+    private static String text(java.util.Map<String, String> state, String key) {
+        String value = state == null ? null : state.get(key);
+        return value == null || value.isEmpty() ? "—" : value;
+    }
+
+    /** 只读状态：一次 root 调用，回来重画本页。 */
+    private void loadCoverState() {
+        coverLoading = true;
+        WORKER.execute(() -> {
+            java.util.Map<String, String> loaded = null;
+            String error = "";
+            try { loaded = services.coverState(); } catch (Exception failure) { error = reason(failure); }
+            java.util.Map<String, String> result = loaded;
+            String problem = error;
+            runOnUiThread(() -> {
+                coverLoading = false;
+                if (isFinishing() || isDestroyed()) return;
+                if (result == null) {
+                    // 读不到（多半是还没给 Root）：按「没有图」显示，不把整页顶掉
+                    java.util.Map<String, String> empty = new java.util.LinkedHashMap<>();
+                    empty.put("present", "0");
+                    coverState = empty;
+                    if (!problem.isEmpty()) { message = problem; messageFailed = true; }
+                } else coverState = result;
+                render();
+            });
+        });
+    }
+
+    private void pickCover() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("image/*").addCategory(Intent.CATEGORY_OPENABLE);
+        try { startActivityForResult(intent, COVER_REQUEST); }
+        catch (android.content.ActivityNotFoundException error) { showText("无法选择图片", "系统没有可用的文件选择界面。"); }
+    }
+
+    private void pickCoverDir() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        try { startActivityForResult(intent, COVER_DIR_REQUEST); }
+        catch (android.content.ActivityNotFoundException error) { showText("无法选择文件夹", "系统没有可用的文件夹选择界面。"); }
+    }
+
+    /** 选文件夹只存路径：真正读目录、换图都是后端做的，App 没有存储权限也照样能用。 */
+    private void saveCoverDir(String path) {
+        if (path == null) {
+            showText("无法换成路径", "这个位置没法转换成文件路径，换一个目录试试（例如内置存储 → Pictures）。");
+            return;
+        }
+        perform(ink.t("保存书封文件夹"), () -> {
+            coverState = null;
+            change("lock.cover.dir", true, path);
+            // 换了文件夹就把轮换进度归零：轮换开着的话顺手换成新文件夹的第一张，
+            // 否则锁屏还停在上一个文件夹、或者更早手动选的那张图上。
+            String started;
+            try { started = services.startCover(); }
+            catch (Exception error) { started = "文件夹已保存，但没能立刻换成第一张：" + reason(error); }
+            return started;
+        }, false);
+    }
+
+    private void applyCoverFromUri(android.net.Uri uri) {
+        perform(ink.t("安装书封图片"), () -> {
+            java.io.File copy = new java.io.File(getCacheDir(), "lockcover-pick.png");
+            try (java.io.InputStream input = getContentResolver().openInputStream(uri);
+                 OutputStream output = new java.io.FileOutputStream(copy)) {
+                if (input == null) throw new java.io.IOException("无法读取所选图片");
+                byte[] buffer = new byte[65536];
+                int count;
+                while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
+            }
+            coverState = null;
+            return services.installCover(copy.getAbsolutePath());
+        }, false);
+    }
+
+    private void removeCover() {
+        confirm("移除书封图片", "锁屏就只剩「熄屏前的画面」，不再叠书封图。图片文件会从 /data/inkcontrol 删掉。",
+                () -> perform(ink.t("移除书封图片"), () -> {
+                    coverState = null;
+                    return services.removeCover();
+                }, false));
     }
 
     /** 算法页直接选值，保持现状即撤下本页覆盖；不改旧视频、锁屏细线或独立迟滞。 */
@@ -3684,6 +3884,10 @@ public final class MainActivity extends Activity {
         }, true);
         if (request == FONT_REQUEST && result == RESULT_OK && data != null && data.getData() != null)
             applyFontFromUri(data.getData());
+        if (request == COVER_REQUEST && result == RESULT_OK && data != null && data.getData() != null)
+            applyCoverFromUri(data.getData());
+        if (request == COVER_DIR_REQUEST && result == RESULT_OK && data != null && data.getData() != null)
+            saveCoverDir(treePath(data.getData()));
         if (request == FONT_DIR_REQUEST && result == RESULT_OK && data != null && data.getData() != null) {
             String path = treePath(data.getData());
             if (path == null) showText("无法换成路径", "这个位置没法转换成文件路径。可以改用「从文件选择」直接挑一个字体文件。");

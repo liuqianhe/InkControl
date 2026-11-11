@@ -88,12 +88,14 @@ final class Guide {
                 {"独立视频场景", "display.alg.video"},
                 {"触摸与响应", "display.sampling", "display.idle"}, {"系统刷新设置", "display.dynamic", "display.apps"}});
         cat("锁屏显示", "锁屏样式、天气、拓展显示、倒数日与锁屏刷新，以及歌词与格言相关设置。", new String[][]{
-                {"样式", "lock.style", "lock.weather"},
+                {"样式", "lock.style", "lock.cover.overlay", "lock.cover.pick", "lock.cover.edit", "lock.weather"},
                 {"拓展显示", "lock.notify", "lock.ext", "lock.ext.edit"},
                 {"倒数日", "lock.countdown"},
                 {"锁屏刷新", "lock.first", "lock.update", "lock.delay", "lock.dither"},
                 {"歌词", "lock.lyric", "lock.statusbar", "lock.lyricmode"}},
-                new String[]{"lock.ext.wifi", "lock.ext.bt", "lock.ext.audio", "lock.ext.airplane"});
+                new String[]{"lock.ext.wifi", "lock.ext.bt", "lock.ext.audio", "lock.ext.airplane",
+                        "lock.cover.time", "lock.cover.hint", "lock.cover.battery", "lock.cover.status",
+                        "lock.cover.rotate", "lock.cover.halo"});
         cat("翻页动画", "翻页时把新一页分块、分阶段揭示。", new String[][]{
                 {"总开关", "pageanim.master"},
                 {"翻页风格", "pageanim.style", "pageanim.spacing"},
@@ -148,7 +150,7 @@ final class Guide {
      * 或是那一页里的选择器记录（最近应用的字体、文件选择器记录）。它们不出现在分类小节里。
      */
     static final java.util.Set<String> INTERNAL = new java.util.HashSet<>(Arrays.asList(
-            "lock.countdowns", "font.pick", "font.saf"));
+            "lock.countdowns", "font.pick", "font.saf", "lock.cover.dir"));
 
     /** 迟滞内嵌在算法页；旧视频入口只跳到新页，配置仍可解析。 */
     static String destination(String id) {
@@ -359,9 +361,24 @@ final class Guide {
                 .before("点按钮会看到几次灰色水波纹刷新，列表滚到头会回弹几下。").after("可以完全关闭（直接显示结果），或缩短为一半时长。")
                 .option("0", "关闭动画", "直接显示动画结束的样子，刷新最少。").option("0.5", "半速时长", "保留动画，但时长减半。").option("1", "原时长", "与原厂相同。");
 
-        put("lock.style").summary("五套专为墨水屏设计的锁屏").cost("关闭后恢复你在系统设置里选的原厂锁屏样式。").visual(Visual.LOCK_STYLE)
+        put("lock.style").summary("六套专为墨水屏设计的锁屏").cost("关闭后恢复你在系统设置里选的原厂锁屏样式。").visual(Visual.LOCK_STYLE)
                 .option("5", "编辑排版", "杂志式衬线大字，像一页报纸。").option("6", "瑞士网格", "严格网格与无衬线粗体，信息清晰。")
-                .option("7", "像素", "1-bit 像素字体和像素图标，复古掌机风格。").option("8", "液态玻璃", "纸纹波浪背景上浮起玻璃质感卡片。").option("9", "编辑排版-横", "横版构图，横转手机阅读：大号时间加方框，右侧倒数日框，右下电池与通知，左下格言。").option("10", "编辑排版-横-逆", "编辑排版-横 旋转 180°，适合手机反向横转阅读。");
+                .option("7", "像素", "1-bit 像素字体和像素图标，复古掌机风格。").option("8", "液态玻璃", "纸纹波浪背景上浮起玻璃质感卡片。").option("9", "编辑排版-横", "横版构图，横转手机阅读：大号时间加方框，右侧倒数日框，右下电池与通知，左下格言。").option("10", "编辑排版-横-逆", "编辑排版-横 旋转 180°，适合手机反向横转阅读。")
+                .option("11", "透明书封", "熄屏前的那一屏做底，上面盖一张带透明通道的书封图，像给画面贴了一张贴纸。");
+        put("lock.cover.overlay").summary("透明书封上要不要再叠信息").what("开启后按「书封显示内容」里的勾选叠信息：屏幕最下沿一排三段的「上滑解锁」提示、电量与设备状态，以及可选的时间与日期。关闭就只留「锁屏前画面 + 书封」，和贴纸版一样干净。")
+                .cost("只影响「透明书封」这一种样式，其它锁屏主题不变。书封图在「书封选择」里换，换完锁一次屏就生效，不用重启。")
+                .option("default", "叠加信息", "");
+        put("lock.cover.pick").summary("换书封图，或者选一个文件夹轮换").what("「选择书封图片」挑一张 PNG 装成当前书封；「选择文件夹」把整个目录记为书封文件夹，打开「轮换壁纸」后每次解锁换下一张。装好的图放在墨控自己的目录 /data/inkcontrol 里。")
+                .cost("必须是 PNG，单张不超过 8 MB。带透明通道的图才会露出熄屏前的画面；不透明的图会把背景整块盖住。轮换顺序按文件名排序，换文件夹会从第一张重新开始。墨控不自带书封图，装好后第一次选之前，锁屏只有熄屏前那一屏。");
+        put("lock.cover.dir").summary("轮换壁纸用的图片目录").what("由「书封选择」页的「选择文件夹」写入，不用手填。只有打开「轮换壁纸」时才会被读取，目录里只认 PNG。");
+        put("lock.cover.rotate").summary("每次解锁后换一张书封").what("打开后，每次解锁完成就把书封图换成文件夹里的下一张，下一次熄屏看到的就是新图。换图只在解锁之后做，锁屏显示期间一律不动——锁屏画面熄屏后每分钟会被系统重绘一次，那时候换图会让画面在眼前换一张，还会留下上一张的残影。文件夹里只有一张、或没选文件夹时不起作用。").cost("换图只动 /data/inkcontrol/lockcover.png 这一个文件，不改系统壁纸，也不影响其它锁屏主题与字体。").option("default", "轮换", "");
+        put("lock.cover.edit").summary("勾选书封上叠哪几项").what("四块信息各自一个开关：顶部的时间与日期、屏幕最下沿的「上滑解锁」提示、左端的电量、右端的无线与铃声；下面还有一条「文字描边」，控制这些文字与图标要不要描白边。默认只开后三项，时间与日期默认关着。")
+                .cost("这些开关只决定画不画，不改任何系统状态：「上滑解锁」只是提示，不会改变上滑手势；无线与铃声只读状态。关掉的那块直接留白，其它项位置不变。");
+        put("lock.cover.time").summary("书封顶部是否显示时间与日期").what("在书封上方叠一行大号时间（24 小时制跟随系统）和公历日期、星期，不铺白底，直接压在图案上。默认关着：书封主体多在中上部，时间压上去容易糊；打开后配合「文字描边」才读得清。").option("default", "顶部时间", "");
+        put("lock.cover.halo").summary("书封上的文字要不要描白边").what("开启时所有压在画面上的文字与图标先描一圈白边再画本体，背景再花也读得出来；关闭后只剩墨色笔画，背景干净时更清爽，背景有内容时容易糊在一起。").option("default", "描边", "");
+        put("lock.cover.hint").summary("书封底部是否显示上滑解锁提示").what("屏幕底部居中画一个向上箭头和「上滑解锁」，和原厂竖屏锁屏的提示同一套观感——本机锁屏就是上滑解锁，这行字只用来提示，不参与手势判定。关掉后底部中间留白。").option("default", "上滑解锁", "");
+        put("lock.cover.battery").summary("书封左下角是否显示电量").what("左下角画电池图标加百分比；正在充电时电池里带一道闪电。数字取系统的电量广播，读不到时画「—」。").option("default", "左下电量", "");
+        put("lock.cover.status").summary("书封右下角是否显示无线与铃声").what("右下角画无线网络与铃声两个图标，和底部的「上滑解锁」同一行。无线关掉、铃声静音时在图标上画一道斜线，和状态栏的判断一致。只读状态，不会改开关。").option("default", "右下无线与铃声", "");
         put("lock.weather").summary("在自定义锁屏上显示天气").what("在锁屏卡片上显示当前天气、温度和图标。原厂锁屏的天气来自桌面时钟/天气小组件，桌面上没放那个小组件时它就没有数据。选择「天气App」后，墨控直接读取系统预装的天气软件（墨迹天气）已经下载的天气，不需要桌面小组件，仍然不额外联网。")
                 .cost("「天气App」用的是天气软件最后一次下载的结果；开机后没打开过天气软件、长期不打开它、或把它冻结，都可能取不到，此时自动退回原厂数据。")
                 .option("default", "原厂桌面组件", "沿用原厂锁屏天气，数据来自桌面时钟/天气小组件；没有放小组件时通常取不到。")

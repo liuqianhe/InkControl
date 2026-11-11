@@ -109,7 +109,26 @@ public final class FeatureCatalog {
         add("motion.gc_speed", "动画", "全刷扫过速度", "光带扫过整屏的时长；帧数越少越快，1 帧几乎整屏同时刷新", "system", "motion.master", HOT, false, "1,4,8,12,18", "极快（1 帧）,快（4 帧）,适中（8 帧）,原厂节奏（12 帧）,慢（18 帧）");
         add("motion.spread", "动画", "波形动画速度", "以扫描帧为单位，关闭时使用12帧", "system", "motion.master", HOT, true, "12,1,6,18,24", "12帧,1帧,6帧,18帧,24帧");
         add("motion.scale", "动画", "应用内小动画", "关闭时恢复原厂倍率", "system", "", HOT, false, "0,0.5,1", "关闭动画,半速时长,原时长");
-        add("lock.style", "锁屏显示", "锁屏主题", "关闭时恢复有效的原厂样式", "systemui", "", HOT, false, "5,6,7,9,10,8", "编辑排版,瑞士网格,像素,编辑排版-横,编辑排版-横-逆,液态玻璃");
+        add("lock.style", "锁屏显示", "锁屏主题", "关闭时恢复有效的原厂样式", "systemui", "", HOT, false, "5,6,7,9,10,8,11",
+                "编辑排版,瑞士网格,像素,编辑排版-横,编辑排版-横-逆,液态玻璃,透明书封");
+        // 默认叠（配置里没写过这个键也按开启处理）：书封本身的构图大多是中间一张图，边上留白正好放时间。
+        add("lock.cover.overlay", "锁屏显示", "书封叠加信息", "透明书封上是否再叠时间、解锁提示与设备状态", "systemui", "lock.style", HOT, false,
+                "default", "叠加信息", true);
+        // 「书封选择」是纯页面（@panel）：换图、选文件夹、轮换都在这一页，自己不带开关。
+        add("lock.cover.pick", "锁屏显示", "书封选择", "换一张书封图，或选一个文件夹让锁屏每次熄屏换一张", "systemui", "", HOT, false, "@panel", "修改");
+        // 书封文件夹与轮换进度都是数据项，不铺在列表里：目录由「书封选择」页写，轮换开关也在那一页。
+        add("lock.cover.dir", "锁屏显示", "书封文件夹", "轮换壁纸用的图片目录，由「书封选择」页选择", "systemui", "", HOT, false, "@path", "文件夹");
+        add("lock.cover.rotate", "锁屏显示", "轮换壁纸", "每次熄屏时从书封文件夹里换下一张图", "systemui", "", HOT, false, "default", "轮换", false);
+        // 「书封显示内容」是纯页面（@panel）：四项在页内勾选，和「显示信息修改」同一套交互。
+        // 曾经把格言放在底部纸带里，书封中线附近常被压住，已按需求去掉格言。
+        add("lock.cover.edit", "锁屏显示", "书封显示内容", "选择书封上叠哪几项：时间与日期、上滑解锁提示、电量、设备状态", "systemui", "lock.cover.overlay", HOT, false, "@panel", "修改");
+        // 时间默认关：书封主体大多在中上部，时间压在图案上不好读，要看再打开。
+        add("lock.cover.time", "锁屏显示", "时间与日期", "书封顶部叠大号时间与公历日期、星期", "systemui", "lock.cover.overlay", HOT, false, "default", "顶部时间", false);
+        add("lock.cover.hint", "锁屏显示", "上滑解锁提示", "屏幕底部居中显示向上箭头与「上滑解锁」，仿系统原生提示", "systemui", "lock.cover.overlay", HOT, false, "default", "上滑解锁", true);
+        add("lock.cover.battery", "锁屏显示", "电量", "左下角显示电量图标与百分比，充电时图标里带闪电", "systemui", "lock.cover.overlay", HOT, false, "default", "左下电量", true);
+        add("lock.cover.status", "锁屏显示", "设备状态", "右下角显示无线网络与铃声状态，关掉的那项画一道斜线", "systemui", "lock.cover.overlay", HOT, false, "default", "右下无线与铃声", true);
+        // 书封信息压在画面上，默认给文字和图标描一圈白边；背景干净时可以关掉。
+        add("lock.cover.halo", "锁屏显示", "文字描边", "书封上的文字与图标先描一圈白边再画本体", "systemui", "lock.cover.overlay", HOT, false, "default", "描边", true);
         add("lock.weather", "锁屏显示", "锁屏天气", "跟随原厂桌面组件，或直接读取系统预装的天气App", "systemui", "lock.style", HOT, false, "default,moji", "原厂桌面组件,天气App");
         // 锁屏底部那一块位置只有一处，两个总开关二选一：「显示通知」或「显示设备状态」。
         // 互斥由界面统一保证（MainActivity.change 里开一个就自动关另一个），

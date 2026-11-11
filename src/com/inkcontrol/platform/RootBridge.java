@@ -41,7 +41,7 @@ final class RootBridge {
         }
     }
     String run(String command, String input) throws Exception {
-        if (!command.matches("status|apply|applyfont|fontlist|restorefont|sysapp (state|remove|restore)|sysbackup (list|save|restore|delete)")) throw new IllegalArgumentException("命令未注册");
+        if (!command.matches("status|apply|applyfont|fontlist|restorefont|lockcover (state|install|remove|rotate|start)|sysapp (state|remove|restore)|sysbackup (list|save|restore|delete)")) throw new IllegalArgumentException("命令未注册");
         String controller = new File(payload(), "bin/inkctl").getCanonicalPath();
         if (!controller.matches("[a-zA-Z0-9_./-]+")) throw new SecurityException("控制器路径无效");
         Process process;
@@ -78,6 +78,30 @@ final class RootBridge {
     }
     /** 把原厂字体写回槽位并激活。 */
     String restoreFont() throws Exception { return run("restorefont", ""); }
+
+    /** 书封图现状：present / bytes / mtime / size 四行 key=value。 */
+    java.util.Map<String, String> coverState() throws Exception {
+        java.util.Map<String, String> state = new java.util.LinkedHashMap<>();
+        for (String line : run("lockcover state", "").split("\n")) {
+            int split = line.indexOf('=');
+            if (split > 0) state.put(line.substring(0, split), line.substring(split + 1).trim());
+        }
+        return state;
+    }
+
+    /** 装书封图：路径只来自 App 自己的缓存目录，后端还会再验一次 PNG 头与大小。 */
+    String installCover(String source) throws Exception {
+        if (source == null || !source.startsWith("/") || source.length() > 300
+                || source.indexOf('\n') >= 0 || source.indexOf('\r') >= 0)
+            throw new IllegalArgumentException("图片路径无效");
+        return run("lockcover install", source + "\n");
+    }
+
+    /** 移除书封图：锁屏只剩熄屏前的画面。 */
+    String removeCover() throws Exception { return run("lockcover remove", ""); }
+
+    /** 换了书封文件夹之后调：轮换进度归零，轮换开着就直接装第一张。 */
+    String startCover() throws Exception { return run("lockcover start", ""); }
 
     /**
      * 系统应用的机主级卸载与还原。包名只允许字母数字点下划线（后端还会再校验一次），

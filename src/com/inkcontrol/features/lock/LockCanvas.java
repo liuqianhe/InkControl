@@ -59,6 +59,10 @@ final class LockCanvas extends View {
     private final RectF box = new RectF();
     private final android.graphics.Rect inkRect = new android.graphics.Rect();
     private final TextPaint tp = new TextPaint();
+    /** 画位图用：开双线性过滤，缩小时不出现马赛克；书封是线条图，灰度过渡要平滑。 */
+    private final Paint bitmapPaint = new Paint(Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG);
+    /** 给压在背景上的图标垫白边用；只在 halo 那一路设置属性。 */
+    private final Paint haloPaint = new Paint();
 
     LockCanvas(Context context) {
         super(context);
@@ -99,7 +103,9 @@ final class LockCanvas extends View {
 
     private void paint(Canvas canvas, int width, int height) {
         if (data == null || width <= 0 || height <= 0) return;
-        boolean land = style == LockStyle.EDITORIAL_LAND || style == LockStyle.EDITORIAL_LAND_R;
+        // 物理样式只有 0–9：逻辑 10（横-逆）与 11（透明书封）都写在 9 上，按配置分辨。
+        int logical = logicalStyle();
+        boolean land = logical == LockStyle.EDITORIAL_LAND || logical == LockStyle.EDITORIAL_LAND_R;
         boolean reverse = land && reverseLand();
         float s = land ? Math.min(width / (float) LAND_H, height / (float) LAND_W)
                 : Math.min(width / (float) W, height / (float) H);
@@ -124,7 +130,8 @@ final class LockCanvas extends View {
         }
         c = canvas;
         try {
-            if (style == LockStyle.GLASS) glass();
+            if (logical == LockStyle.COVER) cover();
+            else if (style == LockStyle.GLASS) glass();
             else if (style == LockStyle.SWISS) swiss();
             else if (style == LockStyle.PIXEL) pixel();
             else if (land) editorialLand();
@@ -136,15 +143,201 @@ final class LockCanvas extends View {
     }
 
     /**
-     * 横版样式是否反向（旋转 180°）。设备实机下「编辑排版-横」与「编辑排版-横-逆」
-     * 共用物理样式 9（原厂只接受 0–9 的 eink_keyguard_style），「逆」在配置里以逻辑值 10 表示；
-     * 调试出图可直接传入物理样式 10。
+     * 物理样式 9 上实际要画哪一种逻辑样式：配置是 10 就画「横-逆」，11 就画「透明书封」，
+     * 否则就是「编辑排版-横」。原厂 eink_keyguard_style 只接受 0–9，只能这样分流。
      */
+    private int logicalStyle() {
+        if (style != LockStyle.EDITORIAL_LAND) return style;
+        try {
+            String value = RuntimeConfig.value("lock.style");
+            if ("10".equals(value)) return LockStyle.EDITORIAL_LAND_R;
+            if (String.valueOf(LockStyle.COVER).equals(value)) return LockStyle.COVER;
+        } catch (RuntimeException ignored) {
+            // 设置页预览没有挂 RuntimeConfig，按物理样式画。
+        }
+        return style;
+    }
+
+    /** 横版样式是否反向（旋转 180°）。 */
     private boolean reverseLand() {
-        if (style == LockStyle.EDITORIAL_LAND_R) return true;
-        if (style != LockStyle.EDITORIAL_LAND) return false;
-        try { return "10".equals(RuntimeConfig.value("lock.style")); }
-        catch (RuntimeException ignored) { return false; }
+        return logicalStyle() == LockStyle.EDITORIAL_LAND_R;
+    }
+
+    /**
+     * 透明书封：锁屏前最后一帧做底，上面叠一张带透明通道的书封图，再按需叠时间与格言。
+     * 书封原图与 360×720 同比例，等比铺满即可；缺图或无帧时退化成留白，锁屏照样可用。
+     */
+    private void cover() {
+        Bitmap frame = LockCover.frame();
+        if (frame != null && !frame.isRecycled())
+            c.drawBitmap(frame, null, new RectF(0, 0, W, H), bitmapPaint);
+        else rect(0, 0, W, H, PAPER);
+
+        Bitmap art = LockCover.cover();
+        if (art != null && !art.isRecycled()) {
+            float scale = Math.min(W / (float) art.getWidth(), H / (float) art.getHeight());
+            float dw = art.getWidth() * scale, dh = art.getHeight() * scale;
+            float dx = (W - dw) / 2f, dy = (H - dh) / 2f;
+            c.drawBitmap(art, null, new RectF(dx, dy, dx + dw, dy + dh), bitmapPaint);
+        }
+        if (overlayWanted()) coverOverlay();
+    }
+
+    /** 书封上要不要叠信息：总开关管着，书封本身够满时可以整块关掉。 */
+    private boolean overlayWanted() {
+        return coverOn("lock.cover.overlay");
+    }
+
+    /** 书封信息层里的单项：设置页预览没有挂 RuntimeConfig，读不到时按目录里的默认值画。 */
+    private boolean coverOn(String id) {
+        try {
+            return RuntimeConfig.enabled(id);
+        } catch (RuntimeException ignored) {
+            try {
+                return com.inkcontrol.core.FeatureCatalog.get(id).defaultOn;
+            } catch (RuntimeException unknown) {
+                return true;
+            }
+        }
+    }
+
+    /**
+     * 透明书封的信息层：四块内容各自可选、位置固定，关掉的那块直接留白，其它项不挪位。
+     * <ul>
+     *   <li>顶部纸带：大号时间 + 公历日期、星期；</li>
+     *   <li>屏幕最下沿一行三段：左端电量、中间「上滑解锁」、最右端无线与铃声（不铺白底）。</li>
+     * </ul>
+     * 格言不放在这里：书封主体在画面中部，底部那行字经常被图案压住，已按需求去掉。
+     */
+    private void coverOverlay() {
+        final boolean halo = coverOn("lock.cover.halo");
+        final boolean time = coverOn("lock.cover.time");
+        final boolean hint = coverOn("lock.cover.hint");
+        final boolean battery = coverOn("lock.cover.battery");
+        final boolean status = coverOn("lock.cover.status");
+
+        if (time) {
+            // 不铺白底：时间与日期直接压在画面上，靠描边和背景分开（关掉「文字描边」就只剩墨色）。
+            font(sSerif, 62, -0.02f, INK, true);
+            float tw = tp.measureText(time());
+            tp.setTextScaleX(Math.max(0.8f, Math.min(1f, (W - 48) / tw)));
+            coverText(time(), 24, 84, 0, false, halo, 4f);
+            tp.setTextScaleX(1f);
+            font(sSans, 15, 0.06f, INK, true);
+            coverText(chineseDate() + " " + weekCn(), 24, 112, W - 48, false, halo, 4f);
+        }
+
+        if (!hint && !battery && !status) return;
+        // 底部这一行不铺白底，直接贴在屏幕最下沿：位置固定，开关只决定某一段画不画。
+        final float base = H - 14, mid = base - 5.5f;
+
+        if (battery) {
+            batteryGlyph(8, mid, halo);
+            font(sSansBold, 15, 0.02f, INK, true);
+            coverText(batteryText() + "%", 8 + 34, base, 70, false, halo, 5f);
+        }
+        if (hint) {
+            // 向上折角 +「上滑解锁」，和原厂竖屏锁屏底部那一行同一种排法：
+            // 箭头在字上方 4-5px、略窄于字宽；弓形用两道斜线拼，1-bit 下比「↑」字形干净。
+            line.reset();
+            line.setAntiAlias(true);
+            line.setStyle(Paint.Style.STROKE);
+            line.setStrokeWidth(2f);
+            line.setStrokeCap(Paint.Cap.ROUND);
+            line.setStrokeJoin(Paint.Join.ROUND);
+            line.setColor(INK);
+            path.reset();
+            path.moveTo(W / 2f - 9, mid - 11);
+            path.lineTo(W / 2f, mid - 20);
+            path.lineTo(W / 2f + 9, mid - 11);
+            // 先用纸色粗描一遍，把背景里压在同一位置的笔画挡开，再画墨色折角。
+            if (halo) {
+                line.setStrokeWidth(5f);
+                line.setColor(PAPER);
+                c.drawPath(path, line);
+            }
+            line.setStrokeWidth(2f);
+            line.setColor(INK);
+            c.drawPath(path, line);
+            font(sSerif, 16, 0.04f, INK, true);
+            coverText("上滑解锁", W / 2f, base, 120, true, halo, 5f);
+        }
+        if (status) {
+            // 右缘贴住屏幕边（W-8），无线在前、铃声在后，和状态栏的顺序一致。
+            final float size = 19, gap = 12;
+            statusIcon(IC_WIFI, W - 8 - size * 2 - gap, mid, size, data.wifi, halo);
+            statusIcon(IC_AUDIO, W - 8 - size, mid, size, !data.silent, halo);
+        }
+    }
+
+    /**
+     * 屏幕最下沿这一段没有白底，字直接压在背景内容上：先用纸色粗描一遍把底下的笔画挡开，
+     * 再填墨色。背景是白的时候完全看不出来，背景有内容时才起作用。
+     */
+    private void coverText(String s, float x, float baseline, float maxW, boolean center,
+                           boolean halo, float stroke) {
+        if (s == null || s.isEmpty()) return;
+        float w = tp.measureText(s) - tp.getLetterSpacing() * tp.getTextSize();
+        if (maxW > 0 && w > maxW) {
+            tp.setTextScaleX(maxW / w);
+            w = maxW;
+        }
+        final float left = center ? x - w / 2f : x;
+        if (halo) {
+            tp.setStyle(Paint.Style.STROKE);
+            tp.setStrokeWidth(stroke);
+            tp.setColor(PAPER);
+            c.drawText(s, left, baseline, tp);
+        }
+        tp.setStyle(Paint.Style.FILL);
+        tp.setColor(INK);
+        c.drawText(s, left, baseline, tp);
+        tp.setTextScaleX(1f);
+    }
+
+    /** 左下电量：电池外框 + 正极凸点 + 按百分比填充，充电时框里压一道白闪电。 */
+    private void batteryGlyph(float x, float cy, boolean halo) {
+        final float w = 26, h = 13, t = 1.5f;
+        // 底沿没有白底：先用纸色围一圈，把背景里压在同一位置的笔画挡开（关掉描边就不垫）
+        if (halo) {
+            frame(x - 2.5f, cy - h / 2f - 2.5f, w + 5f, h + 5f, 5f, PAPER);
+            rect(x + w - 1f, cy - 4.5f, 6f, 9f, PAPER);
+        }
+        frame(x, cy - h / 2f, w, h, t);
+        rect(x + w + 1.5f, cy - 3, 2.5f, 6, INK);
+        final int pct = data.battery < 0 ? 0 : Math.max(0, Math.min(100, data.battery));
+        final float inner = (w - 2 * t - 2) * pct / 100f;
+        if (inner > 0.5f) rect(x + t + 1, cy - h / 2f + t + 1, inner, h - 2 * t - 2, INK);
+        if (!data.charging) return;
+        final float bx = x + w / 2f - 3, by = cy - 4.5f;
+        path.reset();
+        path.moveTo(bx + 4, by); path.lineTo(bx, by + 5); path.lineTo(bx + 2.8f, by + 5);
+        path.lineTo(bx + 1.6f, by + 9); path.lineTo(bx + 6, by + 4); path.lineTo(bx + 3.4f, by + 4);
+        path.close();
+        fill.reset();
+        fill.setAntiAlias(true);
+        fill.setStyle(Paint.Style.FILL);
+        fill.setColor(PAPER);
+        c.drawPath(path, fill);
+    }
+
+    /** 右下角的无线 / 铃声图标；关掉或静音时压一道斜线，斜线两侧留白，1-bit 下才不会糊成一团。 */
+    private void statusIcon(int type, float x, float cy, float size, boolean on, boolean halo) {
+        drawIcon(type, x, cy - size / 2f, size, halo);
+        if (on) return;
+        path.reset();
+        path.moveTo(x + 1.5f, cy + size / 2f - 2);
+        path.lineTo(x + size - 1.5f, cy - size / 2f + 2);
+        line.reset();
+        line.setAntiAlias(true);
+        line.setStyle(Paint.Style.STROKE);
+        line.setStrokeCap(Paint.Cap.ROUND);
+        line.setStrokeWidth(4.5f);
+        line.setColor(PAPER);
+        c.drawPath(path, line);
+        line.setStrokeWidth(1.6f);
+        line.setColor(INK);
+        c.drawPath(path, line);
     }
 
     // ───────────────────────── 基础绘制 ─────────────────────────
@@ -156,11 +349,14 @@ final class LockCanvas extends View {
         c.drawRect(x, y, x + w, y + h, fill);
     }
 
-    private void frame(float x, float y, float w, float h, float t) {
-        rect(x, y, w, t, INK);
-        rect(x, y + h - t, w, t, INK);
-        rect(x, y, t, h, INK);
-        rect(x + w - t, y, t, h, INK);
+    private void frame(float x, float y, float w, float h, float t) { frame(x, y, w, h, t, INK); }
+
+    /** 同上的可选颜色版：纸色那一遍用来给压在背景上的图形垫一圈白边。 */
+    private void frame(float x, float y, float w, float h, float t, int color) {
+        rect(x, y, w, t, color);
+        rect(x, y + h - t, w, t, color);
+        rect(x, y, t, h, color);
+        rect(x + w - t, y, t, h, color);
     }
 
     private TextPaint font(Typeface face, float size, float spacingEm, int color, boolean aa) {
@@ -775,7 +971,13 @@ final class LockCanvas extends View {
      * 16×16 逻辑框内的单色图标：x/y 为左上角，s 为边长，按比例缩放。
      * 全部现画矢量，不打包 PNG/SVG —— 墨水屏只有黑白，矢量在任意尺寸都不糊，也免得为外部图标库背许可证。
      */
-    private void drawIcon(int type, float x, float y, float s) {
+    private void drawIcon(int type, float x, float y, float s) { drawIcon(type, x, y, s, false); }
+
+    /**
+     * 同上；{@code halo} 为真时先用纸色把整条路径描粗一圈。
+     * 透明锁屏的底沿不铺白底，靠这圈描边把背景里压在同一位置的笔画挡开。
+     */
+    private void drawIcon(int type, float x, float y, float s, boolean halo) {
         final float k = s / 16f;
         line.reset();
         line.setAntiAlias(true);
@@ -792,9 +994,9 @@ final class LockCanvas extends View {
             // 三段同心圆弧（从 225° 扫 90°，即正上方那段）+ 中心实心圆点
             path.reset();
             arc(8, 12.6f, 7.9f); arc(8, 12.6f, 5.4f); arc(8, 12.6f, 2.9f);
-            stamp(x, y, k); c.drawPath(path, line);
+            stamp(x, y, k); icon(line, halo, s);
             path.reset(); path.addCircle(8, 13.4f, 1.15f, Path.Direction.CW);
-            stamp(x, y, k); c.drawPath(path, fill);
+            stamp(x, y, k); icon(fill, halo, s);
             return;
         }
         path.reset();
@@ -820,13 +1022,27 @@ final class LockCanvas extends View {
             path.close();
         } else return;
         stamp(x, y, k);
-        c.drawPath(path, type == IC_BT ? line : fill);
+        icon(type == IC_BT ? line : fill, halo, s);
         if (type == IC_AUDIO) {                 // 喇叭右侧两道声波弧（315° 起扫 90° = 正右半圆）
             path.reset();
             arc(9.0f, 8.0f, 3.2f, -45); arc(9.0f, 8.0f, 5.6f, -45);
             stamp(x, y, k);
-            c.drawPath(path, line);
+            icon(line, halo, s);
         }
+    }
+
+    /** 画当前 path：halo 时先描一圈纸色（粗一倍）再画本体。 */
+    private void icon(Paint paint, boolean halo, float size) {
+        if (halo) {
+            haloPaint.setAntiAlias(true);
+            haloPaint.setStyle(Paint.Style.STROKE);
+            haloPaint.setColor(PAPER);
+            haloPaint.setStrokeWidth(4.5f * size / 16f);
+            haloPaint.setStrokeCap(Paint.Cap.ROUND);
+            haloPaint.setStrokeJoin(Paint.Join.ROUND);
+            c.drawPath(path, haloPaint);
+        }
+        c.drawPath(path, paint);
     }
 
     /** 把 16×16 逻辑坐标下的 path 放大 k 倍并平移到 (x, y) */
