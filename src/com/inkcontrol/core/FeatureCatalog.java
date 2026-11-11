@@ -183,6 +183,16 @@ public final class FeatureCatalog {
         // 纯页面项：进去是备份/恢复的操作页，自己没有开关。
         // 只搬 settings 三张表并逐条回放，不覆盖 /data/data、不碰 packages.xml（整包盖回去会让「设置」启动即闪退）。
         add("sys.backup", "系统增强", "备份系统设置", "把系统设置存成快照（息屏与锁屏时长、音量、输入法、字体名、护眼等），恢复出厂后逐条写回", "backend", "", HOT, false, "@panel", "打开备份");
+        // 待机与联网：三项都直接写系统的全局设置，由后端在应用配置时落盘，改完立即生效、不用重启。
+        // 默认值刻意取这台机器 ROM 的现值（始终 / 1 分钟 / 3 分钟），升级后行为不变，想调再动。
+        // 关掉「保网时长」「浅睡待机」时，后端只把墨控写进去的那两个键摘掉，其余键原样保留。
+        add("sys.wifi.sleep", "系统增强", "WLAN 休眠策略", "息屏后关不关 WiFi；Android 10 系统不再执行这一项，由墨控自己关和开", "backend", "", HOT, true,
+                "always,charging,never,default", "始终连接,仅充电保持,永不保持,系统默认");
+        // 「自定义」按秒输入（1–999 秒），@number 依约定排在最后，首值 60 仍是默认档。
+        add("sys.idle.net", "系统增强", "保网时长", "息屏后多久进入浅睡、开始限制应用联网；写 device_idle_constants 的 light_after_inactive_to",
+                "backend", "", HOT, true, "60,30,120,default,@number", "1 分钟,30 秒,2 分钟,系统默认,自定义");
+        add("sys.idle.sleep", "系统增强", "浅睡待机", "进入浅睡前提前多久通知应用收尾；写 device_idle_constants 的 light_pre_idle_to",
+                "backend", "", HOT, true, "3,10,30,default", "3 分钟,10 分钟,30 分钟,系统默认");
         // 海信把「安全输入服务」硬编码进 system_server 的 InputMethodManagerService：密码框一律把
         // mCurMethodId 改成 com.android.inputmethod.pinyin/.PinyinIME，完全不检查这个包是否还在。
         // 冻结该输入服务后 framework 抛 IllegalArgumentException("Unknown id: ...")，设置的密码界面

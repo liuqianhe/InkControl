@@ -6,7 +6,8 @@
     <!-- 「关于」页手动检测更新访问 GitHub 接口；不会自动联网，也不下载安装包。 -->
     <uses-permission android:name="android.permission.INTERNET" />
     <application android:label="@string/app_name" android:localeConfig="@xml/locales_config" android:theme="@style/InkTheme" android:allowBackup="false" android:requestLegacyExternalStorage="true" android:directBootAware="true" android:usesCleartextTraffic="false" android:icon="@drawable/ic_launcher">
-        <activity android:name="com.inkcontrol.ui.MainActivity" android:exported="true" android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden">
+        <!-- 默认不进最近任务；「模块设置 → 后台任务」里可以改回来（见 UiRecents）。 -->
+        <activity android:name="com.inkcontrol.ui.MainActivity" android:exported="true" android:excludeFromRecents="true" android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden">
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
         </activity>
         <activity android:name="com.inkcontrol.ui.PanelToggleActivity" android:exported="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:excludeFromRecents="true" android:taskAffinity="" android:noHistory="true" />
@@ -21,6 +22,10 @@
         <!-- 外部广播入口：am broadcast -a com.inkcontrol.action.TOGGLE，用 extra「feature」指定项 -->
         <receiver android:name="com.inkcontrol.features.external.ToggleReceiver" android:exported="true">
             <intent-filter><action android:name="com.inkcontrol.action.TOGGLE"/></intent-filter>
+        </receiver>
+        <!-- 待机与联网的广播入口：am broadcast -a com.inkcontrol.action.IDLE，用「policy」「net」「sleep」指定取值 -->
+        <receiver android:name="com.inkcontrol.features.external.IdleReceiver" android:exported="true">
+            <intent-filter><action android:name="com.inkcontrol.action.IDLE"/></intent-filter>
         </receiver>
         <provider android:name="com.inkcontrol.platform.ConfigProvider" android:authorities="com.inkcontrol.state" android:exported="true" android:directBootAware="true" android:process=":state" />
         <service android:name="com.inkcontrol.features.refresh.RefreshService" android:exported="true" android:label="@string/accessibility_service_label" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:directBootAware="true" android:process=":refresh">

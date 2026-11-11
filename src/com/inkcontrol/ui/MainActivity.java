@@ -182,6 +182,12 @@ public final class MainActivity extends Activity {
         WORKER.execute(() -> UiShortcuts.apply(this));
     }
 
+    @Override protected void onResume() {
+        super.onResume();
+        // 最近任务里的可见性跟着偏好走：清单默认隐藏，选「显示」时在运行时把标志改回来。
+        UiRecents.apply(this);
+    }
+
     /** 直接打开「模块设置」下的某一页（快捷面板里的「去设置」用）。 */
     private void moduleTarget(android.content.Intent intent) {
         if (intent == null) return;
@@ -1179,6 +1185,7 @@ public final class MainActivity extends Activity {
      * 单选列表：当前选中的那一项上下各压一条 2dp 粗线「双下划线包裹」，
      * 不靠勾选图标或高亮底色（墨水屏上灰度不可靠）。选完即保存，不用预览＋使用两步。
      * 允许手动输入数值的项把「自定义」放在最上面；已经输入过就直接显示「4次(自定义)」。
+     * 档位里还混着「系统默认」这类非数值项时，把「自定义」放到列表最后（保网时长就是这样）。
      */
     private void showOptionDialog(FeatureDefinition f, String label) {
         List<String> values = realValues(f);
@@ -1195,19 +1202,10 @@ public final class MainActivity extends Activity {
         list.setOrientation(LinearLayout.VERTICAL);
         list.setPadding(0, ink.dp(6), 0, ink.dp(6));
         AlertDialog dialog = new AlertDialog.Builder(this).setTitle(ink.t(label)).setView(list).create();
-        if (f.acceptsNumber()) {
+        boolean customLast = f.acceptsNumber() && !allNumber(values);
+        if (f.acceptsNumber() && !customLast) {
             if (customValue) list.addView(optionMark());
-            TextView custom = ink.text(customValue ? Guide.optionName(f, current) : "自定义", 17,
-                    customValue ? Ink.BOLD : Ink.REGULAR);
-            custom.setPadding(ink.dp(22), ink.dp(11), ink.dp(22), ink.dp(11));
-            custom.setMinHeight(ink.dp(44));
-            custom.setGravity(Gravity.CENTER_VERTICAL);
-            custom.setContentDescription(ink.t("自定义 " + f.title));
-            custom.setOnClickListener(v -> {
-                dialog.dismiss();
-                customNumberDialog(f, snapshot.config.requested(f.id), customValue ? current : "");
-            });
-            list.addView(custom);
+            list.addView(customItem(f, dialog, current, customValue));
             if (customValue) list.addView(optionMark());
         }
         for (String value : values) {
@@ -1221,7 +1219,33 @@ public final class MainActivity extends Activity {
             list.addView(item);
             if (selected) list.addView(optionMark());
         }
+        if (f.acceptsNumber() && customLast) {
+            if (customValue) list.addView(optionMark());
+            list.addView(customItem(f, dialog, current, customValue));
+            if (customValue) list.addView(optionMark());
+        }
         dialog.show();
+    }
+
+    /** 列表里的「自定义」一行：点开手动输入对话框。 */
+    private TextView customItem(FeatureDefinition f, AlertDialog dialog, String current, boolean customValue) {
+        TextView custom = ink.text(customValue ? Guide.optionName(f, current) : "自定义", 17,
+                customValue ? Ink.BOLD : Ink.REGULAR);
+        custom.setPadding(ink.dp(22), ink.dp(11), ink.dp(22), ink.dp(11));
+        custom.setMinHeight(ink.dp(44));
+        custom.setGravity(Gravity.CENTER_VERTICAL);
+        custom.setContentDescription(ink.t("自定义 " + f.title));
+        custom.setOnClickListener(v -> {
+            dialog.dismiss();
+            customNumberDialog(f, snapshot.config.requested(f.id), customValue ? current : "");
+        });
+        return custom;
+    }
+
+    /** 预设里是否全是数字（含 @number 占位）；有「系统默认」这类字面项就不是。 */
+    private static boolean allNumber(List<String> values) {
+        for (String value : values) if (FeatureDefinition.number(value) == null) return false;
+        return true;
     }
 
     /** 选中项上下的那条粗线：2dp 实线，颜色与正文一致。 */
@@ -1499,6 +1523,10 @@ public final class MainActivity extends Activity {
         }
         // 2c. 字体页自己处理全部内容（目录 / 列表 / 选择器 / 恢复 / 刷新），这里不再插编辑器
         // 3. 说明：直接给正文，不再套「它做什么」这种没有信息量的小标题
+        // 待机与联网三项例外：先把「选择」摆出来，改参数不用先滚过一整段说明。
+        boolean optionsFirst = f.id.equals("sys.wifi.sleep") || f.id.equals("sys.idle.net")
+                || f.id.equals("sys.idle.sleep");
+        if (optionsFirst && realValues(f).size() > 1) options(f, g, requested, current, selected);
         if (!g.what.isEmpty()) body.addView(spaced(paragraph(g.what, 15), 20));
         // 4. 演示 / 示意图
         // 锁屏样式的效果大图例外：那一页真正的「选项」是带缩略图的样式列表，
@@ -1516,7 +1544,7 @@ public final class MainActivity extends Activity {
         if (!g.before.isEmpty() || !g.after.isEmpty()) body.addView(spaced(beforeAfter(g), 20));
         // 5. 选项
         if (g.visual == Guide.Visual.HOLD_CURVE) holdEditor(f, requested, current);
-        else if (realValues(f).size() > 1) options(f, g, requested, current, selected);
+        else if (!optionsFirst && realValues(f).size() > 1) options(f, g, requested, current, selected);
         // 5b. 锁屏样式的大预览：挪到选项列表下方，选完往上对一眼效果。
         //      「使用此主题」跟着标题行走（见 visual()），不再在图片下面重复一颗大按钮。
         if (visualDeferred) {
@@ -1905,10 +1933,12 @@ public final class MainActivity extends Activity {
     }
 
     private void customNumberDialog(FeatureDefinition f, boolean requested, String initial) {
+        String unit = Guide.numberUnit(f).trim();
+        String range = unit.equals("次") ? "1–999 之间的整数" : "1–999 之间的" + unit + "数";
         EditText input = new EditText(this);
         input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
         input.setText(initial);
-        input.setHint(ink.t("输入数值"));
+        input.setHint(ink.t("输入" + range));
         input.setSelection(input.getText().length());
         new AlertDialog.Builder(this)
                 .setTitle(ink.t("自定义") + " · " + ink.t(f.title))
@@ -1917,7 +1947,7 @@ public final class MainActivity extends Activity {
                 .setPositiveButton(ink.t("使用"), (dialog, which) -> {
                     String value = input.getText().toString().trim();
                     if (FeatureDefinition.number(value) == null) {
-                        Toast.makeText(this, ink.t("请输入 1–999 之间的整数"), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, ink.t("请输入" + range), Toast.LENGTH_SHORT).show();
                         return;
                     }
                     boolean enable = enableOnSave(f);
@@ -2927,6 +2957,19 @@ public final class MainActivity extends Activity {
         noticeCard.addView(spaced(paragraph("修改设置后的结果提示会在页面上停留一段时间后自动消失；"
                 + "选「不显示」则不再占用页面空间。失败提示不会自动消失。", 13), 8));
         body.addView(spaced(card(noticeCard), 12));
+
+        // 最近任务（后台任务列表）里是否出现墨控：默认隐藏，改回「显示」后立即生效。
+        LinearLayout recentsCard = column(ink.text("后台任务", 16, Ink.BOLD));
+        TextView visible = ink.chip(UiRecents.hidden(this) ? "隐藏" : "显示", false, v -> {
+            UiRecents.setHidden(this, !UiRecents.hidden(this));
+            UiRecents.apply(this);
+            render();
+        });
+        visible.setContentDescription(ink.t("后台任务"));
+        recentsCard.addView(spaced(visible, 10));
+        recentsCard.addView(spaced(paragraph("选「隐藏」时，最近任务列表里不显示墨控的界面；"
+                + "改成「显示」立刻恢复，下次从列表里就能切回墨控。", 13), 8));
+        body.addView(spaced(card(recentsCard), 12));
     }
 
     // ───────────────────────── 关于 ─────────────────────────

@@ -56,6 +56,7 @@ public final class ToggleCommand {
         Configuration config = services.configuration();
         boolean target = value == null ? !config.enabled(id) : value != 0;
         services.change(id, target, config.value(id));
+        ExternalTask.notifyUi(context);
         return (target ? "已开启：" : "已关闭：") + FeatureCatalog.get(id).title;
     }
 
@@ -65,24 +66,7 @@ public final class ToggleCommand {
      */
     public static void runAsync(Context context, String name, Integer value, Runnable done) {
         final Context app = context.getApplicationContext();
-        new Thread(() -> {
-            String text;
-            try {
-                text = apply(app, name, value);
-            } catch (Throwable error) {
-                String reason = error.getMessage();
-                text = "墨控：" + (reason == null || reason.isEmpty() ? error.toString() : reason);
-            }
-            final String message = text;
-            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
-                try {
-                    android.widget.Toast.makeText(app, message, android.widget.Toast.LENGTH_SHORT).show();
-                } catch (Throwable ignored) {
-                    // 后台应用在部分 ROM 上不给弹 Toast，失败也不影响开关本身。
-                }
-                if (done != null) done.run();
-            });
-        }, "inkcontrol-toggle").start();
+        ExternalTask.run(app, () -> apply(app, name, value), done);
     }
 
     private ToggleCommand() { }

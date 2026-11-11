@@ -137,7 +137,9 @@ ic_validate() {
           # 翻页动画是 0.2.5-r23 新加的一整组，旧配置里整组都没有，缺省按「关」处理。
           # motion.gc_direction / motion.gc_speed / motion.gc_style 是后加的三项，
           # 旧配置里没有，缺省按「自动」/跟随「波形动画速度」/「横向展开」处理。
-          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^lock\.ext(\.(wifi|bt|audio|airplane|edit))?$/ || key ~ /^font\.(dir|pick|saf)$/ || key ~ /^font2\.(dir|pick|saf)$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/ || key ~ /^qs\.extend$/ || key ~ /^navbar\.white$/ || key ~ /^sys\.backup$/ || key ~ /^fix\.safeime$/ || key ~ /^qs\.panel(\.(close|pinsize|btn[1-5]))?$/ || key ~ /^motion\.gc_direction$/ || key ~ /^motion\.gc_speed$/ || key ~ /^motion\.gc_style$/ || key ~ /^pageanim\./)
+          # sys.wifi.sleep / sys.idle.net / sys.idle.sleep（待机与联网）是后加的三项，
+          # 旧配置里没有，缺省按这台机器 ROM 的现值（始终连接 / 1 分钟 / 3 分钟）处理。
+          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^lock\.ext(\.(wifi|bt|audio|airplane|edit))?$/ || key ~ /^font\.(dir|pick|saf)$/ || key ~ /^font2\.(dir|pick|saf)$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/ || key ~ /^qs\.extend$/ || key ~ /^navbar\.white$/ || key ~ /^sys\.backup$/ || key ~ /^sys\.(wifi\.sleep|idle\.(net|sleep))$/ || key ~ /^fix\.safeime$/ || key ~ /^qs\.panel(\.(close|pinsize|btn[1-5]))?$/ || key ~ /^motion\.gc_direction$/ || key ~ /^motion\.gc_speed$/ || key ~ /^motion\.gc_style$/ || key ~ /^pageanim\./)
           if(optional && !seen[key] && !seen[key ".value"]) continue
           if(!seen[key] || !seen[key ".value"]) bad=1
         }
@@ -496,8 +498,117 @@ ic_pageanim_sync() {
     return 0
 }
 
+# ── 待机与联网 ───────────────────────────────────────────────────────
+# 三项都写系统的全局设置：wifi_sleep_policy 与 device_idle_constants，改完立即生效。
+# device_idle_constants 是「键=毫秒」拼成的一整条设置项，别的模块或用户可能也往里写，
+# 所以先读现值、只摘掉墨控管的两个键，再把配置拼回去；两个功能都关时整条可能变空，
+# 那就删掉该项，让系统回到自己的默认值。
+# 选「系统默认」＝墨控不写这项（wifi 策略直接删掉该项，两个时长键从常量串里摘掉）。
+# 两项时长和 WLAN 策略是两层：那项只管 WiFi 射频，这两项管系统什么时候限制应用联网，
+# 所以「永不保持」时也照样写，不互相覆盖（移动数据还没断，浅睡限制对两款传输都生效）。
+# 配置里的档位换算成毫秒：纯数字 × factor（保网时长存秒，浅睡待机存分钟）。
+# 「系统默认」、空值、非数字一律返回 0，等于不写这一项。
+ic_idle_ms() {
+    ic_v=$1
+    case "$ic_v" in
+        '' | *[!0-9]*) echo 0; return 0 ;;
+    esac
+    # 去掉前导零：shell 算术会把 08 当成八进制而报错。
+    while :; do
+        case "$ic_v" in
+            0?*) ic_v=${ic_v#0} ;;
+            *) break ;;
+        esac
+    done
+    echo $((ic_v * $2))
+}
+
+ic_apply_idle() {
+    if ic_enabled sys.wifi.sleep; then
+        case "$(ic_get sys.wifi.sleep.value)" in
+            always) settings put global wifi_sleep_policy 2 ;;
+            charging) settings put global wifi_sleep_policy 1 ;;
+            never) settings put global wifi_sleep_policy 0 ;;
+            default) settings delete global wifi_sleep_policy >/dev/null 2>&1 ;;
+        esac || return 1
+    fi
+    ic_idle_net=0
+    ic_idle_sleep=0
+    if ic_enabled sys.idle.net; then
+        ic_idle_net=$(ic_idle_ms "$(ic_get sys.idle.net.value)" 1000)
+    fi
+    if ic_enabled sys.idle.sleep; then
+        ic_idle_sleep=$(ic_idle_ms "$(ic_get sys.idle.sleep.value)" 60000)
+    fi
+    ic_idle_now=$(settings get global device_idle_constants 2>/dev/null)
+    ic_idle_keep=
+    if [ -n "$ic_idle_now" ] && [ "$ic_idle_now" != "null" ]; then
+        ic_idle_keep=$(printf '%s' "$ic_idle_now" | tr ',' '\n' \
+            | grep -v -E '^light_(after_inactive_to|pre_idle_to)=' | grep -v '^$' | tr '\n' ',')
+    fi
+    [ "$ic_idle_net" = 0 ] || ic_idle_keep="${ic_idle_keep}light_after_inactive_to=$ic_idle_net,"
+    [ "$ic_idle_sleep" = 0 ] || ic_idle_keep="${ic_idle_keep}light_pre_idle_to=$ic_idle_sleep,"
+    ic_idle_keep=${ic_idle_keep%,}
+    if [ -z "$ic_idle_keep" ]; then
+        settings delete global device_idle_constants >/dev/null 2>&1
+    else
+        settings put global device_idle_constants "$ic_idle_keep" || return 1
+    fi
+    return 0
+}
+
+# ── 息屏断网（墨控自己执行）──────────────────────────────────────────
+# Android 10 起框架不再按 Settings.Global.wifi_sleep_policy 关 WiFi：实测策略写成 0、
+# 系统已进浅睡（mLightState=IDLE），射频仍在。所以这一项由后端自己实现：读背光值判断
+# 屏幕亮灭，按策略在息屏后关掉 WiFi、亮屏再开回来。
+# 只认自己关的那一次（状态文件），不会把用户手动关掉的 WiFi 打开；策略改回「始终连接」/
+# 「系统默认」时，下一次 tick 就把之前关掉的 WiFi 开回来。
+IC_WIFI_MARK=$IC_STATE/wifi-sleep.off
+
+# 当前是否应该关掉 WiFi。返回 0＝要关；只看策略，不看屏幕。
+ic_idle_wifi_want_off() {
+    ic_enabled sys.wifi.sleep || return 1
+    case "$(ic_get sys.wifi.sleep.value)" in
+        never) return 0 ;;
+        charging) ic_idle_wifi_charging && return 1; return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# 插着电时「仅充电保持」不该断网，充电状态变了也要及时开回来。
+ic_idle_wifi_charging() {
+    grep -qE '^(Charging|Full)$' /sys/class/power_supply/battery/status 2>/dev/null
+}
+
+ic_idle_wifi_tick() {
+    # 背光为 0 就是息屏；读不到（别的机型）按亮屏处理，宁可不动作。
+    off_screen=0
+    [ "$(cat /sys/class/backlight/sprd_backlight/brightness 2>/dev/null || echo 1)" = 0 ] && off_screen=1
+    if [ "$off_screen" = 1 ] && ic_idle_wifi_want_off; then
+        # 网卡还在就再下一次命令：svc 偶尔第一下不生效（开机后首次、Doze 切换瞬间），
+        # 每 2 秒重试一次，直到 wlan0 真的消失为止。
+        if [ -e /sys/class/net/wlan0 ]; then
+            : > "$IC_WIFI_MARK" 2>/dev/null
+            /system/bin/svc wifi disable >> "$IC_STATE/idle-wifi.log" 2>&1
+        fi
+    elif [ -f "$IC_WIFI_MARK" ]; then
+        rm -f "$IC_WIFI_MARK"
+        /system/bin/svc wifi enable >> "$IC_STATE/idle-wifi.log" 2>&1
+    fi
+    return 0
+}
+
+# 2 秒一轮，只读两个 sysfs 文件，真正动手只发生在状态切换的那一次。
+ic_idle_wifi_watch() {
+    while [ ! -f "$IC_MODULE/disable" ] && [ ! -f "$IC_MODULE/remove" ]; do
+        ic_idle_wifi_tick 2>/dev/null || :
+        sleep 2
+    done
+}
+
 ic_apply_hot() {
     ic_properties || return 1
+    ic_apply_idle || return 1
     ic_accessibility || return 1
     ic_pageanim_sync
     ic_prepare_restore

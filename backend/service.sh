@@ -36,6 +36,9 @@ if [ -f "$MODDIR/system/vendor/lib64/hw/libeinkgpu.so" ]; then
         touch "$IC_STATE/disable_hwc" "$MODDIR/disable"
     fi
 fi
+# 息屏断网：Android 10 的框架不再按 wifi_sleep_policy 关 WiFi，由这份常驻循环自己执行
+# （读背光判断亮灭，只读 sysfs，不动手就不占 CPU）。
+ic_idle_wifi_watch &
 . "$MODDIR/lib/guard.sh"
 next_backup=0
 while [ ! -f "$MODDIR/disable" ] && [ ! -f "$MODDIR/remove" ]; do
