@@ -137,9 +137,10 @@ ic_validate() {
           # 翻页动画是 0.2.5-r23 新加的一整组，旧配置里整组都没有，缺省按「关」处理。
           # motion.gc_direction / motion.gc_speed / motion.gc_style 是后加的三项，
           # 旧配置里没有，缺省按「自动」/跟随「波形动画速度」/「横向展开」处理。
+          # lock.style.order（主题排序）是纯页面项（@panel，值恒为空串），旧配置里整对缺省按「未配置」处理。
           # sys.wifi.sleep / sys.idle.net / sys.idle.sleep（待机与联网）是后加的三项，
           # 旧配置里没有，缺省按这台机器 ROM 的现值（始终连接 / 1 分钟 / 3 分钟）处理。
-          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^lock\.ext(\.(wifi|bt|audio|airplane|edit))?$/ || key ~ /^lock\.cover(\.(overlay|time|hint|battery|status|edit|pick|dir|rotate|halo))?$/ || key ~ /^font\.(dir|pick|saf)$/ || key ~ /^font2\.(dir|pick|saf)$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/ || key ~ /^qs\.extend$/ || key ~ /^navbar\.white$/ || key ~ /^sys\.backup$/ || key ~ /^sys\.(wifi\.sleep|idle\.(net|sleep))$/ || key ~ /^fix\.safeime$/ || key ~ /^qs\.panel(\.(close|pinsize|btn[1-5]))?$/ || key ~ /^motion\.gc_direction$/ || key ~ /^motion\.gc_speed$/ || key ~ /^motion\.gc_style$/ || key ~ /^pageanim\./)
+          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^lock\.ext(\.(wifi|bt|audio|airplane|edit))?$/ || key ~ /^lock\.cover(\.(overlay|time|hint|battery|status|edit|pick|dir|rotate|halo))?$/ || key ~ /^font\.(dir|pick|saf)$/ || key ~ /^font2\.(dir|pick|saf)$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/ || key ~ /^qs\.extend$/ || key ~ /^navbar\.white$/ || key ~ /^sys\.backup$/ || key ~ /^sys\.(wifi\.sleep|idle\.(net|sleep))$/ || key ~ /^fix\.safeime$/ || key ~ /^qs\.panel(\.(close|pinsize|btn[1-5]))?$/ || key ~ /^motion\.gc_direction$/ || key ~ /^motion\.gc_speed$/ || key ~ /^motion\.gc_style$/ || key ~ /^pageanim\./ || key ~ /^lock\.style\.order$/)
           if(optional && !seen[key] && !seen[key ".value"]) continue
           if(!seen[key] || !seen[key ".value"]) bad=1
         }

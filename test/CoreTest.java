@@ -390,6 +390,12 @@ public final class CoreTest {
         check(lockStyle.values.contains("10"));
         check(lockStyle.values.size() == lockStyle.labels.size());
         check(lockStyle.labels.get(lockStyle.values.indexOf("10")).equals("编辑排版-横-逆"));
+        // 出厂顺序把透明书封提到第二位；「主题排序」是纯页面项（@panel，配置里值恒为空串）。
+        check(lockStyle.values.equals(Arrays.asList("5", "11", "6", "7", "9", "10", "8")));
+        check(lockStyle.labels.get(1).equals("透明书封"));
+        FeatureDefinition themeOrder = FeatureCatalog.get("lock.style.order");
+        check(themeOrder.group.equals("锁屏显示") && themeOrder.values.equals(Arrays.asList("@panel")));
+        check(themeOrder.defaultValue().isEmpty());
         // 锁屏天气：默认沿用原厂（桌面小组件）数据，另可切换为直接读系统预装的天气App，
         // 或选「无」整块不画也不取数。默认值仍是首个取值（原厂桌面组件）。
         FeatureDefinition lockWeather = FeatureCatalog.get("lock.weather");

@@ -561,7 +561,8 @@ public final class MainActivity extends Activity {
      */
     private static boolean isPageNode(String id) {
         return isFontNode(id) || id.equals("lock.ext.edit") || id.equals("lock.cover.edit")
-                || id.equals("lock.cover.pick") || id.equals("lock.cover.dir");
+                || id.equals("lock.cover.pick") || id.equals("lock.cover.dir")
+                || id.equals("lock.style.order");
     }
 
     /** 「显示信息修改」页里的四项显示开关，顺序即锁屏上从左到右的顺序。 */
@@ -1479,7 +1480,9 @@ public final class MainActivity extends Activity {
         if (real.size() <= 1) return "";
         return Guide.optionName(f, value);
     }
-    private static List<String> realValues(FeatureDefinition f) {
+    private List<String> realValues(FeatureDefinition f) {
+        // 锁屏主题按「主题排序」页里的顺序显示，并跳过隐藏项；其它功能仍用目录原值。
+        if (f.id.equals("lock.style")) return ThemePrefs.visible(this);
         List<String> result = new ArrayList<>(f.values);
         result.remove(FeatureDefinition.CURVE_TOKEN);
         result.remove(FeatureDefinition.NUMBER_TOKEN);
@@ -1536,6 +1539,8 @@ public final class MainActivity extends Activity {
         if (f.id.equals("sys.backup")) { backupPage(); return; }
         // 「快捷面板修改」：整页只有总开关和按钮顺序，交给专用页
         if (f.id.equals("qs.panel")) { quickPanelPage(); return; }
+        // 「主题排序」：只有名称的拖动排序 + 逐项显示开关，没有功能开关可摆
+        if (f.id.equals("lock.style.order")) { themeOrderPage(); return; }
         ApplicationServices.Snapshot s = snapshot;
         Guide.Entry g = Guide.get(f.id);
         boolean requested = s.config.requested(f.id);
@@ -2312,10 +2317,10 @@ public final class MainActivity extends Activity {
      * 这是纯界面偏好，点一下即存；至少留一个，免得按钮点了没处可换。
      */
     private View themeCycleBlock() {
-        final List<String> styles = ThemePrefs.styles();
-        final List<String> chosen = ThemePrefs.cycle(this);
+        final List<String> styles = ThemePrefs.order(this);
+        final List<String> chosen = ThemePrefs.cycleSaved(this);
         LinearLayout box = column(heading("轮换主题范围", 18),
-                spaced(paragraph("面板上的「轮换主题」按钮只在这些主题之间切换。点一下换到下一个，并提示当前用的是哪一个。", 13), 6));
+                spaced(paragraph("面板上的「轮换主题」按钮只在这些主题之间切换，顺序跟「主题排序」一致。点一下换到下一个，并提示当前用的是哪一个；在「主题排序」里隐藏的主题不会轮换到。", 13), 6));
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
         list.setBackground(ink.outline(12));
@@ -2345,6 +2350,69 @@ public final class MainActivity extends Activity {
         }
         box.addView(list);
         return box;
+    }
+
+    /**
+     * 「05 主题排序」：参考快捷面板按钮的拖动换位，但每行只有名称和一个显示方框。
+     * 顺序与隐藏都是界面偏好，点完即存，不改配置里的 lock.style 取值，也不用跑一次 root 应用。
+     */
+    private void themeOrderPage() {
+        body.addView(card(column(heading("主题排序", 20),
+                spaced(paragraph("按住左侧的三条横线上下拖，调整「锁屏主题」下拉里的顺序。取消右边方框可以把不想看的主题藏起来，已经选中的主题不受影响。", 14), 8))));
+        final List<String> order = ThemePrefs.order(this);
+        final List<String> hidden = ThemePrefs.hidden(this);
+        LinearLayout items = DragSort.container(this);
+        for (int i = 0; i < order.size(); i++) {
+            final String value = order.get(i);
+            final boolean shown = !hidden.contains(value);
+            // 每格单独装一层：拖动落点按容器子视图中线算，分隔线画在包装里，不额外插视图。
+            LinearLayout item = new LinearLayout(this);
+            item.setOrientation(LinearLayout.VERTICAL);
+            if (i > 0) item.addView(ink.rule(1));
+            LinearLayout row = new LinearLayout(this);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(ink.dp(4), ink.dp(4), ink.dp(10), ink.dp(4));
+            View handle = DragSort.handle(this, ink);
+            row.addView(handle);
+            row.addView(ink.text(ThemePrefs.name(value), 16, shown ? Ink.MEDIUM : Ink.REGULAR),
+                    new LinearLayout.LayoutParams(0, -2, 1));
+            row.addView(checkBox(shown));
+            row.setContentDescription(ink.t(ThemePrefs.name(value) + (shown ? "，显示" : "，已隐藏")));
+            row.setOnClickListener(v -> {
+                List<String> next = new ArrayList<>(hidden);
+                if (shown) {
+                    if (ThemePrefs.visible(this).size() <= 1) {
+                        showText("至少留一个主题", "全部藏起来后「锁屏主题」下拉就没有可选项了。");
+                        return;
+                    }
+                    next.add(value);
+                } else next.remove(value);
+                ThemePrefs.saveHidden(this, next);
+                render();
+            });
+            item.addView(row);
+            DragSort.attach(handle, item, (from, to) -> orderThemes(from, to));
+            items.addView(spaced(item, 2));
+        }
+        body.addView(spaced(items, 12));
+
+        LinearLayout reset = new LinearLayout(this);
+        reset.setOrientation(LinearLayout.HORIZONTAL);
+        reset.setGravity(Gravity.CENTER_VERTICAL);
+        reset.addView(smallButton("恢复默认顺序", v -> { ThemePrefs.resetOrder(this); render(); }));
+        LinearLayout.LayoutParams note = new LinearLayout.LayoutParams(0, -2, 1);
+        note.leftMargin = ink.dp(12);
+        reset.addView(ink.text("编辑排版 · 透明书封 · 瑞士网格 · 像素 · 编辑排版-横 · 编辑排版-横-逆 · 液态玻璃", 11, Ink.REGULAR), note);
+        body.addView(spaced(reset, 18));
+    }
+
+    /** 拖动换位：顺序只存进界面偏好，同步落盘即可，不经过配置与应用链路。 */
+    private void orderThemes(int from, int to) {
+        List<String> order = ThemePrefs.order(this);
+        if (from < 0 || to < 0 || from >= order.size() || to >= order.size() || from == to) return;
+        order.add(to, order.remove(from));
+        ThemePrefs.saveOrder(this, order);
+        render();
     }
 
     /** 比主按钮小一号：14sp、最小高度 40dp、宽度随文字，用在页内的次要操作上。 */
