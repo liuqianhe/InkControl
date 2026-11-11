@@ -3281,6 +3281,20 @@ public final class MainActivity extends Activity {
         recentsCard.addView(spaced(paragraph("选「隐藏」时，最近任务列表里不显示墨控的界面；"
                 + "改成「显示」立刻恢复，下次从列表里就能切回墨控。", 13), 8));
         body.addView(spaced(card(recentsCard), 12));
+
+        // 开机自启：厂商不允许系统进程拉起墨控的 ConfigProvider，配置进程没起来时系统侧读到的
+        // 配置恒为全关，翻页动画与全刷扫过会一起失效。开关只在「模块设置」出现，默认开启。
+        if (snapshot != null) {
+            com.inkcontrol.core.FeatureDefinition autostart = FeatureCatalog.get("module.autostart");
+            boolean on = snapshot.config.requested("module.autostart");
+            LinearLayout autostartLine = new LinearLayout(this);
+            autostartLine.setGravity(Gravity.CENTER_VERTICAL);
+            autostartLine.addView(ink.text("开机自启", 16, Ink.MEDIUM), new LinearLayout.LayoutParams(0, -2, 1));
+            autostartLine.addView(toggle(autostart, on, on));
+            LinearLayout autostartCard = column(autostartLine,
+                    spaced(paragraph("开机后叫醒墨控的配置进程。关掉后如果一直没打开过墨控，翻页动画与全刷扫过会失效。", 13), 8));
+            body.addView(spaced(card(autostartCard), 12));
+        }
     }
 
     // ───────────────────────── 关于 ─────────────────────────

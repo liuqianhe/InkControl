@@ -62,6 +62,13 @@ public final class ConfigProvider extends ContentProvider {
         require(CallerPolicy.read(Binder.getCallingUid(), Process.myUid(), systemuiUid, launcherUid));
         Bundle input = extras == null ? new Bundle() : extras;
         try {
+            if ("wake".equals(method)) {
+                // 开机自启：这次调用本身会把 :state 进程拉起来（onCreate 里已发过 /ready）。
+                // 再补一次通知，覆盖 Provider 还活着、但系统进程那 120 次重试已耗尽的情况。
+                // 不返回任何数据、不写配置，越权调用也拿不到东西。
+                changed("ready");
+                return new Bundle();
+            }
             if ("readConfig".equals(method)) {
                 Bundle result = new Bundle();
                 result.putString("text", store.load().text());

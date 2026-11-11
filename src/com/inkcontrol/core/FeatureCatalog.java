@@ -251,6 +251,11 @@ public final class FeatureCatalog {
         // 首值就是出厂默认值：周期性刷新默认 5 分钟。预设仍按数值升序显示（见 showOptionDialog）。
         add("refresh.period", "自动刷新", "周期性刷新", "每隔一段时间刷新一次屏幕", "system", "refresh.master", HOT, false, "300,60,600,1800,@number", "5分钟,1分钟,10分钟,30分钟,自定义");
         add("refresh.apps", "自动刷新", "应用黑白名单", "白名单只统计名单内应用，黑名单跳过名单内应用", "system", "", HOT, false, "@apps", "黑白名单");
+        // 这台机器的进程管控不允许系统进程拉起墨控的 ConfigProvider；开机后没打开过墨控时，
+        // system_server / SystemUI 读到的配置快照恒为全关，翻页动画与全刷扫过会一起失效。
+        // 这是唯一默认开启且没有依赖的「模块设置」项：默认关等于这项修复不生效。
+        add("module.autostart", "模块设置", "开机自启", "开机后叫醒墨控的配置进程，避免系统侧读不到配置导致翻页动画与全刷扫过失效",
+                "backend", "", HOT, false, "default", "开机叫醒配置", true);
     }
 
     private static void add(String id, String group, String title, String description, String role,

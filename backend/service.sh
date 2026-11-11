@@ -15,6 +15,11 @@ if [ "$(getprop sys.boot_completed)" != 1 ]; then
     exit 1
 fi
 ic_apply_hot || { echo '启动期配置应用失败' > "$IC_STATE/error"; exit 1; }
+# 开机自启：把配置进程叫醒一次，系统侧才会读到真正的配置（否则动画与全刷扫过按原厂瞬切）。
+# 刚报 boot_completed 时系统界面可能还没起，失败就再试两次；WakeActivity 是透明无界面入口。
+if ic_autostart; then
+    for attempt in 1 2 3; do ic_wake_app && break; sleep 2; done
+fi
 # 翻页动画常驻端：读 settings.conf、监听触摸/按键、把翻页事件写进 HWC 注入段。
 # 只在本次开机确实挂了翻页动画 HWC 时拉起；GPU 后端融合模式下这份注入段不存在，
 # 拉起只会空转并污染日志。一个实例由它自己的 resident.lock 保证。
@@ -63,6 +68,9 @@ while [ ! -f "$MODDIR/disable" ] && [ ! -f "$MODDIR/remove" ]; do
     # 无障碍服务自愈：清理工具、系统或手动操作把「已启用服务」改掉后，下个周期补回来。
     # ic_accessibility 幂等——状态已经对时只读一次设置，不写盘；开关本身关着则不会擅自加。
     ic_accessibility 2>/dev/null || :
+    # 配置进程被清理工具杀掉后，系统侧又会退回「全部关闭」：按需把它叫醒回来。
+    # 只查进程在不在，不额外起服务；开关关掉时这一整段都不执行。
+    if ic_autostart && ! pidof com.inkcontrol:state >/dev/null 2>&1; then ic_wake_app; fi
     now=$(date +%s)
     if [ "$(awk -F= '$1=="guard.config" {print $2}' "$IC_BOOT")" = 1 ] && [ "$now" -ge "$next_backup" ]; then backup_now; next_backup=$((now + 21600)); fi
     sleep 60

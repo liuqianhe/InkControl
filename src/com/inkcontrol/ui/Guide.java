@@ -151,7 +151,7 @@ final class Guide {
      * 或是那一页里的选择器记录（最近应用的字体、文件选择器记录）。它们不出现在分类小节里。
      */
     static final java.util.Set<String> INTERNAL = new java.util.HashSet<>(Arrays.asList(
-            "lock.countdowns", "font.pick", "font.saf", "lock.cover.dir"));
+            "lock.countdowns", "font.pick", "font.saf", "lock.cover.dir", "module.autostart"));
 
     /** 迟滞内嵌在算法页；旧视频入口只跳到新页，配置仍可解析。 */
     static String destination(String id) {
@@ -468,6 +468,11 @@ final class Guide {
                 .option("default", "点完收起", "");
         put("qs.panel.pinsize").summary("原厂「截屏便签」缩到和补上的按钮一样大").what("原厂那个按钮按整块面板的尺寸画，图标和文字都比补上来的大一圈；开启后按同样的 28dp 图标、12sp 文字重画，并排的按钮看起来才齐平。")
                 .option("default", "统一尺寸", "");
+        // 开关本身画在「模块设置」页里，不进「功能」的分类小节；这里只留说明文字。
+        put("module.autostart").summary("开机后叫醒墨控的配置进程")
+                .what("这台机器的系统管控不允许系统进程直接拉起墨控的配置服务。开机后如果一直没打开过墨控，系统界面和系统服务读到的设置会一直是「全部关闭」：翻页动画、全刷扫过这些跑在系统进程里的功能就不生效，而锁屏、快捷面板这些墨控自己界面里的功能看起来完全正常。开启后，每次开机由后端用一个看不见的页面把配置进程叫醒一次，各进程随即重新读到真正的设置；运行中这个进程被清理掉也会补回来。")
+                .cost("默认开启，就是为了修掉上面这个开机后才看得出来的问题。关掉它以后，开机必须自己打开一次墨控，否则翻页动画与全刷扫过会按原厂瞬切运行。叫醒用的是无界面入口，不会弹出墨控首页，也不需要联网或常驻服务。")
+                .option("default", "开机叫醒配置", "");
         for (int slot = 1; slot <= 5; slot++) {
             Entry entry = put("qs.panel.btn" + slot)
                     .summary("第 " + slot + " 个按钮做什么")

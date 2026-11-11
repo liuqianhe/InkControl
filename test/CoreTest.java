@@ -165,7 +165,10 @@ public final class CoreTest {
         displayAlgorithms();
         Configuration config = new Configuration(); Set<String> ids = new HashSet<>();
         for (FeatureDefinition feature : FeatureCatalog.all()) {
-            check(ids.add(feature.id)); check(!config.enabled(feature.id));
+            check(ids.add(feature.id));
+            // 「开机自启」是唯一默认开启且没有依赖的项：它是系统进程读到配置的前提，
+            // 默认关等于这项修复不生效（见 FeatureCatalog 里的注释）。
+            if (!feature.id.equals("module.autostart")) check(!config.enabled(feature.id));
             // 必选参数没有开关，新配置里也按开启处理
             check(config.requested(feature.id) == (feature.defaultOn || FeatureCatalog.required(feature.id)));
             for (String value : feature.values) { if (value.equals(FeatureDefinition.CURVE_TOKEN) || value.equals(FeatureDefinition.NUMBER_TOKEN) || value.equals(FeatureDefinition.APPS_TOKEN) || value.equals(FeatureDefinition.PACKAGES_TOKEN) || value.equals(FeatureDefinition.COUNTDOWNS_TOKEN) || value.equals(FeatureDefinition.PATH_TOKEN) || value.equals(FeatureDefinition.FONT_TOKEN) || value.equals(FeatureDefinition.PANEL_TOKEN) || value.equals(FeatureDefinition.PACKAGE_TOKEN)) { reject(() -> feature.validate(value)); continue; } feature.validate(value); check(Configuration.parse(config.change(feature.id, true, value).text()).value(feature.id).equals(value)); }
@@ -190,6 +193,17 @@ public final class CoreTest {
         reject(() -> readers.validate("@packages"));
         reject(() -> readers.validate("$(id)"));
         reject(() -> readers.validate("com..a"));
+        // 开机自启：开关画在「模块设置」页，默认开、无依赖；旧配置缺这个键也按开处理。
+        FeatureDefinition autostart = FeatureCatalog.get("module.autostart");
+        check(autostart.group.equals("模块设置") && autostart.role.equals("backend")
+                && autostart.defaultOn && autostart.dependency.isEmpty()
+                && autostart.mode == FeatureDefinition.ApplyMode.HOT
+                && autostart.values.equals(Arrays.asList("default")));
+        check(new Configuration().enabled("module.autostart"));
+        check(!new Configuration().disableAll().enabled("module.autostart"));
+        String withoutAutostart = new Configuration().text()
+                .replace("module.autostart=1\n", "").replace("module.autostart.value=default\n", "");
+        check(Configuration.parse(withoutAutostart).requested("module.autostart"));
         // 「冻结安全输入服务后能输密码」归在「系统增强」，由 SystemUI 写系统设置，默认关闭。
         FeatureDefinition safeime = FeatureCatalog.get("fix.safeime");
         check(safeime.group.equals("系统增强") && safeime.role.equals("systemui")

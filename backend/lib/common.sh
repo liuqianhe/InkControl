@@ -140,7 +140,9 @@ ic_validate() {
           # lock.style.order（主题排序）是纯页面项（@panel，值恒为空串），旧配置里整对缺省按「未配置」处理。
           # sys.wifi.sleep / sys.idle.net / sys.idle.sleep（待机与联网）是后加的三项，
           # 旧配置里没有，缺省按这台机器 ROM 的现值（始终连接 / 1 分钟 / 3 分钟）处理。
-          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^lock\.ext(\.(wifi|bt|audio|airplane|edit))?$/ || key ~ /^lock\.cover(\.(overlay|time|hint|battery|status|edit|pick|dir|rotate|halo))?$/ || key ~ /^font\.(dir|pick|saf)$/ || key ~ /^font2\.(dir|pick|saf)$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/ || key ~ /^qs\.extend$/ || key ~ /^navbar\.white$/ || key ~ /^sys\.backup$/ || key ~ /^sys\.(wifi\.sleep|idle\.(net|sleep))$/ || key ~ /^fix\.safeime$/ || key ~ /^qs\.panel(\.(close|pinsize|btn[1-5]))?$/ || key ~ /^motion\.gc_direction$/ || key ~ /^motion\.gc_speed$/ || key ~ /^motion\.gc_style$/ || key ~ /^pageanim\./ || key ~ /^lock\.style\.order$/)
+          # module.autostart（开机自启）是后加的模块设置项：旧配置里整对缺省按「开」处理，
+          # 否则升级后第一次开机仍会因系统进程读不到配置而让翻页动画与全刷扫过失效。
+          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^lock\.ext(\.(wifi|bt|audio|airplane|edit))?$/ || key ~ /^lock\.cover(\.(overlay|time|hint|battery|status|edit|pick|dir|rotate|halo))?$/ || key ~ /^font\.(dir|pick|saf)$/ || key ~ /^font2\.(dir|pick|saf)$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/ || key ~ /^qs\.extend$/ || key ~ /^navbar\.white$/ || key ~ /^sys\.backup$/ || key ~ /^sys\.(wifi\.sleep|idle\.(net|sleep))$/ || key ~ /^fix\.safeime$/ || key ~ /^qs\.panel(\.(close|pinsize|btn[1-5]))?$/ || key ~ /^motion\.gc_direction$/ || key ~ /^motion\.gc_speed$/ || key ~ /^motion\.gc_style$/ || key ~ /^pageanim\./ || key ~ /^lock\.style\.order$/ || key ~ /^module\.autostart$/)
           if(optional && !seen[key] && !seen[key ".value"]) continue
           if(!seen[key] || !seen[key ".value"]) bad=1
         }
@@ -165,6 +167,18 @@ ic_module_conflict() {
         [ -d "$IC_MODULES/$module" ] && [ ! -f "$IC_MODULES/$module/disable" ] && [ ! -f "$IC_MODULES/$module/remove" ] && { echo "$module"; return 0; }
     done
     return 1
+}
+# 开机自启是否要执行：与 App 侧的 defaultOn 保持一致——旧配置里没有这个键也按「开」，
+# 只有显式写成 0 才关。这样升级后第一次开机就自动修掉系统进程读不到配置的问题。
+ic_autostart() { [ "$(ic_get module.autostart)" != 0 ]; }
+# 厂商的进程管控拦下系统进程对墨控 ConfigProvider 的拉起（Unknown authority / it's restricted），
+# system_server 与 SystemUI 的 RuntimeConfig 因此一直只拿到「全部关闭」的快照：翻页动画、
+# 全刷扫过这些跑在系统进程里的功能全部按原厂瞬切，而锁屏、快捷面板看着完全正常。
+# 它不拦 startActivity，所以用无界面的 WakeActivity 把配置进程叫醒一次；Provider 会通知
+# 所有已注入进程重读配置。不弹界面、不联网、不需要额外常驻服务。
+ic_wake_app() {
+    am start -n com.inkcontrol/com.inkcontrol.ui.WakeActivity >/dev/null 2>&1 || return 1
+    ic_log '开机自启：已叫醒配置进程'
 }
 ic_properties() {
     # 视频默认走 GPU 蓝噪声。stock 是原厂误差扩散，当前后端有 GPU 实现，但逐行依赖使其明显慢于蓝噪声；只在实验项明确选择时使用。

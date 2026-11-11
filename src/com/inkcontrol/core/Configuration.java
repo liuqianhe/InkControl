@@ -38,7 +38,12 @@ public final class Configuration {
         return new Configuration(revision + 1, flags, values);
     }
     public Configuration disableAll() {
-        return new Configuration(revision + 1, new LinkedHashMap<>(), new LinkedHashMap<>(options));
+        Map<String, Boolean> flags = new LinkedHashMap<>();
+        // 默认开且没有依赖的项（目前只有「开机自启」）清空开关表后仍会被 defaultOn 拉回「开」，
+        // 必须显式写 0，否则「关闭全部增强」对它无效。其它项沿用缺省即关闭的语义。
+        for (FeatureDefinition feature : FeatureCatalog.all())
+            if (feature.defaultOn && feature.dependency.isEmpty()) flags.put(feature.id, false);
+        return new Configuration(revision + 1, flags, new LinkedHashMap<>(options));
     }
     /** 只把某一分类恢复默认（关闭并取默认值）；其它分类与布局无关的原始设置不动。 */
     public Configuration restoreGroup(String group) {

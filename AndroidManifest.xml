@@ -29,6 +29,8 @@
         </receiver>
         <!-- 「待机与联网」的无界面入口：被 force-stop 后广播叫不醒时改用它，不打开墨控主界面。 -->
         <activity android:name="com.inkcontrol.ui.IdleActivity" android:exported="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:excludeFromRecents="true" android:taskAffinity="" android:noHistory="true" />
+        <!-- 开机自启的叫醒入口：后端 am start 它把 :state 配置进程拉起来，透明且立刻结束。 -->
+        <activity android:name="com.inkcontrol.ui.WakeActivity" android:exported="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:excludeFromRecents="true" android:taskAffinity="" android:noHistory="true" />
         <provider android:name="com.inkcontrol.platform.ConfigProvider" android:authorities="com.inkcontrol.state" android:exported="true" android:directBootAware="true" android:process=":state" />
         <service android:name="com.inkcontrol.features.refresh.RefreshService" android:exported="true" android:label="@string/accessibility_service_label" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:directBootAware="true" android:process=":refresh">
             <intent-filter><action android:name="android.accessibilityservice.AccessibilityService"/></intent-filter>
