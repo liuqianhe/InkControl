@@ -142,7 +142,9 @@ ic_validate() {
           # 旧配置里没有，缺省按这台机器 ROM 的现值（始终连接 / 1 分钟 / 3 分钟）处理。
           # module.autostart（开机自启）是后加的模块设置项：旧配置里整对缺省按「开」处理，
           # 否则升级后第一次开机仍会因系统进程读不到配置而让翻页动画与全刷扫过失效。
-          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^lock\.ext(\.(wifi|bt|audio|airplane|edit))?$/ || key ~ /^lock\.cover(\.(overlay|time|hint|battery|status|edit|pick|dir|rotate|halo))?$/ || key ~ /^font\.(dir|pick|saf)$/ || key ~ /^font2\.(dir|pick|saf)$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/ || key ~ /^qs\.extend$/ || key ~ /^navbar\.white$/ || key ~ /^sys\.backup$/ || key ~ /^sys\.(wifi\.sleep|idle\.(net|sleep))$/ || key ~ /^fix\.safeime$/ || key ~ /^qs\.panel(\.(close|pinsize|btn[1-5]))?$/ || key ~ /^motion\.gc_direction$/ || key ~ /^motion\.gc_speed$/ || key ~ /^motion\.gc_style$/ || key ~ /^pageanim\./ || key ~ /^lock\.style\.order$/ || key ~ /^module\.autostart$/)
+          # sys.backup（备份系统设置）与 sys.config（导入与导出设置）都是纯页面项，旧配置里没有，
+          # 缺省按「未配置」处理——漏掉它们会让升级时的安装期校验直接判「配置无效」。
+          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^lock\.ext(\.(wifi|bt|audio|airplane|edit))?$/ || key ~ /^lock\.cover(\.(overlay|time|hint|battery|status|edit|pick|dir|rotate|halo))?$/ || key ~ /^font\.(dir|pick|saf)$/ || key ~ /^font2\.(dir|pick|saf)$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/ || key ~ /^qs\.extend$/ || key ~ /^navbar\.white$/ || key ~ /^sys\.(backup|config)$/ || key ~ /^sys\.(wifi\.sleep|idle\.(net|sleep))$/ || key ~ /^fix\.safeime$/ || key ~ /^qs\.panel(\.(close|pinsize|btn[1-5]))?$/ || key ~ /^motion\.gc_direction$/ || key ~ /^motion\.gc_speed$/ || key ~ /^motion\.gc_style$/ || key ~ /^pageanim\./ || key ~ /^lock\.style\.order$/ || key ~ /^module\.autostart$/)
           if(optional && !seen[key] && !seen[key ".value"]) continue
           if(!seen[key] || !seen[key ".value"]) bad=1
         }

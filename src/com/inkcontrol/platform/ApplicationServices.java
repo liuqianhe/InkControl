@@ -91,6 +91,22 @@ public final class ApplicationServices {
     }
     public void disableAll() throws Exception { features.disableAll(); }    public void restoreGroup(String group) throws Exception { features.restoreGroup(group); }
 
+    /**
+     * 导入整份墨控设置（导出文件就是 {@code Configuration.text()} 的原文）。
+     * 文本严格按配置语法校验：格式不对、版本不支持、出现未知字段都会在写入前拒绝，
+     * 不会把半份坏配置落到系统进程能读到的地方。
+     */
+    public void importConfiguration(String text) throws Exception {
+        Configuration imported;
+        try { imported = Configuration.parse(text); }
+        catch (RuntimeException broken) {
+            throw new IllegalStateException("不是墨控设置文件："
+                    + (broken.getMessage() == null ? broken.getClass().getSimpleName() : broken.getMessage()));
+        }
+        features.replace(imported);
+        inspect();
+    }
+
     /** 系统应用在机主账号里的状态：installed / removed / absent，附带安装位置。 */
     public String[] sysAppState(String pkg) throws Exception {
         String state = "absent", path = "";

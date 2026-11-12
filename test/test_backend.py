@@ -118,6 +118,17 @@ IC_LIB={shlex.quote(posix(SCHEMA))}
                     '事项名特别长超过十二个字符;2026-11-27;0;1;;;;'):
             self.config.write_text(with_value(bad),encoding='utf-8')
             self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
+    def test_page_items_are_optional_in_ic_validate(self):
+        # 后加的纯页面项（@panel）在老配置里整对不存在；ic_validate 的 optional 白名单漏了它们，
+        # 升级时的安装期校验就会判「配置无效，保留原文件」，magisk 装模块直接中止。
+        original = self.config.read_text()
+        for key in ('sys.config', 'sys.backup', 'lock.style.order'):
+            stripped = '\n'.join(line for line in original.splitlines() if not line.startswith(key))
+            self.config.write_text(stripped + '\n', encoding='utf-8')
+            self.shell('ic_validate "$IC_CONFIG"\n')
+        self.config.write_text(original + 'sys.config=1\n', encoding='utf-8')
+        self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
+
     def _wifi_stub(self, wake='Awake', backlight='0', wlan=True, power='Discharging', enable_works=True):
         """把 sysfs 路径与系统命令换成替身，返回 (前缀, 网卡文件, svc 日志, dumpsys 命中日志)。"""
         # 必须写纯 LF：Windows 上 write_text 会把 \n 变成 \r\n，read -r 读到 "0\r"，

@@ -37,6 +37,13 @@ public final class Configuration {
         values.put(id, value);
         return new Configuration(revision + 1, flags, values);
     }
+    /**
+     * 导入一份配置：开关与取值全部照抄，修订号取本机现有值加一。
+     * 加一不是装饰——各进程按「修订号变了」重读配置，沿用文件里的旧号会让它们以为没变化。
+     */
+    public Configuration adopt(Configuration imported) {
+        return new Configuration(revision + 1, new LinkedHashMap<>(imported.switches), new LinkedHashMap<>(imported.options));
+    }
     public Configuration disableAll() {
         Map<String, Boolean> flags = new LinkedHashMap<>();
         // 默认开且没有依赖的项（目前只有「开机自启」）清空开关表后仍会被 defaultOn 拉回「开」，

@@ -54,6 +54,16 @@ public final class FeatureService {
         store.save(after);
         executor.apply(before, after);
     }
+    /**
+     * 整份替换（导入墨控设置用）：只落一次盘、只跑一次应用。
+     * 与逐项 {@link #change} 的区别是不查依赖、不拦「请先开启…」——导入的是用户自己的整份配置，
+     * 依赖关系本来就在里面；被导入的项若确实需要后端支持，回执里会如实标出来。
+     */
+    public synchronized void replace(Configuration imported) throws Exception {
+        Configuration before = store.load(), after = before.adopt(imported);
+        store.save(after);
+        executor.apply(before, after);
+    }
     public synchronized void restoreGroup(String group) throws Exception {
         Configuration before = store.load(), after = before.restoreGroup(group);
         store.save(after);

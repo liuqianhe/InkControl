@@ -420,6 +420,24 @@ public final class CoreTest {
         Configuration weatherOff = new Configuration().change("lock.weather", true, "none");
         check(weatherOff.value("lock.weather").equals("none"));
         check(Configuration.parse(weatherOff.text()).value("lock.weather").equals("none"));
+        // 「导入与导出设置」：纯页面项，自己没有开关；导入＝adopt 整份配置，修订号必须在本机
+        // 现有值上加一（各进程按它判断要不要重读），并且只落盘、只应用一次。
+        FeatureDefinition configPage = FeatureCatalog.get("sys.config");
+        check(configPage.group.equals("系统增强") && configPage.values.equals(Arrays.asList("@panel")));
+        check(configPage.defaultValue().isEmpty() && configPage.acceptsPanel());
+        Configuration exported = new Configuration().change("refresh.master", true, "default")
+                .change("lock.style", true, "8").change("lock.weather", true, "none");
+        Configuration adopted = new Configuration().adopt(Configuration.parse(exported.text()));
+        check(adopted.revision == 1);
+        check(adopted.enabled("refresh.master") && adopted.value("lock.style").equals("8"));
+        check(adopted.value("lock.weather").equals("none") && !adopted.enabled("wave.lock"));
+        check(adopted.text().equals(Configuration.parse(adopted.text()).text()));
+        Store importStore = new Store();
+        final int[] importApplied = {0};
+        FeatureService importService = new FeatureService(importStore, (before, after) -> importApplied[0]++, feature -> null);
+        importService.replace(adopted);
+        check(importStore.value.enabled("refresh.master") && importApplied[0] == 1 && importStore.value.revision == 1);
+        reject(() -> Configuration.parse("version=1\nrevision=1\nunknown.key=1\n"));
         check(CallerPolicy.read(10100, 10100, 10139, 10063)); check(CallerPolicy.read(1000, 10100, 10139, 10063));
         check(CallerPolicy.read(10139, 10100, 10139, 10063)); check(CallerPolicy.read(10063, 10100, 10139, 10063));
         check(!CallerPolicy.read(10199, 10100, 10139, 10063)); check(!CallerPolicy.read(0, 10100, -1, -1));

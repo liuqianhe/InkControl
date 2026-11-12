@@ -104,6 +104,23 @@ final class Ink {
         return view;
     }
 
+    /**
+     * 紧凑按钮：跟在标题右侧的小号描边按钮（「模块设置」里语言、提示时长这类单选项用）。
+     * 比 {@link #button} 矮一档、字号小一档，一行放得下标题和一个按钮。
+     */
+    TextView miniButton(String label, View.OnClickListener click) {
+        TextView view = text(label, 13, MEDIUM);
+        view.setGravity(Gravity.CENTER);
+        view.setMinHeight(dp(30));
+        view.setPadding(dp(12), dp(5), dp(12), dp(5));
+        view.setBackground(pressable(box(PAPER, INK, 1.5f, 8), solid(8)));
+        view.setTextColor(pressedColors(INK, PAPER));
+        view.setClickable(true);
+        view.setFocusable(true);
+        view.setOnClickListener(click);
+        return view;
+    }
+
     /** 小标签，例如“实验”“重启”。 */
     TextView tag(String label, boolean filled) {
         TextView view = text(label, 11, MEDIUM);

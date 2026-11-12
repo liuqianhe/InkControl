@@ -61,6 +61,9 @@ public final class MainActivity extends Activity {
     private static final int FONT_DIR_REQUEST = 102;
     private static final int COVER_REQUEST = 103;
     private static final int COVER_DIR_REQUEST = 104;
+    /** 「导入与导出设置」：导出走系统保存界面，导入走系统文件选择器。 */
+    private static final int CONFIG_EXPORT_REQUEST = 105;
+    private static final int CONFIG_IMPORT_REQUEST = 106;
     /** 海信主题字体目录：字体包没有扩展名，靠文件头识别 TTF/OTF。 */
     private static final String FONT_DIR_DEFAULT = "/storage/emulated/0/.hmcttheme/com.hmct.theme/";
     /** 「关于」页里的外链；只跳转浏览器，不在应用里做自动更新或下载。 */
@@ -1025,7 +1028,7 @@ public final class MainActivity extends Activity {
     /** 这些项有自己的编辑页／预览／名单，紧凑行放不下，给一个入口即可。 */
     private static boolean compactSpecial(String id) {
         FeatureDefinition f = FeatureCatalog.get(id);
-        return isPageNode(id) || id.equals("sys.backup") || id.equals("lock.countdown")
+        return isPageNode(id) || id.equals("sys.backup") || id.equals("sys.config") || id.equals("lock.countdown")
                 || id.equals("lock.style") || id.equals("desktop.theme") || id.equals("desktop.icons")
                 || id.equals("desktop.wallpaper") || id.equals("desktop.widget")
                 || id.equals("qs.panel") || id.equals("refresh.apps") || id.equals("experiment.cache")
@@ -1537,6 +1540,8 @@ public final class MainActivity extends Activity {
         if (f.id.equals("lock.cover.pick")) { coverPickPage(f); return; }
         // 「备份系统设置」：进去是操作页（拍快照 / 列快照 / 写回），没有开关
         if (f.id.equals("sys.backup")) { backupPage(); return; }
+        // 「导入与导出设置」：进去是两个按钮（导出 / 导入），同样没有开关
+        if (f.id.equals("sys.config")) { settingsPage(); return; }
         // 「快捷面板修改」：整页只有总开关和按钮顺序，交给专用页
         if (f.id.equals("qs.panel")) { quickPanelPage(); return; }
         // 「主题排序」：只有名称的拖动排序 + 逐项显示开关，没有功能开关可摆
@@ -3253,33 +3258,44 @@ public final class MainActivity extends Activity {
         body.addView(spaced(navCard("关于", "版本信息、作者与来源、参考项目，以及手动检测更新。",
                 "", false, "打开关于", v -> { modulePage = ABOUT; scroll = null; render(); }), 12));
 
-        LinearLayout languageCard = column(ink.text("语言 / Language", 16, Ink.BOLD));
-        TextView language = ink.chip("中 / EN", false, v -> UiLanguage.choose(this));
+        // 语言、提示时长、后台任务都是「标题 + 一个选项」的单项偏好：按钮缩到标题右侧同一行，
+        // 一行看完，不再让按钮独占一行把卡片撑高。
+        LinearLayout languageLine = new LinearLayout(this);
+        languageLine.setGravity(Gravity.CENTER_VERTICAL);
+        languageLine.addView(ink.text("语言 / Language", 16, Ink.BOLD), new LinearLayout.LayoutParams(0, -2, 1));
+        TextView language = ink.miniButton("中 / EN", v -> UiLanguage.choose(this));
         language.setContentDescription(ink.t("语言 / Language"));
-        languageCard.addView(spaced(language, 10));
-        languageCard.addView(spaced(paragraph("英文翻译已停止维护：部分界面文字可能仍显示中文。", 13), 8));
+        languageLine.addView(language);
+        LinearLayout languageCard = column(languageLine,
+                spaced(paragraph("英文翻译已停止维护：部分界面文字可能仍显示中文。", 13), 8));
         body.addView(spaced(card(languageCard), 12));
 
         // 操作结果提示条（顶部「已保存…」那行）的停留时长；默认 30 秒自动消失，也可设为不显示。
-        LinearLayout noticeCard = column(ink.text("提示时长", 16, Ink.BOLD));
-        TextView duration = ink.chip(UiNotice.label(noticeSeconds), false, v -> UiNotice.choose(this));
+        LinearLayout noticeLine = new LinearLayout(this);
+        noticeLine.setGravity(Gravity.CENTER_VERTICAL);
+        noticeLine.addView(ink.text("提示时长", 16, Ink.BOLD), new LinearLayout.LayoutParams(0, -2, 1));
+        TextView duration = ink.miniButton(UiNotice.label(noticeSeconds), v -> UiNotice.choose(this));
         duration.setContentDescription(ink.t("提示时长"));
-        noticeCard.addView(spaced(duration, 10));
-        noticeCard.addView(spaced(paragraph("修改设置后的结果提示会在页面上停留一段时间后自动消失；"
-                + "选「不显示」则不再占用页面空间。失败提示不会自动消失。", 13), 8));
+        noticeLine.addView(duration);
+        LinearLayout noticeCard = column(noticeLine,
+                spaced(paragraph("修改设置后的结果提示会在页面上停留一段时间后自动消失；"
+                        + "选「不显示」则不再占用页面空间。失败提示不会自动消失。", 13), 8));
         body.addView(spaced(card(noticeCard), 12));
 
         // 最近任务（后台任务列表）里是否出现墨控：默认隐藏，改回「显示」后立即生效。
-        LinearLayout recentsCard = column(ink.text("后台任务", 16, Ink.BOLD));
-        TextView visible = ink.chip(UiRecents.hidden(this) ? "隐藏" : "显示", false, v -> {
+        LinearLayout recentsLine = new LinearLayout(this);
+        recentsLine.setGravity(Gravity.CENTER_VERTICAL);
+        recentsLine.addView(ink.text("后台任务", 16, Ink.BOLD), new LinearLayout.LayoutParams(0, -2, 1));
+        TextView visible = ink.miniButton(UiRecents.hidden(this) ? "隐藏" : "显示", v -> {
             UiRecents.setHidden(this, !UiRecents.hidden(this));
             UiRecents.apply(this);
             render();
         });
         visible.setContentDescription(ink.t("后台任务"));
-        recentsCard.addView(spaced(visible, 10));
-        recentsCard.addView(spaced(paragraph("选「隐藏」时，最近任务列表里不显示墨控的界面；"
-                + "改成「显示」立刻恢复，下次从列表里就能切回墨控。", 13), 8));
+        recentsLine.addView(visible);
+        LinearLayout recentsCard = column(recentsLine,
+                spaced(paragraph("选「隐藏」时，最近任务列表里不显示墨控的界面；"
+                        + "改成「显示」立刻恢复，下次从列表里就能切回墨控。", 13), 8));
         body.addView(spaced(card(recentsCard), 12));
 
         // 开机自启：厂商不允许系统进程拉起墨控的 ConfigProvider，配置进程没起来时系统侧读到的
@@ -3292,7 +3308,7 @@ public final class MainActivity extends Activity {
             autostartLine.addView(ink.text("开机自启", 16, Ink.MEDIUM), new LinearLayout.LayoutParams(0, -2, 1));
             autostartLine.addView(toggle(autostart, on, on));
             LinearLayout autostartCard = column(autostartLine,
-                    spaced(paragraph("开机后叫醒墨控的配置进程。关掉后如果一直没打开过墨控，翻页动画与全刷扫过会失效。", 13), 8));
+                    spaced(paragraph("开机后叫醒墨控的配置进程。", 13), 8));
             body.addView(spaced(card(autostartCard), 12));
         }
     }
@@ -3846,6 +3862,104 @@ public final class MainActivity extends Activity {
         }
     }
 
+    // ───────────────────────── 导入与导出设置 ─────────────────────────
+
+    /**
+     * 「系统增强 → 导入与导出设置」：导出写的就是配置原文（与 configuration.txt 同一份文本），
+     * 导入按同一套语法校验后整份替换。两个动作都只是搬文本，不执行文件里的任何内容。
+     */
+    private void settingsPage() {
+        int total = FeatureCatalog.all().size(), on = 0;
+        if (snapshot != null) for (FeatureDefinition feature : FeatureCatalog.all())
+            if (snapshot.config.requested(feature.id)) on++;
+        body.addView(spaced(card(column(
+                heading("存的是什么", 18),
+                spaced(paragraph("墨控「功能」里的全部开关与选项，一共 " + total + " 项；当前有 " + on + " 项开启。"
+                        + "导出的就是一个纯文本文件，文件管理器里看得到，也能拷到别的设备。", 14), 8),
+                spaced(paragraph("不含提示时长、语言、列表顺序、锁屏主题排序、书封图片与字体文件；"
+                        + "系统设置本身请用上面的「备份系统设置」。", 13), 6))), 16));
+
+        body.addView(spaced(ink.button("导出当前设置", Ink.Kind.PRIMARY, v -> exportSettings()), 12));
+        body.addView(spaced(ink.button("从文件导入", Ink.Kind.SECONDARY, v -> pickSettingsFile()), 12));
+        body.addView(note("导入会整份覆盖当前的开关与取值：文件来自更早的版本时，那一版之后新增的功能会回到出厂默认。"));
+    }
+
+    private void exportSettings() {
+        String stamp = new java.text.SimpleDateFormat("yyyyMMdd-HHmm", Locale.CHINA).format(new java.util.Date());
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("text/plain")
+                .addCategory(Intent.CATEGORY_OPENABLE)
+                .putExtra(Intent.EXTRA_TITLE, "inkcontrol-settings-" + stamp + ".txt");
+        try { startActivityForResult(intent, CONFIG_EXPORT_REQUEST); }
+        catch (android.content.ActivityNotFoundException error) { showText("无法导出", "系统没有可用的文件保存界面。"); }
+    }
+
+    private void pickSettingsFile() {
+        // 不按 MIME 过滤：不同文件管理器给 .txt 标的类型不一致，放宽到全部再自己识别内容。
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT).setType("*/*").addCategory(Intent.CATEGORY_OPENABLE);
+        try { startActivityForResult(intent, CONFIG_IMPORT_REQUEST); }
+        catch (android.content.ActivityNotFoundException error) { showText("无法导入", "系统没有可用的文件选择界面。"); }
+    }
+
+    /** 读入导入文件；超过 256 KB 直接拒绝——设置文件只有几十 KB，大文件一定不是它。 */
+    private String readSettings(Uri uri) throws Exception {
+        try (java.io.InputStream input = getContentResolver().openInputStream(uri)) {
+            if (input == null) throw new java.io.IOException("无法读取这个文件");
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[8192];
+            int count, total = 0;
+            while ((count = input.read(buffer)) != -1) {
+                total += count;
+                if (total > 262144) throw new java.io.IOException("文件过大，不像墨控设置");
+                out.write(buffer, 0, count);
+            }
+            return new String(out.toByteArray(), java.nio.charset.StandardCharsets.UTF_8);
+        }
+    }
+
+    /** 导入前先读一遍：能解析才让用户确认，并把「有多少项会变」摆在确认框里。 */
+    private void importSettings(Uri uri) {
+        if (busy) { Toast.makeText(this, ink.t("请等待当前操作完成"), Toast.LENGTH_SHORT).show(); return; }
+        busy = true; message = "正在读取设置文件…"; messageFailed = false; output = ""; render();
+        WORKER.execute(() -> {
+            String text = null, failure = "";
+            try { text = readSettings(uri); } catch (Exception error) { failure = reason(error); }
+            String content = text, problem = failure;
+            runOnUiThread(() -> {
+                busy = false;
+                if (isFinishing() || isDestroyed()) return;
+                message = ""; render();
+                if (content == null) { showText("无法读取", problem); return; }
+                String summary;
+                try { summary = summarize(com.inkcontrol.core.Configuration.parse(content)); }
+                catch (RuntimeException rejected) {
+                    showText("不是墨控设置文件", "这个文件里没有可识别的墨控设置（" + reason(rejected) + "）。\n\n请选墨控导出的 .txt 文件。");
+                    return;
+                }
+                confirm("导入墨控设置", summary
+                                + "\n\n导入会用文件里的内容覆盖当前的全部功能开关与取值。立即下发的项马上生效，需要重启的项会在诊断页标出。",
+                        () -> perform("正在导入设置…", () -> {
+                            services.importConfiguration(content);
+                            return summary + "\n已导入，并在系统里生效。";
+                        }, true));
+            });
+        });
+    }
+
+    /** 与当前配置逐项比对，给出「多少项开启、多少处会变」；没有快照时只说文件本身。 */
+    private String summarize(com.inkcontrol.core.Configuration imported) {
+        int total = 0, on = 0, changed = 0;
+        for (FeatureDefinition feature : FeatureCatalog.all()) {
+            total++;
+            boolean next = imported.requested(feature.id);
+            if (next) on++;
+            if (snapshot == null) continue;
+            if (next != snapshot.config.requested(feature.id)
+                    || !imported.value(feature.id).equals(snapshot.config.value(feature.id))) changed++;
+        }
+        String text = "文件里共 " + total + " 项设置，其中 " + on + " 项开启。";
+        return snapshot == null ? text : text + "与当前相比，" + changed + " 处会变。";
+    }
+
     // ───────────────────────── 诊断 ─────────────────────────
 
     private void diagnostics() {
@@ -4018,6 +4132,17 @@ public final class MainActivity extends Activity {
             if (path == null) showText("无法换成路径", "这个位置没法转换成文件路径。可以改用「从文件选择」直接挑一个字体文件。");
             else saveFontDir("font.dir", path);
         }
+        if (request == CONFIG_EXPORT_REQUEST && result == RESULT_OK && data != null && data.getData() != null)
+            perform("导出设置", () -> {
+                String text = services.configuration().text();
+                try (OutputStream out = getContentResolver().openOutputStream(data.getData())) {
+                    if (out == null) throw new java.io.IOException("无法写入目标文件");
+                    out.write(text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                }
+                return "已导出当前的全部功能开关与取值。换机或重装后，用「从文件导入」选这个文件即可还原。";
+            }, true);
+        if (request == CONFIG_IMPORT_REQUEST && result == RESULT_OK && data != null && data.getData() != null)
+            importSettings(data.getData());
     }
 
     // ───────────────────────── 排版工具 ─────────────────────────
