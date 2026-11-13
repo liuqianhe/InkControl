@@ -3282,20 +3282,26 @@ public final class MainActivity extends Activity {
                         + "选「不显示」则不再占用页面空间。失败提示不会自动消失。", 13), 8));
         body.addView(spaced(card(noticeCard), 12));
 
-        // 最近任务（后台任务列表）里是否出现墨控：默认隐藏，改回「显示」后立即生效。
+        // 最近任务（后台任务列表）里是否出现墨控：与「开机自启」同款的开关，排它上面。
+        // 默认隐藏；关掉即恢复显示，改完立刻生效（最近任务读的就是这个启动意图）。
         LinearLayout recentsLine = new LinearLayout(this);
         recentsLine.setGravity(Gravity.CENTER_VERTICAL);
-        recentsLine.addView(ink.text("后台任务", 16, Ink.BOLD), new LinearLayout.LayoutParams(0, -2, 1));
-        TextView visible = ink.miniButton(UiRecents.hidden(this) ? "隐藏" : "显示", v -> {
-            UiRecents.setHidden(this, !UiRecents.hidden(this));
+        recentsLine.addView(ink.text("后台任务隐藏", 16, Ink.MEDIUM), new LinearLayout.LayoutParams(0, -2, 1));
+        CompoundButton recentsToggle = miniToggle(UiRecents.hidden(this));
+        recentsToggle.setContentDescription(ink.t("后台任务隐藏"));
+        recentsToggle.setOnClickListener(v -> {
+            boolean hide = recentsToggle.isChecked();
+            UiRecents.setHidden(this, hide);
             UiRecents.apply(this);
+            message = hide ? "已隐藏后台任务" : "后台任务已恢复显示";
+            messageFailed = false;
+            scheduleNoticeDismiss();
             render();
         });
-        visible.setContentDescription(ink.t("后台任务"));
-        recentsLine.addView(visible);
+        recentsLine.addView(recentsToggle);
         LinearLayout recentsCard = column(recentsLine,
-                spaced(paragraph("选「隐藏」时，最近任务列表里不显示墨控的界面；"
-                        + "改成「显示」立刻恢复，下次从列表里就能切回墨控。", 13), 8));
+                spaced(paragraph("开启后，最近任务列表里不显示墨控的界面；关掉立刻恢复，"
+                        + "下次从列表里就能切回墨控。", 13), 8));
         body.addView(spaced(card(recentsCard), 12));
 
         // 开机自启：厂商不允许系统进程拉起墨控的 ConfigProvider，配置进程没起来时系统侧读到的
