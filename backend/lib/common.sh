@@ -791,6 +791,11 @@ ic_apply_idle() {
 # 所以背光为 0 时再问一次 PowerManager 的 mWakefulness，结果缓存 5 轮（约 10 秒），
 # 背光大于 0 时直接认定亮屏、一次都不用 fork。
 #
+# 一次「关 / 开」是有窗口的：前 3 次每 2 秒试，之后每 10 秒试，最多 30 轮（约 1 分钟）
+# 就收手。超过还不行，通常已经轮不到墨控解决了——用户自己关了 WiFi、射频挂了、
+# 或者人挪到了没有已知网络的地方；这时继续拉 svc 只会白耗电，还会把用户关掉的 WiFi 打开。
+# 收手时清掉「墨控关的」标记，本次开机不再自动开，等用户手动打开。
+#
 # svc/dumpsys 必须走绝对路径：Magisk 服务进程的 PATH 以 /sbin 开头，BusyBox 自带的
 # svc（runsv 控制器）会把裸命令名抢走，wifi disable/enable 就静默变成打印 Usage。
 # 包一层函数是为了让回归测试能用同名函数替身。
@@ -800,6 +805,10 @@ IC_WIFI_MARK=$IC_STATE/wifi-sleep.off
 IC_WIFI_LOG=$IC_STATE/idle-wifi.log
 IC_WIFI_STAMP=$IC_STATE/wifi-sleep.stamp
 IC_WIFI_LOG_MAX=32768
+# 一次「关 / 开」最多折腾多少轮（每轮 2 秒），默认 30 轮≈1 分钟。
+# 超过就收手：射频起不来、用户自己在设置里关了 WiFi、或挪到了从没连过的地方时，
+# 再每 10 秒 fork 一个 svc 既是白耗电，也是在跟用户的意图对着干。
+IC_WIFI_GIVEUP_ROUNDS=${IC_WIFI_GIVEUP_ROUNDS:-30}
 # 设备路径抽成可覆盖变量，回归测试用临时文件替身；真机上一律指向 sysfs / 系统命令。
 IC_WIFI_BACKLIGHT=${IC_WIFI_BACKLIGHT:-/sys/class/backlight/sprd_backlight/brightness}
 IC_WIFI_NET=${IC_WIFI_NET:-/sys/class/net/wlan0}
@@ -864,36 +873,51 @@ ic_idle_wifi_tick() {
     # 网卡在不在，是「关成功 / 开成功」的唯一凭据，不再靠删标记就算完成。
     ic_wlan=0
     [ -e "$IC_WIFI_NET" ] && ic_wlan=1
+    # 这一轮的目标：off＝该把 WiFi 关掉；on＝该把之前关掉的 WiFi 开回来；none＝不用动。
+    ic_want=none
     if ! ic_screen_awake && ic_idle_wifi_want_off "$1"; then
-        if [ "$ic_wlan" = 1 ]; then
-            # 网卡还在就再下一次命令：svc 偶尔第一下不生效（开机后首次、Doze 切换瞬间），
-            # 每 2 秒重试，直到 wlan0 真的消失；连试 3 次还不行就放慢到每 10 秒一次，
-            # 免得驱动异常时每 2 秒拉起一个 java 进程。
-            if [ "${ic_wifi_tries:-0}" -lt 3 ] || [ $((ic_wifi_round % 5)) = 0 ]; then
-                ic_idle_wifi_log
-                : > "$IC_WIFI_MARK" 2>/dev/null
-                ic_wifi_svc wifi disable >> "$IC_WIFI_LOG" 2>&1
-                ic_wifi_tries=$((ic_wifi_tries + 1))
-            fi
-        else
-            ic_wifi_tries=0
-        fi
+        [ "$ic_wlan" = 1 ] && ic_want=off
     elif [ -f "$IC_WIFI_MARK" ]; then
-        # 该恢复了：先 enable，只有网卡真的回来才删标记。以前是先删标记再 enable 一次，
-        # 亮屏瞬间系统没就绪、这一下失败就再也不会重试，WiFi 永远停在关闭状态。
-        if [ "$ic_wlan" = 0 ]; then
-            if [ "${ic_wifi_tries:-0}" -lt 3 ] || [ $((ic_wifi_round % 5)) = 0 ]; then
-                ic_idle_wifi_log
-                ic_wifi_svc wifi enable >> "$IC_WIFI_LOG" 2>&1
-                ic_wifi_tries=$((ic_wifi_tries + 1))
-            fi
+        if [ "$ic_wlan" = 1 ]; then
+            # 网卡真的回来了才算恢复完成，这时才删标记；之后也不再碰这项。
+            rm -f "$IC_WIFI_MARK" 2>/dev/null
         else
-            rm -f "$IC_WIFI_MARK"
-            ic_wifi_tries=0
+            ic_want=on
         fi
-    else
-        ic_wifi_tries=0
     fi
+    # 目标变了（做完 / 不用动 / 换了方向）：重开一扇尝试窗口。
+    if [ "$ic_want" != "${ic_wifi_want:-none}" ]; then
+        ic_wifi_want=$ic_want
+        ic_wifi_tries=0
+        ic_wifi_since=$ic_wifi_round
+        ic_wifi_givenup=0
+    fi
+    [ "$ic_want" = none ] && return 0
+    [ "${ic_wifi_givenup:-0}" = 1 ] && return 0
+    # 窗口用完就收手（默认约 1 分钟）。失败到这个份上通常不是「系统还没就绪」，
+    # 而是用户自己关了 WiFi、射频异常、或者挪到了从没连过网的地方——继续每 10 秒
+    # 拉一次 svc 只会白耗电，还会把用户刚关掉的 WiFi 又打开。
+    if [ $((ic_wifi_round - ${ic_wifi_since:-0})) -ge "$IC_WIFI_GIVEUP_ROUNDS" ]; then
+        ic_wifi_givenup=1
+        ic_wifi_tries=0
+        ic_idle_wifi_log
+        echo "give up $ic_want after $((ic_wifi_round - ic_wifi_since)) rounds" >> "$IC_WIFI_LOG" 2>&1
+        # 标记只表示「WiFi 是墨控关的」：这次既没关掉、也没开回来，留着只会误导下一轮，清掉。
+        # 清掉后本次开机不再自动开，交给用户手动打开；不再每隔 10 秒跟用户的意图对着干。
+        rm -f "$IC_WIFI_MARK" 2>/dev/null
+        return 0
+    fi
+    # 前 3 次每 2 秒一次（亮屏瞬间系统没就绪，多半这时就成了），之后放慢到每 10 秒一次，
+    # 免得驱动异常时每 2 秒拉起一个 java 进程。
+    [ "${ic_wifi_tries:-0}" -lt 3 ] || [ $((ic_wifi_round % 5)) = 0 ] || return 0
+    ic_idle_wifi_log
+    if [ "$ic_want" = off ]; then
+        : > "$IC_WIFI_MARK" 2>/dev/null
+        ic_wifi_svc wifi disable >> "$IC_WIFI_LOG" 2>&1
+    else
+        ic_wifi_svc wifi enable >> "$IC_WIFI_LOG" 2>&1
+    fi
+    ic_wifi_tries=$((ic_wifi_tries + 1))
     return 0
 }
 
@@ -901,6 +925,9 @@ ic_idle_wifi_tick() {
 ic_idle_wifi_watch() {
     ic_wifi_round=0
     ic_wifi_tries=0
+    ic_wifi_want=none
+    ic_wifi_since=0
+    ic_wifi_givenup=0
     # 先解析一次再落基准：基准文件比配置新，-nt 就不成立，第一次进循环不会重算。
     ic_mode=$(ic_idle_wifi_mode)
     : > "$IC_WIFI_STAMP" 2>/dev/null

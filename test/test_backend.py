@@ -129,7 +129,8 @@ IC_LIB={shlex.quote(posix(SCHEMA))}
         self.config.write_text(original + 'sys.config=1\n', encoding='utf-8')
         self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
 
-    def _wifi_stub(self, wake='Awake', backlight='0', wlan=True, power='Discharging', enable_works=True):
+    def _wifi_stub(self, wake='Awake', backlight='0', wlan=True, power='Discharging',
+                   enable_works=True, disable_works=True, giveup_rounds=30):
         """把 sysfs 路径与系统命令换成替身，返回 (前缀, 网卡文件, svc 日志, dumpsys 命中日志)。"""
         # 必须写纯 LF：Windows 上 write_text 会把 \n 变成 \r\n，read -r 读到 "0\r"，
         # 会被误判成「背光非 0」而走亮屏快路径，测试就假通过/假失败了。
@@ -143,14 +144,16 @@ IC_LIB={shlex.quote(posix(SCHEMA))}
         dumplog = self.root/'dumped.log'
         if dumplog.exists(): dumplog.unlink()
         enable_body = ': > "$IC_WIFI_NET"' if enable_works else ':'
+        disable_body = 'rm -f "$IC_WIFI_NET"' if disable_works else ':'
         prefix = f'''IC_WIFI_BACKLIGHT={shlex.quote(posix(bl))}
 IC_WIFI_NET={shlex.quote(posix(net))}
 IC_WIFI_POWER={shlex.quote(posix(pw))}
+IC_WIFI_GIVEUP_ROUNDS={int(giveup_rounds)}
 FAKE_WAKE={wake}
 ic_wifi_dumpsys() {{ echo DUMPED >> {shlex.quote(posix(dumplog))}; echo "  mWakefulness=$FAKE_WAKE"; }}
 ic_wifi_svc() {{
   echo "$1 $2" >> {shlex.quote(posix(svclog))}
-  case "$2" in disable) rm -f "$IC_WIFI_NET";; enable) {enable_body};; esac
+  case "$2" in disable) {disable_body};; enable) {enable_body};; esac
   return 0
 }}
 '''
@@ -258,6 +261,37 @@ echo "mark=$(test -f "$IC_WIFI_MARK" && echo yes || echo no)"
         self.assertIn('mark=yes', out)
         enables = [line for line in svclog.read_text().splitlines() if 'wifi enable' in line]
         self.assertGreaterEqual(len(enables), 3)
+
+    def test_wifi_restore_gives_up_after_window(self):
+        # enable 一直不成功：试满窗口（这里缩成 5 轮）就收手——清掉标记、不再拉 svc。
+        # 真机上「用户自己关了 WiFi / 射频起不来」时，无限重试只会白耗电并且跟用户对着干。
+        prefix, _, svclog, _ = self._wifi_stub(wake='Awake', backlight='0', wlan=False,
+                                              enable_works=False, giveup_rounds=5)
+        (self.root/'wifi-sleep.off').write_text('', encoding='utf-8')
+        out = self.shell(prefix + '''
+i=1; while [ $i -le 12 ]; do ic_idle_wifi_tick never; i=$((i+1)); done
+echo "mark=$(test -f "$IC_WIFI_MARK" && echo yes || echo no)"
+i=1; while [ $i -le 10 ]; do ic_idle_wifi_tick never; i=$((i+1)); done
+echo "mark2=$(test -f "$IC_WIFI_MARK" && echo yes || echo no)"
+''')
+        self.assertIn('mark=no', out)
+        self.assertIn('mark2=no', out)
+        # 5 轮窗口内：前 3 次每轮一次，第 5 轮再补一次，之后（含后面 10 轮）一次都不再拉。
+        enables = [line for line in svclog.read_text().splitlines() if 'wifi enable' in line]
+        self.assertEqual(len(enables), 4)
+
+    def test_wifi_disable_gives_up_when_radio_stays_on(self):
+        # 关不掉（射频没响应）：同样只试一个窗口就收手，标记也要清掉——
+        # WiFi 其实还开着，留着标记会让下次亮屏反而去「开」它。
+        prefix, net, svclog, _ = self._wifi_stub(wake='Asleep', backlight='0', wlan=True,
+                                                 disable_works=False, giveup_rounds=5)
+        out = self.shell(prefix + '''
+i=1; while [ $i -le 15 ]; do ic_idle_wifi_tick never; i=$((i+1)); done
+echo "mark=$(test -f "$IC_WIFI_MARK" && echo yes || echo no) net=$(test -e "$IC_WIFI_NET" && echo yes || echo no)"
+''')
+        self.assertIn('mark=no net=yes', out)
+        disables = [line for line in svclog.read_text().splitlines() if 'wifi disable' in line]
+        self.assertEqual(len(disables), 4)
 
     def test_wifi_asleep_backlight_zero_still_disables(self):
         prefix, net, svclog, _ = self._wifi_stub(wake='Asleep', backlight='0', wlan=True)
