@@ -104,6 +104,15 @@ public final class Configuration {
             }
             // 「显示设备状态」原来是单值开关（default），现在分「跟随样式/图标版/文字版」
             if ("lock.ext".equals(feature.id) && "default".equals(value)) value = feature.defaultValue();
+            // 「亮屏时间」早先按秒存（60/120/300/600/1800），现在按分钟存（1/2/5/10/30）；
+            // 旧配置里的秒值在这里折算，免得升级后整份配置被判「字段取值无效」。
+            if ("sys.screen.timeout".equals(feature.id)) {
+                if ("60".equals(value)) value = "1";
+                else if ("120".equals(value)) value = "2";
+                else if ("300".equals(value)) value = "5";
+                else if ("600".equals(value)) value = "10";
+                else if ("1800".equals(value)) value = "30";
+            }
             feature.validate(value);
             // 没写过的键不入表：requested() 会退回功能自己的 defaultOn，
             // 这样旧配置升级后「四项显示开关」默认仍是全开。
@@ -123,11 +132,14 @@ public final class Configuration {
         // → 整个界面只剩错误卡、连「模块设置」都进不去。
         // 「截屏便签那个位置」（qs.pinlaunch）已下线：它原来是原厂那一格的四选一，
         // 现在那一格就是动作表里的「截屏便签」，隐藏/换应用/无都由 qs.panel.btnN 表达。
+        // 「锁屏时长」（sys.lock.timeout）整体撤回（那一版只在本地试过、没有发布），
+        // 从后一版降回时配置里会残留这两行，同样丢掉。
         fields.keySet().removeIf(key -> {
             String name = key.endsWith(".value") ? key.substring(0, key.length() - 6) : key;
             return name.startsWith("font2.") || name.startsWith("fix.google")
                     || name.equals("lock.notifyhide") || name.equals("wave.master")
                     || name.equals("desktop.font") || name.equals("qs.pinlaunch")
+                    || name.equals("sys.lock.timeout")
                     || name.matches("lock\\.ext\\.(wifi|bt|audio|airplane)");
         });
         if (!fields.isEmpty()) throw new IllegalArgumentException("存在未知配置字段");

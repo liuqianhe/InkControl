@@ -40,9 +40,10 @@ public final class GuideTest {
         for (FeatureDefinition feature : FeatureCatalog.all()) {
             Object entry = call(type, "get", feature.id);
             check(!field(entry, "summary").toString().isEmpty());
-            // 「锁屏主题」详情页只留样式大图与选项，「快捷面板按钮」页本身就是编辑器：
-            // 这两处说明文字按需求删掉，是允许 what 为空的条目。
-            if (!"lock.style".equals(feature.id) && !"qs.panel".equals(feature.id))
+            // 「锁屏主题」详情页只留样式大图与选项，「快捷面板按钮」页本身就是编辑器，
+            // 「亮屏时间」按需求只留开关与档位：这三处说明文字为空，是允许的条目。
+            if (!"lock.style".equals(feature.id) && !"qs.panel".equals(feature.id)
+                    && !"sys.screen.timeout".equals(feature.id))
                 check(!field(entry, "what").toString().isEmpty());
             Map<?, ?> options = (Map<?, ?>) field(entry, "options");
             // 纯占位取值（@path / @font）的功能是页内选择器，不写死选项说明

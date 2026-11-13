@@ -257,13 +257,17 @@ public final class CoreTest {
                 && pinSize.dependency.equals("qs.panel")
                 && pinSize.mode == FeatureDefinition.ApplyMode.HOT && pinSize.defaultOn
                 && pinSize.values.size() == 1 && pinSize.values.get(0).equals("default"));
-        // 已下线功能的旧配置残留键被容忍并丢弃：字体2、Google 图标、隐藏锁屏通知、体感息屏唤醒、字体换肤
+        // 已下线功能的旧配置残留键被容忍并丢弃：字体2、Google 图标、隐藏锁屏通知、体感息屏唤醒、
+        // 字体换肤、截屏便签位置，以及试过一版又整体撤回的「锁屏时长」
         Configuration tolerated = Configuration.parse(config.text()
                 + "font2.pick=1\nfont2.pick.value=x\nfix.google=1\nfix.google.value=default\n"
                 + "lock.notifyhide=1\nlock.notifyhide.value=default\nwave.master=1\nwave.master.value=default\n"
                 + "desktop.font=1\ndesktop.font.value=default\n"
-                + "qs.pinlaunch=1\nqs.pinlaunch.value=hide\n");
+                + "qs.pinlaunch=1\nqs.pinlaunch.value=hide\n"
+                + "sys.lock.timeout=1\nsys.lock.timeout.value=0\n");
         check(tolerated.revision == 0 && !tolerated.requested("motion.lock") && !tolerated.requested("wave.lock"));
+        // 撤回功能的键在解析时被丢掉，不会再被写回去（requested() 对未知 id 会抛异常，所以看文本）。
+        check(!tolerated.text().contains("sys.lock.timeout"));
         // 旧配置的「拓展显示 = 设备状态」迁到独立的 lock.ext：通知关掉、设备状态打开；
         // 四项显示开关是正式功能，旧配置里的同名行照旧读入（这里是「开」）。
         Configuration migrated = Configuration.parse("version=1\nrevision=3\n"
@@ -425,6 +429,28 @@ public final class CoreTest {
         FeatureDefinition configPage = FeatureCatalog.get("sys.config");
         check(configPage.group.equals("系统增强") && configPage.values.equals(Arrays.asList("@panel")));
         check(configPage.defaultValue().isEmpty() && configPage.acceptsPanel());
+        // 「亮屏时间」并进「待机与联网」小节、排在「浅睡待机」后面：档位与这台墨水屏 ROM
+        // 的八档一致（存秒），默认档是首个取值 1800（30 分钟，本机现值）；「永不」在配置里
+        // 存 forever，由后端换成系统那一档的原值。
+        FeatureDefinition screenTimeout = FeatureCatalog.get("sys.screen.timeout");
+        check(screenTimeout.group.equals("系统增强") && screenTimeout.dependency.isEmpty());
+        check(screenTimeout.values.equals(Arrays.asList(
+                "1", "2", "5", "10", "30", "forever", "default", "@number")));
+        check(screenTimeout.labels.get(0).equals("1 分钟")
+                && screenTimeout.defaultValue().equals("1"));
+        check(screenTimeout.acceptsNumber());
+        // 自定义只收 1–999 的整数（分钟），越界与 0 由 App 侧挡住
+        check(FeatureDefinition.number("45") == 45 && FeatureDefinition.number("0") == null
+                && FeatureDefinition.number("1000") == null);
+        check(Configuration.parse(new Configuration().text())
+                .value("sys.screen.timeout").equals("1"));
+        // 档位最初按秒存（60/120/300/600/1800），改成分钟之后旧配置要能折算，否则整份判无效
+        check(Configuration.parse("version=1\nrevision=1\nsys.screen.timeout=1\n"
+                + "sys.screen.timeout.value=1800\n").value("sys.screen.timeout").equals("30"));
+        check(Configuration.parse("version=1\nrevision=1\nsys.screen.timeout=1\n"
+                + "sys.screen.timeout.value=300\n").value("sys.screen.timeout").equals("5"));
+        check(Configuration.parse("version=1\nrevision=1\nsys.screen.timeout=1\n"
+                + "sys.screen.timeout.value=forever\n").value("sys.screen.timeout").equals("forever"));
         Configuration exported = new Configuration().change("refresh.master", true, "default")
                 .change("lock.style", true, "8").change("lock.weather", true, "none");
         Configuration adopted = new Configuration().adopt(Configuration.parse(exported.text()));

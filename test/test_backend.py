@@ -156,6 +156,74 @@ ic_wifi_svc() {{
 '''
         return prefix, net, svclog, dumplog
 
+    def test_screen_timeout_tiers_validate_and_apply(self):
+        # 「亮屏时间」＝系统「显示 → 休眠」（Settings.System 的 screen_off_timeout）：
+        # 档位存分钟、写入时 ×60000 换成毫秒；「永不」写系统那一档的原值 2147483645；
+        # default＝删掉该项；自定义走 @number（1–999 分钟）。
+        original = self.config.read_text()
+        marker = 'sys.screen.timeout.value=1\n'
+        for good in ('1', '2', '5', '10', '30', 'forever', 'default', '45'):
+            self.config.write_text(original.replace(marker, 'sys.screen.timeout.value=' + good + '\n'),
+                                   encoding='utf-8')
+            self.shell('ic_validate "$IC_CONFIG"\n')
+        # 坏值只断言跨环境稳定被拒的占位符与越界数字；普通文本在部分 awk 实现里走
+        # fontpath 兜底放行（与 refresh.interval 等既有测试同因），不在本机强求。
+        for bad in ('@number', '@curve', '@panel'):
+            self.config.write_text(original.replace(marker, 'sys.screen.timeout.value=' + bad + '\n'),
+                                   encoding='utf-8')
+            self.shell('if ic_validate "$IC_CONFIG"; then exit 90; fi\n')
+        # 旧配置里整对缺省按「关」处理（optional 白名单），不再判「配置无效」。
+        stripped = '\n'.join(line for line in original.splitlines()
+                             if not line.startswith('sys.screen.timeout'))
+        self.config.write_text(stripped + '\n', encoding='utf-8')
+        self.shell('ic_validate "$IC_CONFIG"\n')
+        # 试过一版又整体撤回的「锁屏时长」会残留在老配置里：也必须放行，否则升级装模块会被判无效。
+        self.config.write_text(
+            original + 'sys.lock.timeout=1\nsys.lock.timeout.value=0\n', encoding='utf-8')
+        self.shell('ic_validate "$IC_CONFIG"\n')
+        syslog = self.root/'settings.log'
+        settings_stub = (f'settings() {{\n'
+                         f'  printf \'%s\\n\' "$*" >> {shlex.quote(posix(syslog))}\n'
+                         f'  return 0\n'
+                         f'}}\n')
+        # 应用链路：settings 用临时文件替身，把每条调用原样记进日志。
+        self.config.write_text(
+            original.replace('sys.screen.timeout=0', 'sys.screen.timeout=1')
+                    .replace(marker, 'sys.screen.timeout.value=5\n'), encoding='utf-8')
+        self.shell(settings_stub + 'ic_apply_idle\n')
+        self.assertIn('put system screen_off_timeout 300000', syslog.read_text())
+        # 档位最初按秒存：旧的 1800 要先折算成 30 分钟再乘，不能写成 1800 分钟。
+        syslog.unlink()
+        self.config.write_text(
+            original.replace('sys.screen.timeout=0', 'sys.screen.timeout=1')
+                    .replace(marker, 'sys.screen.timeout.value=1800\n'), encoding='utf-8')
+        self.shell(settings_stub + 'ic_apply_idle\n')
+        self.assertIn('put system screen_off_timeout 1800000', syslog.read_text())
+        # 「永不」是系统那一档的哨兵值，不是 ×60000。
+        syslog.unlink()
+        self.config.write_text(
+            original.replace('sys.screen.timeout=0', 'sys.screen.timeout=1')
+                    .replace(marker, 'sys.screen.timeout.value=forever\n'), encoding='utf-8')
+        self.shell(settings_stub + 'ic_apply_idle\n')
+        out = syslog.read_text()
+        self.assertIn('put system screen_off_timeout 2147483645', out)
+        self.assertNotIn('2147483645000', out)
+        # 「系统默认」删掉设置项，而不是写 0（写 0 会让屏幕立刻熄）。
+        syslog.unlink()
+        self.config.write_text(
+            original.replace('sys.screen.timeout=0', 'sys.screen.timeout=1')
+                    .replace(marker, 'sys.screen.timeout.value=default\n'), encoding='utf-8')
+        self.shell(settings_stub + 'ic_apply_idle\n')
+        out = syslog.read_text()
+        self.assertIn('delete system screen_off_timeout', out)
+        self.assertNotIn('put system screen_off_timeout', out)
+        # 开关关闭时墨控不碰这项。
+        syslog.unlink()
+        self.config.write_text(original.replace('sys.screen.timeout=1', 'sys.screen.timeout=0'),
+                               encoding='utf-8')
+        self.shell(settings_stub + 'ic_apply_idle\n')
+        self.assertNotIn('screen_off_timeout', syslog.read_text())
+
     def test_wifi_awake_with_backlight_zero_does_not_disable(self):
         # 回归：e-ink 前光关到 0 时「亮屏」背光也是 0，旧逻辑会误判息屏把 WiFi 关掉。
         prefix, net, svclog, _ = self._wifi_stub(wake='Awake', backlight='0', wlan=True)

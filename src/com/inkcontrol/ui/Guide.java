@@ -120,7 +120,7 @@ final class Guide {
         cat("桌面", "原厂桌面的主题、图标、壁纸与组件；不改动图标位置和布局。", new String[][]{
                 {"主题", "desktop.theme"}, {"换肤项目", "desktop.icons", "desktop.wallpaper", "desktop.widget"}});
         cat("系统增强", "修复原厂服务的几个问题，放开快捷磁贴、导航栏与密码框的限制；待机与联网、设置备份与导入导出也在这里。", new String[][]{
-                {"待机与联网", "sys.wifi.sleep", "sys.idle.net", "sys.idle.sleep"},
+                {"待机与联网", "sys.wifi.sleep", "sys.idle.net", "sys.idle.sleep", "sys.screen.timeout"},
                 {"稳定性", "fix.exceptions", "fix.configlock", "guard.config"}, {"刷新行为", "fix.modes", "fix.video"},
                 {"安全", "fix.permissions", "fix.safeime"}, {"控制中心", "qs.extend"}, {"导航栏", "navbar.white"},
                 {"备份", "sys.backup", "sys.config"}});
@@ -512,6 +512,13 @@ final class Guide {
                 .cost("先走完「保网时长」，再走完这一档预警窗口，才正式进入浅睡，所以两项是先后两段、不是相加的同一段。调到 3 分钟最省电也最容易错过后台同步；调到 30 分钟基本等于息屏后长时间保持在线。选「系统默认」＝删掉这一项，回到 3 分钟。")
                 .option("3", "3 分钟", "").option("10", "10 分钟", "").option("30", "30 分钟", "")
                 .option("default", "系统默认", "墨控不写这一项，回到系统自带的 3 分钟");
+        put("sys.screen.timeout").summary("无操作多久后自动熄屏")
+                .option("1", "1 分钟", "").option("2", "2 分钟", "")
+                .option("5", "5 分钟", "").option("10", "10 分钟", "")
+                .option("30", "30 分钟", "本机原来的档位。")
+                .option("forever", "永不", "一直亮着，最费电。")
+                .option("default", "系统默认", "墨控不写这一项，交回系统自带的值")
+                .option(com.inkcontrol.core.FeatureDefinition.NUMBER_TOKEN, "自定义", "手动输入 1–999 分钟。");
         put("fix.safeime").summary("冻结安全输入服务后，密码框仍能正常输入").what("原厂在密码输入框里一律强制切到「安全输入服务」，却不检查这个输入法是否还在。冻结它之后，系统服务找不到对应组件就会抛错，设置的密码界面直接崩溃：隐藏应用进不去、想临时删掉密码也做不到；应用锁的解锁界面被系统强制结束后，反而直接放行应用，等于没锁。开启后墨控把原厂自己留的总开关置 0，密码框改用你当前在用的输入法；关闭开关时还原原来的值。")
                 .before("冻结安全输入服务后：隐藏应用密码框打不开，加了应用锁的应用不输密码就能进。")
                 .after("开启后：密码框正常弹出，隐藏应用与应用锁都按密码校验。")

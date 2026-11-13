@@ -209,8 +209,8 @@ public final class FeatureCatalog {
         // 纯页面项：「导出 / 导入墨控设置」。导出写的就是 configuration.txt 的原文（严格按配置语法），
         // 导入在写入前先按同一套语法校验，因此外部文件进来也只是数据，不执行任何文本。
         add("sys.config", "系统增强", "导入与导出设置", "把功能开关与取值导出成一个文本文件，换机、重装或恢复出厂后导入还原", "backend", "", HOT, false, "@panel", "打开");
-        // 待机与联网：三项都直接写系统的全局设置，由后端在应用配置时落盘，改完立即生效、不用重启。
-        // 默认值刻意取这台机器 ROM 的现值（始终 / 1 分钟 / 3 分钟），升级后行为不变，想调再动。
+        // 待机与联网：四项都直接写系统的全局设置，由后端在应用配置时落盘，改完立即生效、不用重启。
+        // 默认值刻意取这台机器 ROM 的现值（始终 / 1 分钟 / 3 分钟 / 30 分钟），升级后行为不变，想调再动。
         // 关掉「保网时长」「浅睡待机」时，后端只把墨控写进去的那两个键摘掉，其余键原样保留。
         add("sys.wifi.sleep", "系统增强", "WLAN 休眠策略", "息屏后关不关 WiFi；Android 10 系统不再执行这一项，由墨控自己关和开", "backend", "", HOT, true,
                 "always,charging,never,default", "始终连接,仅充电保持,永不保持,系统默认");
@@ -219,6 +219,14 @@ public final class FeatureCatalog {
                 "backend", "", HOT, true, "60,30,120,default,@number", "1 分钟,30 秒,2 分钟,系统默认,自定义");
         add("sys.idle.sleep", "系统增强", "浅睡待机", "进入浅睡前提前多久通知应用收尾；写 device_idle_constants 的 light_pre_idle_to",
                 "backend", "", HOT, true, "3,10,30,default", "3 分钟,10 分钟,30 分钟,系统默认");
+        // 「亮屏时间」＝系统的「显示 → 休眠」（Settings.System 的 screen_off_timeout）：
+        // 无操作多久自动熄屏。档位按分钟存（1/2/5/10/30），另加「永不」（写 Settings 里
+        // 那一档的原值 2147483645，不是 Integer.MAX_VALUE）、「系统默认」（删掉这一项）和
+        // 「自定义」（@number 按约定排最后，1–999 分钟）。首值就是默认档，所以升到分钟之后
+        // 默认落在 1 分钟；旧配置里按秒存的值由 Configuration.parse 与后端各自换算。
+        add("sys.screen.timeout", "系统增强", "亮屏时间", "无操作多久后自动熄屏；对应系统「显示 → 休眠」，写 Settings.System 的 screen_off_timeout",
+                "backend", "", HOT, true,
+                "1,2,5,10,30,forever,default,@number", "1 分钟,2 分钟,5 分钟,10 分钟,30 分钟,永不,系统默认,自定义");
         // 海信把「安全输入服务」硬编码进 system_server 的 InputMethodManagerService：密码框一律把
         // mCurMethodId 改成 com.android.inputmethod.pinyin/.PinyinIME，完全不检查这个包是否还在。
         // 冻结该输入服务后 framework 抛 IllegalArgumentException("Unknown id: ...")，设置的密码界面

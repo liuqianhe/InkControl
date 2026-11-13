@@ -115,13 +115,17 @@ ic_validate() {
       # 「字体换肤」（desktop.font）下线，全局「字体」（font.dir）已完全取代它；
       # 「截屏便签那个位置」（qs.pinlaunch）下线，它原来是原厂那一格的四选一；现在那一格就是
       # 动作表里的「截屏便签」，隐藏／换应用／无都用 qs.panel.btnN 表达；
+      # 「锁屏时长」（sys.lock.timeout）整体撤回（那版只在本地试过、没发布），
+      # 从后一版降回时配置里会残留这两行，同样放行，App 下次保存时自然清掉；
       # 「设备状态」四项逐项开关（lock.ext.wifi/bt/audio/airplane）现在是正式功能，已并入 known；
       # 旧配置里可能残留同名行，legacy 里继续放行只写了半行的老数据。
       # 旧配置的 lock.notify.value=ext 也照旧放行（ext 是纯字母，走 fontpath 兜底即通过）；
       # App 侧解析时会把它迁成 lock.ext=1 并在下次保存时重写。
+      # 「亮屏时间」的档位一开始按秒存（60/120/300/600/1800），后来改成分钟（1/2/5/10/30）：
+      # 读到旧的秒值先折算成分钟再校验，否则升级装模块时会判「配置无效」。
       # 容忍旧配置里的残留键，升级不卡开机
-      {key=$1; if(sub(/\.value$/,"",key)) {legacy=(key ~ /^(font2\.(dir|pick|saf)|fix\.google|lock\.notifyhide|wave\.master|lock\.ext\.(wifi|bt|audio|airplane)|desktop\.font|qs\.pinlaunch)$/) ? 1 : 0; if((!known[key] && !legacy) || $2=="@curve" || $2=="@number" || $2=="@apps" || $2=="@packages" || $2=="@countdowns" || $2=="@path" || $2=="@font" || $2=="@panel" || $2=="@package" || (index("," choices[key] ",", "," $2 ",")==0 && !curve(choices[key], $2) && !number(choices[key], $2) && !apps(choices[key], $2) && !pkgs(choices[key], $2) && !countdowns(choices[key], $2) && !pkgone(choices[key], $2) && !(index("," choices[key] ",", ",@packages,")==0 && fontpath($2)))) bad=1}
-       else {legacy=(key ~ /^(font2\.(dir|pick|saf)|fix\.google|lock\.notifyhide|wave\.master|lock\.ext\.(wifi|bt|audio|airplane)|desktop\.font|qs\.pinlaunch)$/) ? 1 : 0; if((!known[key] && !legacy) || ($2!="0" && $2!="1")) bad=1}}
+      {key=$1; if(sub(/\.value$/,"",key)) {if(key=="sys.screen.timeout") {if($2=="60") $2="1"; else if($2=="120") $2="2"; else if($2=="300") $2="5"; else if($2=="600") $2="10"; else if($2=="1800") $2="30"} legacy=(key ~ /^(font2\.(dir|pick|saf)|fix\.google|lock\.notifyhide|wave\.master|lock\.ext\.(wifi|bt|audio|airplane)|desktop\.font|qs\.pinlaunch|sys\.lock\.timeout)$/) ? 1 : 0; if((!known[key] && !legacy) || $2=="@curve" || $2=="@number" || $2=="@apps" || $2=="@packages" || $2=="@countdowns" || $2=="@path" || $2=="@font" || $2=="@panel" || $2=="@package" || (index("," choices[key] ",", "," $2 ",")==0 && !curve(choices[key], $2) && !number(choices[key], $2) && !apps(choices[key], $2) && !pkgs(choices[key], $2) && !countdowns(choices[key], $2) && !pkgone(choices[key], $2) && !(index("," choices[key] ",", ",@packages,")==0 && fontpath($2)))) bad=1}
+       else {legacy=(key ~ /^(font2\.(dir|pick|saf)|fix\.google|lock\.notifyhide|wave\.master|lock\.ext\.(wifi|bt|audio|airplane)|desktop\.font|qs\.pinlaunch|sys\.lock\.timeout)$/) ? 1 : 0; if((!known[key] && !legacy) || ($2!="0" && $2!="1")) bad=1}}
       END {
         if(!seen["version"] || !seen["revision"]) bad=1
         for(key in known) {
@@ -138,13 +142,14 @@ ic_validate() {
           # motion.gc_direction / motion.gc_speed / motion.gc_style 是后加的三项，
           # 旧配置里没有，缺省按「自动」/跟随「波形动画速度」/「横向展开」处理。
           # lock.style.order（主题排序）是纯页面项（@panel，值恒为空串），旧配置里整对缺省按「未配置」处理。
-          # sys.wifi.sleep / sys.idle.net / sys.idle.sleep（待机与联网）是后加的三项，
-          # 旧配置里没有，缺省按这台机器 ROM 的现值（始终连接 / 1 分钟 / 3 分钟）处理。
+          # sys.wifi.sleep / sys.idle.net / sys.idle.sleep / sys.screen.timeout（待机与联网）
+          # 是后加的四项，旧配置里没有，缺省按这台机器 ROM 的现值
+          # （始终连接 / 1 分钟 / 3 分钟 / 30 分钟）处理。
           # module.autostart（开机自启）是后加的模块设置项：旧配置里整对缺省按「开」处理，
           # 否则升级后第一次开机仍会因系统进程读不到配置而让翻页动画与全刷扫过失效。
           # sys.backup（备份系统设置）与 sys.config（导入与导出设置）都是纯页面项，旧配置里没有，
           # 缺省按「未配置」处理——漏掉它们会让升级时的安装期校验直接判「配置无效」。
-          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^lock\.ext(\.(wifi|bt|audio|airplane|edit))?$/ || key ~ /^lock\.cover(\.(overlay|time|hint|battery|status|edit|pick|dir|rotate|halo))?$/ || key ~ /^font\.(dir|pick|saf)$/ || key ~ /^font2\.(dir|pick|saf)$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/ || key ~ /^qs\.extend$/ || key ~ /^navbar\.white$/ || key ~ /^sys\.(backup|config)$/ || key ~ /^sys\.(wifi\.sleep|idle\.(net|sleep))$/ || key ~ /^fix\.safeime$/ || key ~ /^qs\.panel(\.(close|pinsize|btn[1-5]))?$/ || key ~ /^motion\.gc_direction$/ || key ~ /^motion\.gc_speed$/ || key ~ /^motion\.gc_style$/ || key ~ /^pageanim\./ || key ~ /^lock\.style\.order$/ || key ~ /^module\.autostart$/)
+          optional=(key ~ /^display\.(alg\.(clear|reading|fast|extreme|video|stock)|hyst\.(fast|extreme|video))$/ || key ~ /^lock\.notifyhide$/ || key ~ /^lock\.ext(\.(wifi|bt|audio|airplane|edit))?$/ || key ~ /^lock\.cover(\.(overlay|time|hint|battery|status|edit|pick|dir|rotate|halo))?$/ || key ~ /^font\.(dir|pick|saf)$/ || key ~ /^font2\.(dir|pick|saf)$/ || key ~ /^refresh\.(master|touch|key|reading|interval|debounce|delay|period|apps)$/ || key ~ /^qs\.extend$/ || key ~ /^navbar\.white$/ || key ~ /^sys\.(backup|config)$/ || key ~ /^sys\.(wifi\.sleep|idle\.(net|sleep)|screen\.timeout)$/ || key ~ /^fix\.safeime$/ || key ~ /^qs\.panel(\.(close|pinsize|btn[1-5]))?$/ || key ~ /^motion\.gc_direction$/ || key ~ /^motion\.gc_speed$/ || key ~ /^motion\.gc_style$/ || key ~ /^pageanim\./ || key ~ /^lock\.style\.order$/ || key ~ /^module\.autostart$/)
           if(optional && !seen[key] && !seen[key ".value"]) continue
           if(!seen[key] || !seen[key ".value"]) bad=1
         }
@@ -683,14 +688,16 @@ ic_pageanim_sync() {
 }
 
 # ── 待机与联网 ───────────────────────────────────────────────────────
-# 三项都写系统的全局设置：wifi_sleep_policy 与 device_idle_constants，改完立即生效。
+# 四项都写系统的设置：wifi_sleep_policy、device_idle_constants 与 screen_off_timeout，
+# 改完立即生效。
 # device_idle_constants 是「键=毫秒」拼成的一整条设置项，别的模块或用户可能也往里写，
 # 所以先读现值、只摘掉墨控管的两个键，再把配置拼回去；两个功能都关时整条可能变空，
 # 那就删掉该项，让系统回到自己的默认值。
-# 选「系统默认」＝墨控不写这项（wifi 策略直接删掉该项，两个时长键从常量串里摘掉）。
+# screen_off_timeout（亮屏时间）是独立的 system 设置项，不与别的键拼串，直接覆盖。
+# 选「系统默认」＝墨控不写这项（wifi 策略、亮屏时间直接删掉该项，两个时长键从常量串里摘掉）。
 # 两项时长和 WLAN 策略是两层：那项只管 WiFi 射频，这两项管系统什么时候限制应用联网，
 # 所以「永不保持」时也照样写，不互相覆盖（移动数据还没断，浅睡限制对两款传输都生效）。
-# 配置里的档位换算成毫秒：纯数字 × factor（保网时长存秒，浅睡待机存分钟）。
+# 配置里的档位换算成毫秒：纯数字 × factor（保网时长存秒，浅睡待机与亮屏时间存分钟）。
 # 「系统默认」、空值、非数字一律返回 0，等于不写这一项。
 ic_idle_ms() {
     ic_v=$1
@@ -705,6 +712,19 @@ ic_idle_ms() {
         esac
     done
     echo $((ic_v * $2))
+}
+
+# 「亮屏时间」的档位一开始按秒存（60/120/300/600/1800），后来改成分钟（1/2/5/10/30）。
+# 旧配置里的秒值先折算成分钟再换算，免得读到 1800 就当成 1800 分钟写进系统。
+ic_screen_min() {
+    case "$1" in
+        60) echo 1 ;;
+        120) echo 2 ;;
+        300) echo 5 ;;
+        600) echo 10 ;;
+        1800) echo 30 ;;
+        *) echo "$1" ;;
+    esac
 }
 
 ic_apply_idle() {
@@ -737,6 +757,22 @@ ic_apply_idle() {
         settings delete global device_idle_constants >/dev/null 2>&1
     else
         settings put global device_idle_constants "$ic_idle_keep" || return 1
+    fi
+    # 亮屏时间＝系统的「显示 → 休眠」（Settings.System 的 screen_off_timeout，单位毫秒）：
+    # 档位存分钟，×60000 换算（旧配置里的秒值先经 ic_screen_min 折算）；「永不」写系统
+    # 那一档的原值 2147483645（不是 MAX_VALUE）；「系统默认」＝删掉该项，交回系统自带的值。
+    # 0 或非数字（配置被手改坏）不动，免得写坏屏幕超时。
+    if ic_enabled sys.screen.timeout; then
+        case "$(ic_get sys.screen.timeout.value)" in
+            forever) settings put system screen_off_timeout 2147483645 ;;
+            default) settings delete system screen_off_timeout >/dev/null 2>&1 ;;
+            *)
+                ic_screen_ms=$(ic_idle_ms "$(ic_screen_min "$(ic_get sys.screen.timeout.value)")" 60000)
+                if [ "${ic_screen_ms:-0}" -gt 0 ]; then
+                    settings put system screen_off_timeout "$ic_screen_ms"
+                fi
+                ;;
+        esac || return 1
     fi
     return 0
 }
