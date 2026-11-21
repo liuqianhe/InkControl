@@ -28,6 +28,8 @@ static std::atomic<bool> gpuContextReady{false};
 #endif
 // 1 = diagnostic: CPU copies GPU frames into the stock surfaces instead of direct scanout.
 static std::atomic<bool> gpuFailed{false},scanFallback{EINK_COPY_SCAN!=0};
+// 单一入口：置位后立刻写遥测，状态查询不依赖下一次波形帧。
+static void failGpu(){if(!gpuFailed.exchange(true,std::memory_order_acq_rel))telemetrySet(T_GPU_FAILED,1);}
 static bool validated=false;
 static uint32_t originalFb[2]={0,0};
 static void*producerCtl;

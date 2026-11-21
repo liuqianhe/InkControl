@@ -67,6 +67,10 @@ final class RuntimeStatus implements StatusSource {
             if (feature.id.equals("display.gpu") && value != null && value.enabled("display.gpu")) {
                 if (!gpu.matches("(?s).*\"helper_loaded\"\\s*:\\s*(true|1).*")) return null;
                 if (!gpu.matches("(?s).*\"telemetry_valid\"\\s*:\\s*(true|1).*")) return null;
+                // gpu_failed=1 表示 native GPU 路径已永久降级（等待完整重启），
+                // 开关与快捷面板只改配置，救不回进程内标志；这里必须如实报异常。
+                if (gpu.matches("(?s).*\"gpu_failed\"\\s*:\\s*(true|1).*"))
+                    return new Evidence(false, "", "GPU 显示路径已降级，完整重启恢复", expectedRevision);
                 java.util.regex.Matcher errors = java.util.regex.Pattern
                         .compile("\"gpu_errors\"\\s*:\\s*([0-9]+)").matcher(gpu);
                 if (errors.find() && Integer.parseInt(errors.group(1)) >= 3)

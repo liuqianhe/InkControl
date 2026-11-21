@@ -265,7 +265,7 @@ static int hookCompare(const void*a,const void*b,size_t n){
     if(frontReady){
         try{uint32_t diff=runFront();frontDiff=diff;gpuSource=true;grayInput=frontRaw;return diff?1:0;}
         catch(const std::exception&e){
-            telemetryAdd(T_ERRORS);LOG("GPU_ERROR wave=%llu reason=front %s",(unsigned long long)waveId,e.what());gpuFailed=true;frontReady=false;
+            telemetryAdd(T_ERRORS);LOG("GPU_ERROR wave=%llu reason=front %s",(unsigned long long)waveId,e.what());failGpu();frontReady=false;
             cpuInputWork(frontRaw,load<uint8_t*>(base+VAR_WORK));
         }
     }
@@ -316,11 +316,20 @@ static bool importFallback(void*,const char*reason)noexcept{
         std::lock_guard<std::recursive_mutex>roles(inputRoles);
         telemetryAdd(T_INPUT_CPU);
         bool warming=!inputsReady||!gpuContextReady.load(std::memory_order_acquire);
+        // 目标缓冲仍被 previous/current 角色占用，或另一路 producer 正在写，是队列轮转
+        // 中的瞬时冲突：本帧走 CPU，角色释放后下一帧就能恢复。旧实现在这里也置
+        // gpuFailed，一次冲突就让整个 composer 生命周期的 GPU 波形路径永久停用，
+        // 「全刷扫过」与「翻页动画」随之一起失效，任何开关都无法恢复。
+        bool transient=reason&&!std::strcmp(reason,"input target not reservable");
         if(!warming){
             for(int i=0;i<3;++i)if(inputGpuWritten[i]){invalidateInput(inputs[i]);inputGpuWritten[i]=false;}
-            if(frontEnabled()){
+            if(transient){
+                VLOG("INPUT_IMPORT_RETRY reason=%s",reason);
+                prevArrayStale=true;prevValid=false;frontReady=false;
+            }else if(frontEnabled()){
                 telemetryAdd(T_ERRORS);LOG("INPUT_IMPORT_FALLBACK reason=%s",reason);
-                gpuFailed=true;prevArrayStale=true;prevValid=false;frontReady=false;
+                failGpu();
+                prevArrayStale=true;prevValid=false;frontReady=false;
             }
         }return true;
     }catch(const std::exception&e){LOG("INPUT_IMPORT_BLOCKED reason=%s",e.what());return false;}

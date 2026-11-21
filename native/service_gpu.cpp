@@ -20,8 +20,9 @@ static int generated;
 // permission is needed by the vendor HAL. Counters distinguish helper loading,
 // GPU preprocessing, GPU scan submission and ordinary CPU fallback waves.
 static constexpr uintptr_t TELEMETRY=0x6300100;
-static constexpr uint64_t TELEMETRY_MAGIC=0x45494e4b47505503ULL;
-enum TelemetryWord { T_MAGIC,T_PIXELS,T_SCAN,T_CPU,T_ERRORS,T_WAVE,T_PATH,T_SCAN_NS,T_READBACK,T_UPLOAD,T_INPUT_GPU,T_INPUT_CPU,T_WORDS };
+// v4 增加 T_GPU_FAILED（GPU 路径是否已永久降级），旧 v2/v3 布局仍可读。
+static constexpr uint64_t TELEMETRY_MAGIC=0x45494e4b47505504ULL;
+enum TelemetryWord { T_MAGIC,T_PIXELS,T_SCAN,T_CPU,T_ERRORS,T_WAVE,T_PATH,T_SCAN_NS,T_READBACK,T_UPLOAD,T_INPUT_GPU,T_INPUT_CPU,T_GPU_FAILED,T_WORDS };
 static void telemetrySet(int word,uint64_t value){if(base)__atomic_store_n(reinterpret_cast<uint64_t*>(base+TELEMETRY)+word,value,__ATOMIC_RELEASE);}
 static void telemetryAdd(int word){if(base)__atomic_fetch_add(reinterpret_cast<uint64_t*>(base+TELEMETRY)+word,uint64_t(1),__ATOMIC_RELEASE);}
 static void telemetryBytes(int word,size_t n){if(base)__atomic_fetch_add(reinterpret_cast<uint64_t*>(base+TELEMETRY)+word,uint64_t(n),__ATOMIC_RELEASE);}
@@ -161,7 +162,7 @@ static void hookBoundClear(void*destination,unsigned width,unsigned height){
                 glBufferData(GL_SHADER_STORAGE_BUFFER,PIXELS,nullptr,GL_DYNAMIC_COPY);}
             transitionKernels.clearA2Bound(residentBound,width,height);
             boundOwner=pixelCtl;boundCpuDirty=true;VLOG("A2_BOUND_GPU_CLEAR wave=%llu bytes=%zu",(unsigned long long)waveId,PIXELS);return;
-        }catch(const std::exception&e){telemetryAdd(T_ERRORS);LOG("A2_BOUND_FALLBACK reason=%s",e.what());gpuFailed=true;}
+        }catch(const std::exception&e){telemetryAdd(T_ERRORS);LOG("A2_BOUND_FALLBACK reason=%s",e.what());failGpu();}
     }
     reinterpret_cast<void(*)(void*,unsigned,unsigned)>(base+0x97da4)(destination,width,height);
     if(pixelCtl&&destination==field<void*>(pixelCtl,0x2d0))boundCpuDirty=false;
@@ -206,7 +207,7 @@ static void hookMixRegal(const uint8_t*old,const uint8_t*next,uint8_t*out,int w,
             if(!b.fullDestination){upload(b.buffer,out,PIXELS*2,2);telemetryBytes(T_UPLOAD,PIXELS*2);waveFence();b.fullDestination=true;}
             residentIndices=gpuMixRegalForCtl(pixelCtl,oldLevels(),newLevels());
             residentLayout=einkwave::IndexLayout::PixelY8Edge;return;
-        }catch(const std::exception&e){telemetryAdd(T_ERRORS);LOG("REGAL_FALLBACK reason=%s",e.what());bridgeResidentPixels(pixelCtl);gpuFailed=true;}
+        }catch(const std::exception&e){telemetryAdd(T_ERRORS);LOG("REGAL_FALLBACK reason=%s",e.what());bridgeResidentPixels(pixelCtl);failGpu();}
     }else if(preparedGray.ready)bridgeResidentPixels(pixelCtl);
     reinterpret_cast<void(*)(const uint8_t*,const uint8_t*,uint8_t*,int,int,void*)>(base+0x9a140)(old,next,out,w,h,region);
     if(pixelCtl&&out==field<void*>(pixelCtl,0x50))waveRegalBuffers[pixelCtl].fullDestination=false;
@@ -225,7 +226,7 @@ static void hookMixChange(const uint8_t*source,uint8_t*destination,int w,int h){
     if(preparedGray.ready&&fullPixelWave&&einktransition::mixChangeCall(einktransition::snapshot(pixelCtl),source,destination,w,h)){
         try{transitionKernels.mixChange(newLevels(),mixBuffer);residentIndices=mixBuffer;
             residentLayout=einkwave::IndexLayout::PairY4;return;}
-        catch(const std::exception&e){telemetryAdd(T_ERRORS);LOG("MIX_CHANGE_FALLBACK reason=%s",e.what());bridgeResidentPixels(pixelCtl);gpuFailed=true;}
+        catch(const std::exception&e){telemetryAdd(T_ERRORS);LOG("MIX_CHANGE_FALLBACK reason=%s",e.what());bridgeResidentPixels(pixelCtl);failGpu();}
     }else if(preparedGray.ready)bridgeResidentPixels(pixelCtl);
     reinterpret_cast<void(*)(const uint8_t*,uint8_t*,int,int)>(base+0x9a624)(source,destination,w,h);
 }
@@ -234,7 +235,7 @@ static void hookMixReset(const uint8_t*source,uint8_t*destination,int w,int h){
         try{if(!transitionMix){glGenBuffers(1,&transitionMix);glBindBuffer(GL_SHADER_STORAGE_BUFFER,transitionMix);
                 glBufferData(GL_SHADER_STORAGE_BUFFER,PIXELS,nullptr,GL_DYNAMIC_COPY);}
             transitionKernels.mixReset(oldLevels(),transitionMix);return;}
-        catch(const std::exception&e){telemetryAdd(T_ERRORS);LOG("MIX_RESET_FALLBACK reason=%s",e.what());bridgeResidentPixels(pixelCtl);gpuFailed=true;}
+        catch(const std::exception&e){telemetryAdd(T_ERRORS);LOG("MIX_RESET_FALLBACK reason=%s",e.what());bridgeResidentPixels(pixelCtl);failGpu();}
     }else if(preparedGray.ready)bridgeResidentPixels(pixelCtl);
     reinterpret_cast<void(*)(const uint8_t*,uint8_t*,int,int)>(base+0x9a690)(source,destination,w,h);
 }
@@ -242,7 +243,7 @@ static void*hookOldFill(void*destination,int value,size_t bytes){
     if(fullPixelWave&&preparedGray.ready&&einktransition::oldFillCall(einktransition::snapshot(pixelCtl),
             einktransition::OldFillCaller,destination,value,bytes)){
         try{transitionKernels.oldFillWhite(oldLevels());oldGpuValid=true;cpuOldDirty=true;shadowValid=false;return destination;}
-        catch(const std::exception&e){telemetryAdd(T_ERRORS);LOG("OLD_FILL_FALLBACK reason=%s",e.what());bridgeResidentPixels(pixelCtl);gpuFailed=true;}
+        catch(const std::exception&e){telemetryAdd(T_ERRORS);LOG("OLD_FILL_FALLBACK reason=%s",e.what());bridgeResidentPixels(pixelCtl);failGpu();}
     }else if(preparedGray.ready)bridgeResidentPixels(pixelCtl);
     return std::memset(destination,value,bytes);
 }
@@ -250,7 +251,7 @@ static int hookAutoStats(void*rgba,void*,void*result,unsigned w,unsigned h,int){
     if(!gpuSource||gpuFailed||w!=1440||h!=720)return 0;
     try{auto counts=gpuAutoStats(grayInput);std::memcpy(result,&counts,sizeof(counts));return 1;}
     catch(const std::exception&e){
-        telemetryAdd(T_ERRORS);LOG("AUTO_STATS_FALLBACK reason=%s",e.what());gpuFailed=true;
+        telemetryAdd(T_ERRORS);LOG("AUTO_STATS_FALLBACK reason=%s",e.what());failGpu();
         // The original loop consumes the previous-image argument, not VAR_WORK.
         try{materialiseGpuWork(grayInput,rgba);}
         catch(...){cpuInputWork(grayInput,rgba);}
@@ -306,7 +307,7 @@ static void hookPattern(void*p){
         try{
             if(producerPool<0&&field<int>(p,0x20)==0)renderWave(p);
             if(producerPool>=0)return;
-        }catch(const std::exception&e){telemetryAdd(T_ERRORS);LOG("GPU_ERROR wave=%llu reason=%s",(unsigned long long)waveId,e.what());recoverCpuPixels(producerCtl);gpuFailed=true;eligible=false;producerPool=-1;}
+        }catch(const std::exception&e){telemetryAdd(T_ERRORS);LOG("GPU_ERROR wave=%llu reason=%s",(unsigned long long)waveId,e.what());recoverCpuPixels(producerCtl);failGpu();eligible=false;producerPool=-1;}
     }
     reinterpret_cast<void(*)(void*)>(base+0x97540)(p);
 }
@@ -401,7 +402,7 @@ static int hookUpdate(void*entry,void*ctl){
                 request.wave=waveId;request.gpuIndexValidated=true;
                 gpuBeginWave(request);waveformFrames=int(request.totalFrames);
             }catch(const std::exception&e){telemetryAdd(T_ERRORS);LOG("ROLL_BEGIN_FALLBACK reason=%s",e.what());
-                motionMax=0;bridgeResidentPixels(ctl);gpuCancelRollingWave();rollingProducer=false;gpuFailed=true;}
+                motionMax=0;bridgeResidentPixels(ctl);gpuCancelRollingWave();rollingProducer=false;failGpu();}
         }
         if(fullPixelWave&&!rollingProducer)bridgeResidentPixels(ctl);
     }
@@ -413,7 +414,7 @@ static int hookUpdate(void*entry,void*ctl){
             motionAbort(ctl,frame);
             // 撤销分带延长，避免原厂用扩展后的帧号越界访问 LUT。
             einkfusion::restoreTail();fusionTail=0;control=einktransition::snapshot(ctl);segment=einktransition::segment(control);
-            bridgeResidentPixels(ctl);gpuCancelRollingWave();rollingProducer=false;producerPool=-1;gpuFailed=true;}
+            bridgeResidentPixels(ctl);gpuCancelRollingWave();rollingProducer=false;producerPool=-1;failGpu();}
     }
     if(frame==0&&configuredMode==1)eligible=gpuWaveEligible(ctl);
     if(frame==0&&!rollingProducer){if(eligible)motionDecide(ctl);else motionMax=0;}
@@ -483,7 +484,7 @@ static void hookFlip(){
     if(!next&&consuming.pool>=0){
         LOG("SCAN_FALLBACK wave=%llu f=%d errno=%d",(unsigned long long)consuming.wave,consuming.frame,errno);
         telemetryAdd(T_ERRORS);
-        gpuFailed=true;scanFallback=true;
+        failGpu();scanFallback=true;
         for(int i=0;i<2;i++)std::memcpy(surfaces[i]+0x18,&originalFb[i],4);
         auto snapshot=pools[consuming.pool].frames[consumingPoolFrame]->snapshot();std::memcpy(field<void*>(back,0x10),snapshot.data(),snapshot.size());
         next=flip(state);

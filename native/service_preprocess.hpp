@@ -328,7 +328,7 @@ static int hookPreprocess(void*rgba,void*ctl,int mode,int selected){
     if(!modeStock&&!stockOverride()&&frontReady&&!gpuSource&&!gpuFailed){
         try{runFront();gpuSource=true;grayInput=frontRaw;}
         catch(const std::exception&e){telemetryAdd(T_ERRORS);LOG("PRE_FRONT_FALLBACK reason=%s",e.what());
-            cpuInputWork(frontRaw,rgba);gpuFailed=true;frontReady=false;}
+            cpuInputWork(frontRaw,rgba);failGpu();frontReady=false;}
     }
     pixelPolicy=readPixelPolicy(ctl,mode,selected);
     const auto binary=pixelPolicy.binary;
@@ -345,7 +345,7 @@ static int hookPreprocess(void*rgba,void*ctl,int mode,int selected){
     if(!candidate){
         if(nonA2Preprocess&&!gpuFailed){
             try{if(nonA2Preprocess(ctl,mode,selected)){fullPixelWave=true;return 1;}}
-            catch(const std::exception&e){telemetryAdd(T_ERRORS);LOG("GRAY_PREPROCESS_FALLBACK reason=%s",e.what());recoverCpuPixels(ctl);gpuFailed=true;}
+            catch(const std::exception&e){telemetryAdd(T_ERRORS);LOG("GRAY_PREPROCESS_FALLBACK reason=%s",e.what());recoverCpuPixels(ctl);failGpu();}
             preparedGray={};
         }
         syncCpuOld(ctl);oldGpuValid=false;shadowValid=false;return supplyCpuGray(rgba,ctl,mode);
@@ -421,7 +421,7 @@ static int hookPreprocess(void*rgba,void*ctl,int mode,int selected){
         VLOG("PRE wave=%llu begin=%llu queued=%llu upload_begin=%llu upload_end=%llu blank=%d",(unsigned long long)waveId,
             (unsigned long long)begin,(unsigned long long)now(),(unsigned long long)uploadBegin,(unsigned long long)uploadEnd,field<int>(ctl,0x280));
         return 1;
-    }catch(const std::exception&e){telemetryAdd(T_ERRORS);LOG("GPU_ERROR wave=%llu reason=%s",(unsigned long long)waveId,e.what());recoverCpuPixels(ctl);gpuFailed=true;return supplyCpuGray(rgba,ctl,mode);}
+    }catch(const std::exception&e){telemetryAdd(T_ERRORS);LOG("GPU_ERROR wave=%llu reason=%s",(unsigned long long)waveId,e.what());recoverCpuPixels(ctl);failGpu();return supplyCpuGray(rgba,ctl,mode);}
 }
 static int hookPostprocess(void*){return preparedGray.ready?2:fullPixelWave?1:0;}
 static void*hookCommit(void*dst,const void*src,size_t n){

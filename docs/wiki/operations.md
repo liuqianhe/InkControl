@@ -11,6 +11,7 @@
 | 视频慢 | 实际视频标记、算法、GPU/CPU 波次的连续增量、错误计数 | stock 慢就一定在 CPU |
 | 开关开了没效果 | 依赖、HOT/REBOOT、本次启动、当前进程回执与修订号 | 文件保存等于生效 |
 | 后端已加载仍卡 | 当前 helper、EGL/GL 首错、输入队列、遥测增量 | maps 有库等于 GPU 正在工作 |
+| 全刷扫过 / 翻页动画同时失效 | `gpu_failed`、`gpu_pixel_waves` 增量、`gpu.log` 最后一条 `MOTION_GC` / `FUSION_DRIVE` | 开关已开等于波形动画在跑 |
 | 锁屏歌词细线 | 输入、模式、误差扩散、固定歌词对照和实屏反馈 | 扫描字节相同等于观感问题已解决 |
 | 重载系统服务后所有钩子失效 | 新 zygote/system_server/SystemUI PID 与框架注入 | App 仍能打开等于钩子正常 |
 

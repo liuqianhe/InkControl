@@ -27,7 +27,7 @@ struct ContextRestore {
     ~ContextRestore(){if(switched){
         bool ok=oldContext==EGL_NO_CONTEXT?eglMakeCurrent(display,EGL_NO_SURFACE,EGL_NO_SURFACE,EGL_NO_CONTEXT):
             eglMakeCurrent(oldDisplay,draw,read,oldContext);
-        if(!ok){telemetryAdd(T_ERRORS);gpuFailed=true;LOG("GPU_ERROR LUT caller context restoration");}
+        if(!ok){telemetryAdd(T_ERRORS);failGpu();LOG("GPU_ERROR LUT caller context restoration");}
     }}
 };
 static void makeCurrent(ContextRestore&restore){

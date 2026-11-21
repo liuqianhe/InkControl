@@ -65,14 +65,19 @@ static int status(int pid){
     std::array<uint64_t,12> words{};
     int fd=open(("/proc/"+std::to_string(pid)+"/mem").c_str(),O_RDONLY|O_CLOEXEC);
     bool readable=fd>=0&&base&&pread(fd,words.data(),sizeof(words),base+0x6300100)==sizeof(words);
-    if(fd>=0)close(fd);
-    int version=readable&&words[0]==0x45494e4b47505503ULL?3:
+    int version=readable&&words[0]==0x45494e4b47505504ULL?4:
+                readable&&words[0]==0x45494e4b47505503ULL?3:
                 readable&&words[0]==0x45494e4b47505502ULL?2:0;
+    uint64_t gpuFailed=0;
+    // v4 在 12 个旧字之后追加一个失败标志；v2/v3 不读，避免越界。
+    if(version>=4&&pread(fd,&gpuFailed,8,base+0x6300100+12*8)!=8)gpuFailed=0;
+    if(fd>=0)close(fd);
     bool valid=version!=0;
     std::cout<<"{\"pid\":"<<pid<<",\"helper_loaded\":"<<(helper?"true":"false")
        <<",\"telemetry_valid\":"<<(valid?"true":"false")<<",\"version\":"<<version;
     const char*names[]={"gpu_pixel_waves","gpu_scan_frames","cpu_waves","gpu_errors","last_wave","path_bits","last_scan_ns","pixel_readback_bytes","pixel_upload_bytes","input_gpu_frames","input_cpu_events"};
     for(size_t i=1;i<words.size();i++)std::cout<<",\""<<names[i-1]<<"\":"<<((valid&&(version>=3||i<10))?words[i]:0);
+    std::cout<<",\"gpu_failed\":"<<((valid&&version>=4&&gpuFailed)?1:0);
     std::cout<<"}"<<std::endl;return valid?0:2;
 }
 static int observe(int seconds,const std::string&dir,int hwc,int sf,int app){

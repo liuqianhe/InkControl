@@ -25,6 +25,8 @@ public final class RuntimeStatusTest {
         status.update(state(off, off, ""), new Bundle(), enabled.revision); check(status.evidence(theme)==null);
         Configuration gpu = off.change("display.gpu", true, "default"); FeatureDefinition backend = FeatureCatalog.get("display.gpu");
         status.update(state(gpu,gpu,"{\"helper_loaded\":true,\"telemetry_valid\":true,\"gpu_errors\":0}"),new Bundle(),gpu.revision); check(status.evidence(backend).enabled);
+        status.update(state(gpu,gpu,"{\"helper_loaded\":true,\"telemetry_valid\":true,\"gpu_errors\":0,\"gpu_failed\":0}"),new Bundle(),gpu.revision); check(status.evidence(backend).enabled);
+        status.update(state(gpu,gpu,"{\"helper_loaded\":true,\"telemetry_valid\":true,\"gpu_errors\":1,\"gpu_failed\":1}"),new Bundle(),gpu.revision); check(!status.evidence(backend).error.isEmpty());
         status.update(state(gpu,gpu,"{\"helper_loaded\":false,\"telemetry_valid\":true}"),new Bundle(),gpu.revision); check(status.evidence(backend)==null);
         status.update(state(gpu,gpu,"{\"helper_loaded\":true,\"telemetry_valid\":false}"),new Bundle(),gpu.revision); check(status.evidence(backend)==null);
         status.update(state(gpu,gpu,"{\"helper_loaded\":true,\"telemetry_valid\":true,\"gpu_errors\":3}"),new Bundle(),gpu.revision); check(!status.evidence(backend).error.isEmpty());
